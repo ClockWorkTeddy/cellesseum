@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Celleseum.ApiService/Celleseum.ApiService.csproj" />
+  <Project Path="Celleseum.AppHost/Celleseum.AppHost.csproj" />
+  <Project Path="Celleseum.ServiceDefaults/Celleseum.ServiceDefaults.csproj" />
+  <Project Path="Celleseum.Tests/Celleseum.Tests.csproj" />
+  <Project Path="Celleseum.Web/Celleseum.Web.csproj" />
+</Solution>

@@ -26,7 +26,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Celleseum.AppHost")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+650903df5e42fc187f6b36c00d09fd8c9a37fc54")]
 [assembly: System.Reflection.AssemblyProductAttribute("Celleseum.AppHost")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Celleseum.AppHost")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

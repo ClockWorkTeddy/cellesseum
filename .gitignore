@@ -5,3 +5,11 @@
 /.vs
 bin/
 obj/
+/Celleseum.ApiService/obj/Debug/net10.0/Celleseum.ApiService.AssemblyInfo.cs
+/Celleseum.ApiService/obj/Debug/net10.0/Celleseum.ApiService.AssemblyInfoInputs.cache
+/Celleseum.AppHost/obj/Debug/net10.0/Celleseum.AppHost.assets.cache
+/Celleseum.Tests/obj/Debug/net10.0/Celleseum.Tests.AssemblyInfo.cs
+/Celleseum.Tests/obj/Debug/net10.0/Celleseum.Tests.AssemblyInfoInputs.cache
+/Celleseum.Tests/obj/Debug/net10.0/Celleseum.Tests.csproj.AssemblyReference.cache
+/Celleseum.Web/obj/Debug/net10.0/Celleseum.Web.AssemblyInfo.cs
+/Celleseum.Web/obj/Debug/net10.0/Celleseum.Web.AssemblyInfoInputs.cache

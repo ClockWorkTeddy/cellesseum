@@ -1,0 +1,27 @@
+name: celleseum
+services:
+  apiservice:
+    image: ghcr.io/${GITHUB_OWNER:-your-gh-user-or-org}/celleseum-apiservice:latest
+    container_name: celleseum-apiservice
+    restart: unless-stopped
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_URLS=http://0.0.0.0:8080
+
+  web:
+    image: ghcr.io/${GITHUB_OWNER:-your-gh-user-or-org}/celleseum-web:latest
+    container_name: celleseum-web
+    restart: unless-stopped
+    depends_on:
+      - apiservice
+    ports:
+      - "80:8080"
+    environment:
+      - ASPNETCORE_URLS=http://0.0.0.0:8080
+      # If your web app needs the API base URL, point it to the compose DNS name:
+      # - Api__BaseAddress=http://apiservice:8080
+
+networks:
+  default:
+    name: celleseum-net

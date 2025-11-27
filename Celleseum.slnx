@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+  </Folder>
   <Project Path="Celleseum.ApiService/Celleseum.ApiService.csproj" />
   <Project Path="Celleseum.AppHost/Celleseum.AppHost.csproj" />
   <Project Path="Celleseum.ServiceDefaults/Celleseum.ServiceDefaults.csproj" />

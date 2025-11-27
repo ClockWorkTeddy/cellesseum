@@ -1,0 +1,46 @@
+name: Deploy Aspire (.NET 10) to Hetzner
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install .NET 10 Preview
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+        include-prerelease: true
+
+    - name: Restore Aspire workloads
+      run: dotnet workload restore
+
+    - name: Publish Aspire AppHost
+      run: dotnet publish ./Cellesseum.AppHost/Cellesseum.AppHost.csproj -c Release -o publish
+
+    - name: Upload to server (Hetzner)
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.HOST }}
+        username: root
+        key: ${{ secrets.SSH_KEY }}
+        source: "publish/*"
+        target: "/root/aspire-app"
+
+    - name: Restart app on server
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.HOST }}
+        username: root
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd /root/aspire-app
+          pkill -f Cellesseum.AppHost || true
+          nohup dotnet Cellesseum.AppHost.dll > log.txt 2>&1 &

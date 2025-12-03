@@ -13,3 +13,9 @@ obj/
 /Celleseum.Tests/obj/Debug/net10.0/Celleseum.Tests.csproj.AssemblyReference.cache
 /Celleseum.Web/obj/Debug/net10.0/Celleseum.Web.AssemblyInfo.cs
 /Celleseum.Web/obj/Debug/net10.0/Celleseum.Web.AssemblyInfoInputs.cache
+/Celleseum.ApiService/obj/Debug/net10.0/Celleseum.ApiService.csproj.AssemblyReference.cache
+/Celleseum.AppHost/obj/Debug/net10.0/Celleseum.AppHost.AssemblyInfo.cs
+/Celleseum.AppHost/obj/Debug/net10.0/Celleseum.AppHost.AssemblyInfoInputs.cache
+/Celleseum.ServiceDefaults/obj/Debug/net10.0/Celleseum.ServiceDefaults.AssemblyInfo.cs
+/Celleseum.ServiceDefaults/obj/Debug/net10.0/Celleseum.ServiceDefaults.AssemblyInfoInputs.cache
+/Celleseum.Web/obj/Debug/net10.0/Celleseum.Web.csproj.AssemblyReference.cache

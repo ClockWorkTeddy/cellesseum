@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
+    <File Path="compose.dev.yml" />
     <File Path="compose.prod.yml" />
   </Folder>
   <Project Path="Celleseum.ApiService/Celleseum.ApiService.csproj" />

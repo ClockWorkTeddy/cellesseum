@@ -12,19 +12,19 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddOutputCache();
 
+// Prefer explicit URL + port for container-to-container traffic.
+// Allows override via config/env: Api:BaseAddress or Api__BaseAddress
 builder.Services.AddHttpClient<WeatherApiClient>(client =>
-    {
-        // This URL uses "https+http://" to indicate HTTPS is preferred over HTTP.
-        // Learn more about service discovery scheme resolution at https://aka.ms/dotnet/sdschemes.
-        client.BaseAddress = new("https+http://apiservice");
-    });
+{
+    var configured = builder.Configuration["Api:BaseAddress"];
+    client.BaseAddress = new Uri(configured ?? "http://apiservice:8080");
+});
 
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 

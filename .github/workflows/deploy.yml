@@ -26,11 +26,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
       - name: Build and push ApiService
         run: |
-          docker build -f Celleseum.ApiService/Dockerfile -t $IMAGE_API:latest -t $IMAGE_API:${{ github.sha }} .
-          docker push $IMAGE_API:latest
-          docker push $IMAGE_API:${{ github.sha }}
+          docker build -f Celleseum.ApiService/Dockerfile -t ghcr.io/$OWNER_LC/celleseum-apiservice:latest -t ghcr.io/$OWNER_LC/celleseum-apiservice:${{ github.sha }} .
+          docker push ghcr.io/$OWNER_LC/celleseum-apiservice:latest
+          docker push ghcr.io/$OWNER_LC/celleseum-apiservice:${{ github.sha }}
 
       - name: Build and push Web
         run: |
@@ -41,23 +44,23 @@ jobs:
       - name: Upload compose file to VM
         uses: appleboy/scp-action@v0.2.4
         with:
-          host: ${{ secrets.HETZNER_HOST }}
-          username: ${{ secrets.HETZNER_USER }}
-          key: ${{ secrets.HETZNER_SSH_KEY }}
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.REMOTE_SSH_KEY }}
           source: compose.prod.yml
           target: /opt/celleseum
 
       - name: Deploy on VM
         uses: appleboy/ssh-action@v1.1.0
         with:
-          host: ${{ secrets.HETZNER_HOST }}
-          username: ${{ secrets.HETZNER_USER }}
-          key: ${{ secrets.HETZNER_SSH_KEY }}
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.REMOTE_SSH_KEY }}
           script: |
             sudo mkdir -p /opt/celleseum
             cd /opt/celleseum
             # Login to GHCR on the VM (use a PAT if your GHCR repo is private)
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin || true
-            export GITHUB_OWNER="${{ github.repository_owner }}"
+            export GITHUB_OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
             docker compose -f compose.prod.yml pull
             docker compose -f compose.prod.yml up -d

@@ -52,9 +52,9 @@ jobs:
 
       - name: Build and push Web
         run: |
-          docker build -f Celleseum.Web/Dockerfile -t $IMAGE_WEB:latest -t $IMAGE_WEB:${{ github.sha }} .
-          docker push $IMAGE_WEB:latest
-          docker push $IMAGE_WEB:${{ github.sha }}
+          docker build -f Celleseum.Web/Dockerfile -t ghcr.io/$OWNER_LC/celleseum-web:latest -t ghcr.io/$OWNER_LC/celleseum-web:${{ github.sha }} .
+          docker push ghcr.io/$OWNER_LC/celleseum-web:latest
+          docker push ghcr.io/$OWNER_LC/celleseum-web:${{ github.sha }}
 
       - name: Upload compose file to VM
         uses: appleboy/scp-action@v1.0.0

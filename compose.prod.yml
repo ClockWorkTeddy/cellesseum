@@ -16,7 +16,7 @@ services:
     depends_on:
       - apiservice
     ports:
-      - "80:8080"                 # host:container (behind proxy you can remove this and expose via proxy)
+      - "5000:8080"
     environment:
       - ASPNETCORE_URLS=http://0.0.0.0:8080
       - Api__BaseAddress=http://apiservice:8080  # critical: container-to-container URL

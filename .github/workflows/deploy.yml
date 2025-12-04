@@ -2,6 +2,21 @@ name: Build and Deploy to Hetzner
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: 'Target environment (optional)'
+        type: choice
+        required: false
+        default: production
+        options:
+          - production
+          - staging
+      force_recreate:
+        description: 'Force recreate containers'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -42,7 +57,7 @@ jobs:
           docker push $IMAGE_WEB:${{ github.sha }}
 
       - name: Upload compose file to VM
-        uses: appleboy/scp-action@v0.2.4
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}

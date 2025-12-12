@@ -1,3 +1,7 @@
+using System;
+using System.Drawing;
+using System.Text.Json.Serialization;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
@@ -19,27 +23,32 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
-
-app.MapGet("/weatherforecast", () =>
+app.MapGet("/turn", () =>
 {
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    Random rnd = new();
+    var numbers = new int[100];
+    for (int i = 0; i < 100; i++)
+    {
+        numbers[i] = rnd.Next(1, 101);
+    }
+    var numbersSet = new NumberSet(numbers);
+    return numbersSet;
 })
-.WithName("GetWeatherForecast");
+.WithName("NextTurn");
 
 app.MapDefaultEndpoints();
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+record NumberSet
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    [JsonConstructor]
+    public NumberSet(int[] numbers)
+    {
+        Numbers = numbers ?? Array.Empty<int>();
+    }
+
+    public int[] Numbers { get; init; }
+
+    public int Average => Numbers.Length > 0 ? Numbers.Sum() / Numbers.Length : 0;
 }

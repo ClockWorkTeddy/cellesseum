@@ -1,7 +1,47 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@attribute [StreamRendering(true)]
+@attribute [OutputCache(Duration = 5)]
+
+@inject WeatherApiClient WeatherApi
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Home</h1>
 
-Welcome to your new app.
+<button class="btn btn-primary" @onclick="GetNewNumbers">Click me</button>
+
+@if (forecast == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th aria-label="Temperature in Celsius">Temp. (C)</th>
+                <th aria-label="Temperature in Farenheit">Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>@forecast.Average</td>
+                <td>@forecast.Numbers.Min()</td>
+                <td>@forecast.Numbers.Max()</td>
+                <td>@forecast.Numbers.Count()</td>
+            </tr>
+        </tbody>
+    </table>
+}
+
+@code {
+    private NumberSet? forecast;
+
+    private async Task GetNewNumbers()
+    {
+        forecast = await WeatherApi.GetWeatherAsync();
+    }
+}

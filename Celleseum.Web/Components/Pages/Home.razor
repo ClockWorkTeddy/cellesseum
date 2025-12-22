@@ -4,17 +4,32 @@
 @attribute [OutputCache(Duration = 5)]
 
 @inject WeatherApiClient WeatherApi
-
-@if (visibleNumber > 0)
-{
-    <div class="mb-3">
-        <span class="badge bg-secondary me-1">@visibleNumber</span>
+<div class="container">
+    <div class="row">
+        <div class="col-12 d-flex justify-content-center text-secondary">
+            <h1>Cellesseum</h1>
+        </div>
     </div>
-}
+    <div class="row">
+        <div class="col-12 d-flex justify-content-center">
+            @if (visibleNumber > 0)
+            {
+                <h1>
+                    <span class="badge bg-secondary me-1">@visibleNumber</span>
+                </h1>
+            }
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 d-flex justify-content-center">
+            <button class="btn btn-primary" @onclick="GetNewNumbers" disabled="@isAnimating">
+                @(isAnimating ? "Loading..." : "Click me")
+            </button>
+        </div>
+    </div>
+</div>
 
-<button class="btn btn-primary" @onclick="GetNewNumbers" disabled="@isAnimating">
-    @(isAnimating ? "Loading..." : "Click me")
-</button>
+
 
 @code {
     private int visibleNumber = -1;

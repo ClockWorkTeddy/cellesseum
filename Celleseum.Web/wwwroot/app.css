@@ -2,6 +2,10 @@ html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+.page {
+    min-height: 100vh; /* fill entire viewport height */
+}
+
 a, .btn-link {
     color: #006bb7;
 }

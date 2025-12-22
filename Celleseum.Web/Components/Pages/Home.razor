@@ -5,43 +5,40 @@
 
 @inject WeatherApiClient WeatherApi
 
-<PageTitle>Home</PageTitle>
-
-<h1>Home</h1>
-
-<button class="btn btn-primary" @onclick="GetNewNumbers">Click me</button>
-
-@if (forecast == null)
+@if (visibleNumber > 0)
 {
-    <p><em>Loading...</em></p>
+    <div class="mb-3">
+        <span class="badge bg-secondary me-1">@visibleNumber</span>
+    </div>
 }
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th aria-label="Temperature in Celsius">Temp. (C)</th>
-                <th aria-label="Temperature in Farenheit">Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>@forecast.Average</td>
-                <td>@forecast.Numbers.Min()</td>
-                <td>@forecast.Numbers.Max()</td>
-                <td>@forecast.Numbers.Count()</td>
-            </tr>
-        </tbody>
-    </table>
-}
+
+<button class="btn btn-primary" @onclick="GetNewNumbers" disabled="@isAnimating">
+    @(isAnimating ? "Loading..." : "Click me")
+</button>
 
 @code {
-    private NumberSet? forecast;
+    private int visibleNumber = -1;
+    private bool isAnimating;
 
     private async Task GetNewNumbers()
     {
-        forecast = await WeatherApi.GetWeatherAsync();
+        if (isAnimating)
+        {
+            return;
+        }
+
+        isAnimating = true;
+
+        var result = await WeatherApi.GetWeatherAsync();
+        var numbers = result?.Numbers ?? Array.Empty<int>();
+
+        foreach (var n in numbers)
+        {
+            visibleNumber = n;
+            await InvokeAsync(StateHasChanged); // render after each addition
+            await Task.Delay(20);
+        }
+
+        isAnimating = false;
     }
 }

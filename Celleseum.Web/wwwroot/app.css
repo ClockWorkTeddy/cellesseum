@@ -58,3 +58,17 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.badge-xxl {
+    font-size: 160px;
+    line-height: 1;
+    padding: 0.25em 0.4em;
+    border-radius: 0.35rem;
+    display: inline-block;
+    /* Use CSS variable for the red channel */
+    color: rgb(var(--label-color, 128, 0, 0));
+}
+
+.random-number-container {
+    min-height: 250px;
+}

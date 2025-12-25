@@ -12,12 +12,12 @@
     </div>
     <div class="row">
         <div class="col-12 d-flex justify-content-center">
-            @if (visibleNumber > 0)
-            {
-                <h1>
-                    <span class="badge bg-secondary me-1">@visibleNumber</span>
-                </h1>
-            }
+            <div class="random-number-container">
+                @if (visibleNumber > 0)
+                {
+                    <span class="label badge-xxl me-1" style="@GetLabelStyle()">@visibleNumber</span>
+                }
+            </div>
         </div>
     </div>
     <div class="row">
@@ -35,6 +35,19 @@
     private int visibleNumber = -1;
     private bool isAnimating;
 
+    private string GetLabelStyle()
+    {
+        // Normalize 0..100 -> 0..255
+        var redRaw = (int)Math.Round((100 - visibleNumber) / 50.0 * 255);
+        var red = Math.Clamp(redRaw, 0, 255);
+
+        // Example green channel decreasing with value, also normalized
+        var greenRaw = (int)Math.Round(visibleNumber / 50.0 * 255);
+        var green = Math.Clamp(greenRaw, 0, 255);
+
+        return $"--label-color:{red},{green},0";
+    }
+
     private async Task GetNewNumbers()
     {
         if (isAnimating)
@@ -51,7 +64,7 @@
         {
             visibleNumber = n;
             await InvokeAsync(StateHasChanged); // render after each addition
-            await Task.Delay(20);
+            await Task.Delay(25);
         }
 
         isAnimating = false;

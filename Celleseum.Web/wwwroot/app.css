@@ -69,6 +69,17 @@ h1:focus {
     color: rgb(var(--label-color, 128, 0, 0));
 }
 
+.badge-xl {
+    font-size: 80px;
+    line-height: 1;
+    padding: 0.125em 0.2em;
+    border-radius: 0.35rem;
+    display: inline-block;
+    /* Use CSS variable for the red channel */
+    color: rgb(var(--label-color, 128, 128, 200));
+}
+
+
 .random-number-container {
     min-height: 250px;
 }

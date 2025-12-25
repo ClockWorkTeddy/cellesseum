@@ -7,7 +7,9 @@
 <div class="container">
     <div class="row">
         <div class="col-12 d-flex justify-content-center text-secondary">
-            <h1>Cellesseum</h1>
+            <h1>
+                <span class="label badge-xl me-1">Cellesseum</span>
+            </h1>
         </div>
     </div>
     <div class="row">
@@ -15,7 +17,7 @@
             <div class="random-number-container">
                 @if (visibleNumber > 0)
                 {
-                    <span class="label badge-xxl me-1" style="@GetLabelStyle()">@visibleNumber</span>
+                    <span class="label badge-xxl me-1" style="@GetLabelStyle(visibleNumber)">@visibleNumber</span>
                 }
             </div>
         </div>
@@ -27,22 +29,36 @@
             </button>
         </div>
     </div>
+    @if (averageNumber > 0 && !isAnimating)
+    {
+        <div class="row">
+            <div class="col-12 d-flex justify-content-center pt-5">
+                <h1 class="text-secondary">Average:</h1>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 d-flex justify-content-center">
+                <span class="label badge-xl me-1" style="@GetLabelStyle(averageNumber)">@averageNumber</span>
+            </div>
+        </div>
+    }
 </div>
 
 
 
 @code {
     private int visibleNumber = -1;
+    private int averageNumber = -1;
     private bool isAnimating;
 
-    private string GetLabelStyle()
+    private string GetLabelStyle(int value)
     {
         // Normalize 0..100 -> 0..255
-        var redRaw = (int)Math.Round((100 - visibleNumber) / 50.0 * 255);
+        var redRaw = (int)Math.Round((100 - value) / 50.0 * 255);
         var red = Math.Clamp(redRaw, 0, 255);
 
         // Example green channel decreasing with value, also normalized
-        var greenRaw = (int)Math.Round(visibleNumber / 50.0 * 255);
+        var greenRaw = (int)Math.Round(value / 50.0 * 255);
         var green = Math.Clamp(greenRaw, 0, 255);
 
         return $"--label-color:{red},{green},0";
@@ -59,7 +75,7 @@
 
         var result = await WeatherApi.GetWeatherAsync();
         var numbers = result?.Numbers ?? Array.Empty<int>();
-
+        averageNumber = result?.Average ?? -1;
         foreach (var n in numbers)
         {
             visibleNumber = n;

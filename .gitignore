@@ -48,3 +48,4 @@ obj/
 /Celleseum.ApiService/obj/Celleseum.ApiService.csproj.nuget.g.props
 /Celleseum.ApiService/obj/Debug/net10.0/Celleseum.ApiService.assets.cache
 /Celleseum.ApiService/obj/Debug/net10.0/rpswa.dswa.cache.json
+/Celleseum.ApiService/appsettings.Development.json

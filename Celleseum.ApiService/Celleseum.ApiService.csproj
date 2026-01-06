@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Celleseum.Data\Celleseum.Data.csproj" />
     <ProjectReference Include="..\Celleseum.ServiceDefaults\Celleseum.ServiceDefaults.csproj" />
   </ItemGroup>
 

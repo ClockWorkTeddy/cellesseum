@@ -1,8 +1,9 @@
-using System;
-using System.Drawing;
+
+using Celleseum.Data;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+var connectionString
 
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
@@ -23,7 +24,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/turn", () =>
+app.MapGet("/turn", async (CellesseumDbContext db) =>
 {
     Random rnd = new();
     var numbers = new int[100];

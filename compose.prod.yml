@@ -1,6 +1,25 @@
 name: celleseum
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: celleseum-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DATABASE}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+    volumes:
+      - /opt/celleseum/postgres-data:/var/lib/postgresql/data  # persistent host path
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   apiservice:
+    depends_on:
+      postgres:
+        condition: service_healthy
     image: ghcr.io/${GITHUB_OWNER:-your-gh-user-or-org}/celleseum-apiservice:latest
     container_name: celleseum-apiservice
     restart: unless-stopped
@@ -8,6 +27,11 @@ services:
       - "5001:8080"               # host:container
     environment:
       - ASPNETCORE_URLS=http://0.0.0.0:8080
+      - DatabaseHost=postgres
+      - DatabasePort=5432
+      - Database=${DATABASE}
+      - DatabaseUser=${DATABASE_USER}
+      - DatabasePassword=${DATABASE_PASSWORD}
 
   web:
     image: ghcr.io/${GITHUB_OWNER:-your-gh-user-or-org}/celleseum-web:latest

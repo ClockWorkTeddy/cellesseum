@@ -47,11 +47,18 @@ app.MapGet("/turn", async (CellesseumDbContext db, HttpContext httpContext) =>
         numbers[i] = rnd.Next(1, 101);
     }
     var numbersSet = new NumberSet(numbers);
+
+    // Prefer X-Forwarded-For if present (first IP), otherwise use connection address
+    var xff = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+    var clientIp = !string.IsNullOrWhiteSpace(xff)
+        ? xff.Split(',')[0].Trim()
+        : httpContext.Connection.RemoteIpAddress?.ToString();
+
     var dbRecord = new NumberSetDbRecord
     {
         DateTime = DateTime.UtcNow,
         Average = numbersSet.Average,
-        IpAddress = httpContext.Connection.RemoteIpAddress?.ToString()
+        IpAddress = clientIp
     };
     db.NumberSets.Add(dbRecord);
     await db.SaveChangesAsync();

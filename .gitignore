@@ -51,3 +51,5 @@ obj/
 /Celleseum.ApiService/appsettings.Development.json
 /Celleseum.ApiService/obj/Celleseum.ApiService.csproj.nuget.g.targets
 /Celleseum.ApiService/obj/Debug/net10.0/Celleseum.ApiService.GeneratedMSBuildEditorConfig.editorconfig
+/.env
+/compose.dev.yml

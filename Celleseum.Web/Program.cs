@@ -12,13 +12,18 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddOutputCache();
 
+// Forward client IP from incoming request to outgoing API calls
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<ForwardClientIpHandler>();
+
 // Prefer explicit URL + port for container-to-container traffic.
 // Allows override via config/env: Api:BaseAddress or Api__BaseAddress
 builder.Services.AddHttpClient<WeatherApiClient>(client =>
 {
     var configured = builder.Configuration["Api:BaseAddress"];
     client.BaseAddress = new Uri(configured ?? "http://apiservice:8080");
-});
+})
+.AddHttpMessageHandler<ForwardClientIpHandler>();
 
 var app = builder.Build();
 

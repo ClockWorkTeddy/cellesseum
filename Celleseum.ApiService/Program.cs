@@ -58,7 +58,7 @@ app.MapGet("/turn", async (CellesseumDbContext db, HttpContext httpContext) =>
     {
         DateTime = DateTime.UtcNow,
         Average = numbersSet.Average,
-        IpAddress = clientIp
+        IpAddress = TrimClientIp(clientIp)
     };
     db.NumberSets.Add(dbRecord);
     await db.SaveChangesAsync();
@@ -70,8 +70,13 @@ app.MapDefaultEndpoints();
 
 app.Run();
 
-string TrimClientIp(string ipAddress)
+string TrimClientIp(string? ipAddress)
 {
+    if (string.IsNullOrWhiteSpace(ipAddress))
+    {
+        return "";
+    }
+
     var segments = ipAddress.Split('.');
 
     return segments.Last();

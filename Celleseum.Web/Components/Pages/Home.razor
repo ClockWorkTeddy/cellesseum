@@ -4,65 +4,36 @@
 @attribute [OutputCache(Duration = 5)]
 
 @inject WeatherApiClient WeatherApi
-<div class="container">
-    <div class="row">
-        <div class="col-12 d-flex justify-content-center text-secondary">
-            <h1>
-                <span class="label badge-xl me-1">Cellesseum</span>
-            </h1>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-12 d-flex justify-content-center">
-            <div class="random-number-container">
-                @if (visibleNumber > 0)
-                {
-                    <span class="label badge-xxl me-1" style="@GetLabelStyle(visibleNumber)">@visibleNumber</span>
-                }
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-12 d-flex justify-content-center">
-            <button class="btn btn-primary" @onclick="GetNewNumbers" disabled="@isAnimating">
-                @(isAnimating ? "Loading..." : "Click me")
-            </button>
-        </div>
-    </div>
-    @if (averageNumber > 0 && !isAnimating)
-    {
-        <div class="row">
-            <div class="col-12 d-flex justify-content-center pt-5">
-                <h1 class="text-secondary">Average:</h1>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-12 d-flex justify-content-center">
-                <span class="label badge-xl me-1" style="@GetLabelStyle(averageNumber)">@averageNumber</span>
-            </div>
-        </div>
-    }
-</div>
 
+<main class="card">
+    <div class="title">Cellesseum</div>
 
+    <div class="value" id="value">
+        @if (visibleNumber > 0)
+        {
+            @visibleNumber
+        }
+    </div>
+
+    <button class="btn" id="btn" type="button" @onclick="GetNewNumbers" disabled="@isAnimating">
+        @(isAnimating ? "Loading..." : "Click me")
+    </button>
+
+    <div class="divider"></div>
+
+    <div class="label">Average</div>
+    <div class="avg" id="avg">
+        @if (averageNumber > 0 && !isAnimating)
+        {
+            @averageNumber
+        }
+    </div>
+</main>
 
 @code {
     private int visibleNumber = -1;
     private int averageNumber = -1;
     private bool isAnimating;
-
-    private string GetLabelStyle(int value)
-    {
-        // Normalize 0..100 -> 0..255
-        var redRaw = (int)Math.Round((100 - value) / 50.0 * 255);
-        var red = Math.Clamp(redRaw, 0, 255);
-
-        // Example green channel decreasing with value, also normalized
-        var greenRaw = (int)Math.Round(value / 50.0 * 255);
-        var green = Math.Clamp(greenRaw, 0, 255);
-
-        return $"--label-color:{red},{green},0";
-    }
 
     private async Task GetNewNumbers()
     {
@@ -76,10 +47,11 @@
         var result = await WeatherApi.GetWeatherAsync();
         var numbers = result?.Numbers ?? Array.Empty<int>();
         averageNumber = result?.Average ?? -1;
+
         foreach (var n in numbers)
         {
             visibleNumber = n;
-            await InvokeAsync(StateHasChanged); // render after each addition
+            await InvokeAsync(StateHasChanged);
             await Task.Delay(25);
         }
 

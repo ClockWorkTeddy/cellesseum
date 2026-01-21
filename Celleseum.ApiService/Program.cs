@@ -72,10 +72,6 @@ app.Run();
 
 string TrimClientIp(string ipAddress)
 {
-    if (string.IsNullOrWhiteSpace(ipAddress))
-    {
-        return ipAddress;
-    }
     var segments = ipAddress.Split('.');
 
     return segments.Last();

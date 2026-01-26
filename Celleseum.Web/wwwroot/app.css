@@ -57,7 +57,7 @@ body {
     line-height: 1;
     margin: 8px 0 18px;
     font-weight: 750;
-    color: var(--good);
+    color: rgb(var(--dynamic-text-color, var(--good-rgb, 255,216,77)));
     text-shadow: 0 10px 30px rgba(255,216,77,.10);
     min-height: 92px;
 }

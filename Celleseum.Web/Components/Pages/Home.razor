@@ -8,7 +8,7 @@
 <main class="card">
     <div class="title">Cellesseum</div>
 
-    <div class="value" id="value">
+    <div class="value" id="value" style="@GetLabelStyle(visibleNumber)">
         @if (visibleNumber > 0)
         {
             @visibleNumber
@@ -56,5 +56,18 @@
         }
 
         isAnimating = false;
+    }
+
+    private string GetLabelStyle(int value)
+    {
+        // Normalize 0..100 -> 0..255
+        var redRaw = (int)Math.Round((100 - value) / 50.0 * 255);
+        var red = Math.Clamp(redRaw, 127, 255);
+
+        // Example green channel decreasing with value, also normalized
+        var greenRaw = (int)Math.Round(value / 50.0 * 255);
+        var green = Math.Clamp(greenRaw, 127, 255);
+
+        return $"--dynamic-text-color:{red},{green},128";
     }
 }

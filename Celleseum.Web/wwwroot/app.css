@@ -27,7 +27,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 32px 16px;
-    background: radial-gradient(1200px 600px at 50% -10%, rgba(124,92,255,.35), transparent 60%), radial-gradient(900px 500px at 90% 10%, rgba(255,216,77,.18), transparent 55%), linear-gradient(180deg, var(--bg0), var(--bg1));
+    background: radial-gradient(1200px 600px at 50% -10%, rgba(124,92,255,.35), transparent 60%), linear-gradient(180deg, var(--bg0), var(--bg1));
 }
 
 /* Card container */
@@ -106,7 +106,7 @@ body {
 .avg {
     font-size: 44px;
     font-weight: 750;
-    color: rgba(255,255,255,.92);
+    color: rgb(var(--dynamic-text-color, var(--good-rgb, 255,216,77)));
     min-height: 66px;
 }
 

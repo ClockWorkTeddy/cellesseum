@@ -8,7 +8,7 @@
 <main class="card">
     <div class="title">Cellesseum</div>
 
-    <div class="value" id="value" style="@GetLabelStyle(visibleNumber)">
+    <div class="value" id="value" style="@GetLabelStyle(visibleNumber, maxX: 100.0, minX: 0.0)">
         @if (visibleNumber > 0)
         {
             @visibleNumber
@@ -22,7 +22,7 @@
     <div class="divider"></div>
 
     <div class="label">Average</div>
-    <div class="avg" id="avg">
+    <div class="avg" id="avg" style="@GetLabelStyle(averageNumber, maxX: 55.0, minX: 45.0)">
         @if (averageNumber > 0 && !isAnimating)
         {
             @averageNumber
@@ -58,16 +58,16 @@
         isAnimating = false;
     }
 
-    private string GetLabelStyle(int value)
+    private string GetLabelStyle(int value, double maxX, double minX)
     {
-        // Normalize 0..100 -> 0..255
-        var redRaw = (int)Math.Round((100 - value) / 50.0 * 255);
-        var red = Math.Clamp(redRaw, 127, 255);
+        var rangeY = 127;
+        var rangeX = maxX - minX;
 
-        // Example green channel decreasing with value, also normalized
-        var greenRaw = (int)Math.Round(value / 50.0 * 255);
-        var green = Math.Clamp(greenRaw, 127, 255);
+        // Normalize 0..100 -> 127..255
+        var red = (int)Math.Round((maxX - value) / (rangeX / rangeY) + rangeY);
+        var green = (int)Math.Round((value - minX) / (rangeX / rangeY) + rangeY);
+        var blue = 127;
 
-        return $"--dynamic-text-color:{red},{green},128";
+        return $"--dynamic-text-color:{red}, {green}, {blue}";
     }
 }

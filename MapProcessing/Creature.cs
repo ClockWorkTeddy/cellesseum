@@ -1,0 +1,21 @@
+﻿using System.Drawing;
+
+namespace MapProcessing
+{
+    public abstract class Creature
+    {
+        protected Creature(Point location, CellType type)
+        {
+            Location = location;
+            Type = type;
+        }
+
+        public virtual int LifeSpan { get; }
+
+        public Point Location { get; set; }
+        public int Speed { get; set; }
+        public int Age { get; set; }
+        public bool Dead => Age > LifeSpan;
+        public CellType Type { get; }
+    }
+}

@@ -116,6 +116,40 @@ body {
   font-size: 13px;
 }
 
+/* 10x10 cell field: 4x4px black cells separated by 1px gray lines */
+.cell-grid{
+  --cells: 10;
+  --cell-size: 4px;
+  --gap: 1px; /* separator thickness */
+  --separator: rgba(100,100,100,1.0); /* gray line */
+
+  display: grid;
+  grid-template-columns: repeat(var(--cells), var(--cell-size));
+  grid-auto-rows: var(--cell-size);
+  gap: var(--gap);
+
+  /* Add an outer border equal to gap so outer edges look like separators too */
+  padding: var(--gap);
+  background: var(--separator);
+  width: calc(var(--cells) * var(--cell-size) + (var(--cells) - 1) * var(--gap) + 2 * var(--gap));
+  margin: 0 auto 18px;
+}
+.cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    background: rgba(200,200,200,1.0);
+}
+.red-cell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  background: #ff3b3b;
+}
+.green-cell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  background: #3bff3b;
+}
+
 /* Keep existing Blazor defaults (optional) */
 a, .btn-link { color: #006bb7; }
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {

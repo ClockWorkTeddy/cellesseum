@@ -1,7 +1,7 @@
 using Celleseum.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
-
+using MapProcessing;
 var builder = WebApplication.CreateBuilder(args);
 
 var host = builder.Configuration["DatabaseHost"] ?? "localhost";
@@ -19,6 +19,7 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<CellesseumDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql => npgsql.EnableRetryOnFailure()));
+builder.Services.AddSingleton<Proccessor>();
 
 builder.Services.AddOpenApi();
 
@@ -40,13 +41,8 @@ if (app.Environment.IsDevelopment())
 
 app.MapGet("/turn", async (CellesseumDbContext db, HttpContext httpContext) =>
 {
-    Random rnd = new();
-    var numbers = new int[100];
-    for (int i = 0; i < 100; i++)
-    {
-        numbers[i] = rnd.Next(1, 101);
-    }
-    var numbersSet = new NumberSet(numbers);
+    var processor = new Proccessor();
+    var data = processor.ProcessMap();
 
     // Prefer X-Forwarded-For if present (first IP), otherwise use connection address
     var xff = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
@@ -54,15 +50,7 @@ app.MapGet("/turn", async (CellesseumDbContext db, HttpContext httpContext) =>
         ? xff.Split(',')[0].Trim()
         : httpContext.Connection.RemoteIpAddress?.ToString();
 
-    var dbRecord = new NumberSetDbRecord
-    {
-        DateTime = DateTime.UtcNow,
-        Average = numbersSet.Average,
-        IpAddress = TrimClientIp(clientIp)
-    };
-    db.NumberSets.Add(dbRecord);
-    await db.SaveChangesAsync();
-    return numbersSet;
+    return data;
 })
 .WithName("NextTurn");
 

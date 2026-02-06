@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Celleseum.Data\Celleseum.Data.csproj" />
     <ProjectReference Include="..\Celleseum.ServiceDefaults\Celleseum.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\MapProcessing\MapProcessing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

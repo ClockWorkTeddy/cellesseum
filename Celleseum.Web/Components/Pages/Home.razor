@@ -8,6 +8,18 @@
 <main class="card">
     <div class="title">Cellesseum</div>
 
+    <div class="cell-grid" aria-label="10x10 cells">
+        @for (var i = 0; i < 100; i++)
+        {
+            if (CurrentFrame?.ContainsKey(i) == true)
+            {
+                <div class="green-cell"></div>
+                continue;
+            }
+            <div class="cell"></div>
+        }
+    </div>
+
     <div class="value" id="value" style="@GetLabelStyle(visibleNumber, maxX: 100.0, minX: 0.0)">
         @if (visibleNumber > 0)
         {
@@ -15,7 +27,7 @@
         }
     </div>
 
-    <button class="btn" id="btn" type="button" @onclick="GetNewNumbers" disabled="@isAnimating">
+    <button class="btn" id="btn" type="button" @onclick="GetData" disabled="@isAnimating">
         @(isAnimating ? "Loading..." : "Click me")
     </button> 
 
@@ -34,8 +46,15 @@
     private int visibleNumber = -1;
     private int averageNumber = -1;
     private bool isAnimating;
+    private List<Dictionary<int, int>> data = new();
+    private int currentFrame;
 
-    private async Task GetNewNumbers()
+    private Dictionary<int, int>? CurrentFrame =>
+        data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
+            ? data[currentFrame]
+            : null;
+
+    private async Task GetData()
     {
         if (isAnimating)
         {
@@ -44,15 +63,14 @@
 
         isAnimating = true;
 
-        var result = await WeatherApi.GetWeatherAsync();
-        var numbers = result?.Numbers ?? Array.Empty<int>();
-        averageNumber = result?.Average ?? -1;
+        data = await WeatherApi.GetWeatherAsync();
+        currentFrame = 0;
 
-        foreach (var n in numbers)
+        for (var i = 0; i < data.Count; i++)
         {
-            visibleNumber = n;
+            currentFrame = i;
             await InvokeAsync(StateHasChanged);
-            await Task.Delay(25);
+            await Task.Delay(100);
         }
 
         isAnimating = false;

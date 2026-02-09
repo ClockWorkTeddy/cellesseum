@@ -12,7 +12,7 @@ namespace MapProcessing
         public int Size { get; init; }
         private readonly List<Creature> deadCreatures = new List<Creature>();
         public List<Dictionary<int, int>> AreaSnapShot = new List<Dictionary<int, int>>();
-
+        private int fertility = 250;
         public Map(int size)
         {
             Size = size;
@@ -44,16 +44,20 @@ namespace MapProcessing
 
         private void CreatePlant()
         {
-            var x = 0;
-            var y = 0;
             Random random = new Random();
-            do
-            {
-                x = random.Next(0, Size);
-                y = random.Next(0, Size);
-            } while (Creatures.Exists(c => c.Location == new Point(x, y)));
 
-            Creatures.Add(new Plant(new Point(x, y)));
+            for (int i = 0; i <= fertility; i++)
+            {
+                var x = 0;
+                var y = 0;
+                do
+                {
+                    x = random.Next(0, Size);
+                    y = random.Next(0, Size);
+                } while (Creatures.Exists(c => c.Location == new Point(x, y)));
+
+                Creatures.Add(new Plant(new Point(x, y)));
+            }
         }
 
         private void ClearDead()

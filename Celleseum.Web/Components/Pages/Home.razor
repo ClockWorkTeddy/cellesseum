@@ -9,7 +9,7 @@
     <div class="title">Cellesseum</div>
 
     <div class="cell-grid" aria-label="10x10 cells">
-        @for (var i = 0; i < 100; i++)
+        @for (var i = 0; i < 10000; i++)
         {
             if (CurrentFrame?.ContainsKey(i) == true)
             {
@@ -17,13 +17,6 @@
                 continue;
             }
             <div class="cell"></div>
-        }
-    </div>
-
-    <div class="value" id="value" style="@GetLabelStyle(visibleNumber, maxX: 100.0, minX: 0.0)">
-        @if (visibleNumber > 0)
-        {
-            @visibleNumber
         }
     </div>
 
@@ -62,8 +55,8 @@
         }
 
         isAnimating = true;
-
-        data = await WeatherApi.GetWeatherAsync();
+        var size = 100;
+        data = await WeatherApi.GetWeatherAsync(size);
         currentFrame = 0;
 
         for (var i = 0; i < data.Count; i++)

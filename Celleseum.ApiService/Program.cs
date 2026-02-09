@@ -39,10 +39,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/turn", async (CellesseumDbContext db, HttpContext httpContext) =>
+app.MapGet("/turn/{size}", async (int size, CellesseumDbContext db, HttpContext httpContext) =>
 {
     var processor = new Proccessor();
-    var data = processor.ProcessMap();
+    var data = processor.ProcessMap(size);
 
     // Prefer X-Forwarded-For if present (first IP), otherwise use connection address
     var xff = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();

@@ -33,7 +33,7 @@ body {
 /* Card container */
 .card {
     display: block;
-    width: min(500px);
+    width: fit-content;
     min-height: 360px;
     background: linear-gradient(180deg, var(--card), rgba(255,255,255,.03));
     border: 1px solid rgba(255,255,255,.10);
@@ -118,7 +118,7 @@ body {
 
 /* 10x10 cell field: 4x4px black cells separated by 1px gray lines */
 .cell-grid{
-  --cells: 10;
+  --cells: 100;
   --cell-size: 4px;
   --gap: 1px; /* separator thickness */
   --separator: rgba(100,100,100,1.0); /* gray line */

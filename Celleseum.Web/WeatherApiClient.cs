@@ -4,11 +4,11 @@ namespace Celleseum.Web;
 
 public class WeatherApiClient(HttpClient httpClient)
 {
-    public async Task<List<Dictionary<int, int>>> GetWeatherAsync(int maxItems = 10, CancellationToken cancellationToken = default)
+    public async Task<List<Dictionary<int, int>>> GetWeatherAsync(int size, CancellationToken cancellationToken = default)
     {
         List<Dictionary<int, int>> data = null;
 
-        data = await httpClient.GetFromJsonAsync<List<Dictionary<int,int>>>("/turn", cancellationToken);
+        data = await httpClient.GetFromJsonAsync<List<Dictionary<int,int>>>($"/turn/{size}", cancellationToken);
 
         return data;
     }

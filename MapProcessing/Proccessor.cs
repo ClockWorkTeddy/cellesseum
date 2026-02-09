@@ -7,10 +7,10 @@ namespace MapProcessing
 {
     public class Proccessor
     {
-        public List<Dictionary<int, int>> ProcessMap()
+        public List<Dictionary<int, int>> ProcessMap(int size)
         {
-            var map = new Map(10);
-            map.Start(10);
+            var map = new Map(size);
+            map.Start(100);
 
             return map.AreaSnapShot;
         }

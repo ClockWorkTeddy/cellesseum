@@ -13,10 +13,11 @@ namespace MapProcessing
         public int Size { get; init; }
         private readonly List<Creature> deadCreatures = new List<Creature>();
         public List<Dictionary<int, int>> AreaSnapShot = new List<Dictionary<int, int>>();
-        private int fertility = 250;
+        private int fertility;
         public Map(int size)
         {
             Size = size;
+            fertility = size;
             CreaturesHash = new Dictionary<int, Creature>();
         }
 

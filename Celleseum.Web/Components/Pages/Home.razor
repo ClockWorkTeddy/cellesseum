@@ -9,7 +9,7 @@
     <div class="title">Cellesseum</div>
 
     <div class="cell-grid" aria-label="10x10 cells">
-        @for (var i = 0; i < 10000; i++)
+        @for (var i = 0; i < size*size; i++)
         {
             if (CurrentFrame?.ContainsKey(i) == true)
             {
@@ -41,7 +41,7 @@
     private bool isAnimating;
     private List<Dictionary<int, int>> data = new();
     private int currentFrame;
-
+    private int size = 15;
     private Dictionary<int, int>? CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
             ? data[currentFrame]
@@ -55,8 +55,7 @@
         }
 
         isAnimating = true;
-        var size = 100;
-        data = await WeatherApi.GetWeatherAsync(size);
+        data = await WeatherApi.GetWeatherAsync(this.size);
         currentFrame = 0;
 
         for (var i = 0; i < data.Count; i++)

@@ -9,7 +9,7 @@ namespace MapProcessing
     {
         Empty,
         Plant,
-        Herbivore,
+        Grazer,
         Carnivore
     }
     public class Cell

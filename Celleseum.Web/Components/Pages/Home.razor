@@ -13,8 +13,17 @@
         {
             if (CurrentFrame?.ContainsKey(i) == true)
             {
-                <div class="green-cell"></div>
-                continue;
+                if (CurrentFrame?[i] == 1)
+                {
+                    <div class="green-cell"></div>
+                    continue;
+
+                }
+                if (CurrentFrame?[i] == 2)
+                {
+                    <div class="yellow-cell"></div>
+                    continue;
+                }
             }
             <div class="cell"></div>
         }
@@ -25,14 +34,6 @@
     </button> 
 
     <div class="divider"></div>
-
-    <div class="label">Average</div>
-    <div class="avg" id="avg" style="@GetLabelStyle(averageNumber, maxX: 55.0, minX: 45.0)">
-        @if (averageNumber > 0 && !isAnimating)
-        {
-            @averageNumber
-        }
-    </div>
 </main>
 
 @code {
@@ -41,7 +42,7 @@
     private bool isAnimating;
     private List<Dictionary<int, int>> data = new();
     private int currentFrame;
-    private int size = 15;
+    private int size = 50;
     private Dictionary<int, int>? CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
             ? data[currentFrame]
@@ -66,18 +67,5 @@
         }
 
         isAnimating = false;
-    }
-
-    private string GetLabelStyle(int value, double maxX, double minX)
-    {
-        var rangeY = 127;
-        var rangeX = maxX - minX;
-
-        // Normalize 0..100 -> 127..255
-        var red = (int)Math.Round((maxX - value) / (rangeX / rangeY) + rangeY);
-        var green = (int)Math.Round((value - minX) / (rangeX / rangeY) + rangeY);
-        var blue = 127;
-
-        return $"--dynamic-text-color:{red}, {green}, {blue}";
     }
 }

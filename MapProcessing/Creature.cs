@@ -10,7 +10,8 @@ namespace MapProcessing
             Type = type;
         }
 
-        public virtual int LifeSpan { get; }
+        public int LifeSpan { get; protected set; }
+        public int Size { get; protected set; }
 
         public Point Location { get; set; }
         public int Speed { get; set; }

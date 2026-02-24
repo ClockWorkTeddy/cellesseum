@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -12,6 +13,7 @@ namespace MapProcessing
         public Dictionary<int, Creature> CreaturesHash { get; set; }
         public int Size { get; init; }
         private readonly List<Creature> deadCreatures = new List<Creature>();
+        private readonly List<Creature> eatenCreatures = new List<Creature>();
         public List<Dictionary<int, int>> AreaSnapShot = new List<Dictionary<int, int>>();
         public Dictionary<int, int> CurrentArea = new Dictionary<int, int>();
         private int fertility;
@@ -86,7 +88,6 @@ namespace MapProcessing
 
         private void CreatePlant()
         {
-            Debug.Print($"Plants before: {CreaturesHash.Count}");
             Random random = new Random();
 
             for (int i = 0; i < fertility; i++)
@@ -105,7 +106,6 @@ namespace MapProcessing
                 CreaturesHash[y * Size + x] = plant;
                 FillArea(plant);
             }
-            Debug.Print($"Plants after: {CreaturesHash.Count}");
         }
 
         private void FillArea(Creature creature)
@@ -114,8 +114,18 @@ namespace MapProcessing
             {
                 for (int x = 0; x < creature.Size; x++)
                 {
-                    //Debug.Print($"{creature.GetType()} - {creature.Location.Y + y}:{creature.Location.X + x}={(creature.Location.Y + y) * Size + (creature.Location.X + x)}");
-                    CurrentArea.Add((creature.Location.Y + y) * Size + (creature.Location.X + x), (int)creature.Type);
+                    CurrentArea[(creature.Location.Y + y) * Size + (creature.Location.X + x)] = (int)creature.Type;
+                }
+            }
+        }
+
+        private void ClearArea(Creature creature)
+        {
+            for (int y = 0; y < creature.Size; y++)
+            {
+                for (int x = 0; x < creature.Size; x++)
+                {
+                    CurrentArea.Remove((creature.Location.Y + y) * Size + creature.Location.X + x);
                 }
             }
         }
@@ -125,14 +135,7 @@ namespace MapProcessing
             deadCreatures.ForEach(dc =>
             {
                 CreaturesHash.Remove(dc.Location.Y * Size + dc.Location.X);
-
-                for (int y = 0; y < dc.Size; y++)
-                {
-                    for (int x = 0; x < dc.Size; x++)
-                    {
-                        CurrentArea.Remove((dc.Location.Y + y) * Size + dc.Location.X + x);
-                    }
-                }
+                ClearArea(dc);
             });
 
             deadCreatures.Clear();
@@ -140,7 +143,41 @@ namespace MapProcessing
 
         private void MoveCreature(Creature creature)
         {
-            creature.Location = new Point(creature.Location.X + creature.Speed, creature.Location.Y + creature.Speed);
+            ClearArea(creature);
+            creature.Location = GetNewPosition(creature);
+            if (creature is Grazer grazer)
+            {
+                Grazing(grazer);
+            }
+            FillArea(creature);
+        }
+
+        private void Grazing(Grazer grazer)
+        {
+            for (int y = 0; y < grazer.Size; y++)
+            {
+                for (int x = 0; x < grazer.Size; x++)
+                {
+                    var cellIndex = (grazer.Location.Y + y) * Size + grazer.Location.X + x;
+                    if (CurrentArea.ContainsKey(cellIndex) && CurrentArea[cellIndex] == (int)CellType.Plant)
+                    {
+                        var eatenPlant = CreaturesHash[cellIndex];
+                        eatenCreatures.Add(CreaturesHash[cellIndex]);
+                        grazer.Eat(eatenPlant);
+                    }
+                }
+            }
+        }
+
+        private Point GetNewPosition(Creature creature)
+        {
+            var random = new Random();
+            var directionX = random.Next(-1, 2);
+            var directionY = random.Next(-1, 2);
+            var newX = creature.Location.X + directionX * creature.Speed;
+            var newY = creature.Location.Y + directionY * creature.Speed;
+
+            return new Point(Math.Clamp(newX, 0, Size - creature.Size), Math.Clamp(newY, 0, Size - creature.Size));
         }
 
         private void OldCreature(Creature creature)

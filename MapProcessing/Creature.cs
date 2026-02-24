@@ -12,6 +12,7 @@ namespace MapProcessing
 
         public int LifeSpan { get; protected set; }
         public int Size { get; protected set; }
+        public int NutritionValue { get; protected set; }
 
         public Point Location { get; set; }
         public int Speed { get; set; }

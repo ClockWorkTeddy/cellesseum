@@ -56,7 +56,7 @@ app.MapGet("/turn/{size}", async (int size, CellesseumDbContext db, HttpContext 
         ? xff.Split(',')[0].Trim()
         : httpContext.Connection.RemoteIpAddress?.ToString();
 
-    auxService.PrintData(data);
+    //auxService.PrintData(data);
     return data;
 })
 .WithName("NextTurn");

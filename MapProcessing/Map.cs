@@ -8,20 +8,23 @@ using System.Text;
 
 namespace MapProcessing
 {
-    internal class Map
+    public class Map
     {
-        public Dictionary<int, Creature> CreaturesHash { get; set; }
+        public Dictionary<Guid, Creature> CreaturesHash { get; set; }
         public int Size { get; init; }
         private readonly List<Creature> deadCreatures = new List<Creature>();
         private readonly List<Creature> eatenCreatures = new List<Creature>();
         public List<Dictionary<int, int>> AreaSnapShot = new List<Dictionary<int, int>>();
         public Dictionary<int, int> CurrentArea = new Dictionary<int, int>();
+        public int Epoche = 0;
         private int fertility;
-        public Map(int size)
+        private Dictionary<int, Plant> plantHash = new Dictionary<int, Plant>();
+
+        public Map(int size, Dictionary<Guid, Creature> creaturesHash)
         {
             Size = size;
-            fertility = (int)(Math.Pow(size, 2) * 0.1 / Plant.DefaultLifeSpan );
-            CreaturesHash = new Dictionary<int, Creature>();
+            fertility = (int)(Math.Pow(size, 2) * 0.1 / Plant.DefaultLifeSpan ) * 2;
+            CreaturesHash = creaturesHash;
         }
 
         public void Start(int term)
@@ -35,6 +38,7 @@ namespace MapProcessing
                 Next();
                 ClearDead();
                 SnapShotArea();
+                Epoche++;
             }
         }
 
@@ -52,8 +56,9 @@ namespace MapProcessing
                     y = random.Next(0, Size);
                 } while (!IsCellFree(y * Size + x, Grazer.DefaultSize));
 
-                var grazer = new Grazer(new Point(x, y));
-                CreaturesHash[y * Size + x] = grazer;
+                var guid = Guid.NewGuid();
+                var grazer = new Grazer(new Point(x, y), guid);
+                CreaturesHash[guid] = grazer;
                 FillArea(grazer);
             }
 
@@ -81,6 +86,7 @@ namespace MapProcessing
                 if (creature.Value.Speed > 0)
                 {
                     MoveCreature(creature.Value);
+                    Starve(creature);
                 }
                 OldCreature(creature.Value);
             }
@@ -101,10 +107,19 @@ namespace MapProcessing
                             
                 } while (!IsCellFree(y * Size + x, Plant.DefaultSize));
 
-                var plant = new Plant(new Point(x, y));
-
-                CreaturesHash[y * Size + x] = plant;
+                var guid = Guid.NewGuid();
+                var plant = new Plant(new Point(x, y), guid);
+                CreaturesHash[guid] = plant;
+                plantHash[y * Size + x] = plant;
                 FillArea(plant);
+            }
+        }
+
+        private void Starve(KeyValuePair<Guid, Creature> creature)
+        {
+            if (creature.Value is Grazer grazer)
+            {
+                grazer.Satiety--;
             }
         }
 
@@ -134,7 +149,15 @@ namespace MapProcessing
         {
             deadCreatures.ForEach(dc =>
             {
-                CreaturesHash.Remove(dc.Location.Y * Size + dc.Location.X);
+                CreaturesHash.Remove(dc.Id);
+                if (dc is Plant plant)
+                {
+                    plantHash.Remove(plant.Location.Y * Size + plant.Location.X);
+                }
+                else
+                {
+                    ;
+                }
                 ClearArea(dc);
             });
 
@@ -144,6 +167,7 @@ namespace MapProcessing
         private void MoveCreature(Creature creature)
         {
             ClearArea(creature);
+
             creature.Location = GetNewPosition(creature);
             if (creature is Grazer grazer)
             {
@@ -161,8 +185,8 @@ namespace MapProcessing
                     var cellIndex = (grazer.Location.Y + y) * Size + grazer.Location.X + x;
                     if (CurrentArea.ContainsKey(cellIndex) && CurrentArea[cellIndex] == (int)CellType.Plant)
                     {
-                        var eatenPlant = CreaturesHash[cellIndex];
-                        eatenCreatures.Add(CreaturesHash[cellIndex]);
+                        var eatenPlant = plantHash[cellIndex];
+                        eatenCreatures.Add(plantHash[cellIndex]);
                         grazer.Eat(eatenPlant);
                     }
                 }
@@ -185,6 +209,8 @@ namespace MapProcessing
             creature.Age++;
             if (creature.Dead)
             {
+                if (creature is Grazer grazer)
+                    Debug.WriteLine($"Grazer dies in age of {grazer.Age}");
                 this.deadCreatures.Add(creature);
             }
         }

@@ -2,6 +2,9 @@ using Celleseum.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using MapProcessing;
+using System.Collections.Immutable;
+using Celleseum.ApiService;
+using System.Runtime.CompilerServices;
 var builder = WebApplication.CreateBuilder(args);
 
 var host = builder.Configuration["DatabaseHost"] ?? "localhost";
@@ -20,6 +23,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<CellesseumDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql => npgsql.EnableRetryOnFailure()));
 builder.Services.AddSingleton<Proccessor>();
+builder.Services.AddSingleton<AuxService>();
 
 builder.Services.AddOpenApi();
 
@@ -39,17 +43,20 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/turn/{size}", async (int size, CellesseumDbContext db, HttpContext httpContext) =>
+app.MapGet("/turn/{size}", async (int size, CellesseumDbContext db, HttpContext httpContext, AuxService auxService) =>
 {
     var processor = new Proccessor();
-    var data = processor.ProcessMap(size);
-
+    var creaturesHash = new Dictionary<Guid, Creature>();
+    var map = new Map(size, creaturesHash);
+    var data = processor.ProcessMap(map);
+    auxService.Size = size;
     // Prefer X-Forwarded-For if present (first IP), otherwise use connection address
     var xff = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
     var clientIp = !string.IsNullOrWhiteSpace(xff)
         ? xff.Split(',')[0].Trim()
         : httpContext.Connection.RemoteIpAddress?.ToString();
 
+    auxService.PrintData(data);
     return data;
 })
 .WithName("NextTurn");

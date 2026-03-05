@@ -121,8 +121,8 @@ body {
 /* 10x10 cell field: 4x4px black cells separated by 1px gray lines */
 .cell-grid {
     --cells: 75;
-    --cell-size: 1px;
-    --gap: 0px; /* separator thickness */
+    --cell-size: 2px;
+    --gap: 1px; /* separator thickness */
 
     display: grid;
     grid-template-columns: repeat(var(--cells), var(--cell-size));

@@ -101,7 +101,8 @@ namespace MapProcessing
 
         private void Next()
         {
-            CreatePlant();
+            if (this.term < 200)
+                CreatePlant();
 
             var newGrazers = new List<Grazer>();
             foreach (var grazer in grazerHash)

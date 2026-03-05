@@ -120,9 +120,9 @@ body {
 
 /* 10x10 cell field: 4x4px black cells separated by 1px gray lines */
 .cell-grid {
-    --cells: 50;
-    --cell-size: 10px;
-    --gap: 1px; /* separator thickness */
+    --cells: 75;
+    --cell-size: 1px;
+    --gap: 0px; /* separator thickness */
 
     display: grid;
     grid-template-columns: repeat(var(--cells), var(--cell-size));

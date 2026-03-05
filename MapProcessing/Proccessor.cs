@@ -9,7 +9,7 @@ namespace MapProcessing
     {
         public List<Dictionary<int, int>> ProcessMap(Map map)
         {
-            map.Start(100);
+            map.Start(150);
 
             return map.AreaSnapShot;
         }

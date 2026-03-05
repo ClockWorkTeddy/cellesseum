@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
@@ -19,11 +20,12 @@ namespace MapProcessing
         public int Epoche = 0;
         private int fertility;
         private Dictionary<int, Plant> plantHash = new Dictionary<int, Plant>();
-
+        private Dictionary<Guid, Grazer> grazerHash = new Dictionary<Guid, Grazer>();
+        private int term = 0;
         public Map(int size, Dictionary<Guid, Creature> creaturesHash)
         {
             Size = size;
-            fertility = (int)(Math.Pow(size, 2) * 0.1 / Plant.DefaultLifeSpan ) * 2;
+            fertility = (int)(Math.Pow(size, 2) * 0.1 / Plant.DefaultLifeSpan );
             CreaturesHash = creaturesHash;
         }
 
@@ -34,9 +36,8 @@ namespace MapProcessing
 
             for (int i = 0; i < term; i++)
             {
-                CreatePlant();
+                this.term = i;
                 Next();
-                ClearDead();
                 SnapShotArea();
                 Epoche++;
             }
@@ -54,11 +55,15 @@ namespace MapProcessing
                 {
                     x = random.Next(0, Size);
                     y = random.Next(0, Size);
-                } while (!IsCellFree(y * Size + x, Grazer.DefaultSize));
+                    y = Math.Clamp(y%2 == 0 ? y : y -1, 0, Size - 1);
+                    x = Math.Clamp(x%2 == 0 ? x : x -1, 0, Size - 1);
+                } while (!IsCellFreeForGrazer(y * Size + x, Grazer.DefaultSize));
 
                 var guid = Guid.NewGuid();
                 var grazer = new Grazer(new Point(x, y), guid);
                 CreaturesHash[guid] = grazer;
+                grazerHash[guid] = grazer;
+                Grazing(grazer);
                 FillArea(grazer);
             }
 
@@ -79,17 +84,61 @@ namespace MapProcessing
             return true;
         }
 
+        private bool IsCellFreeForGrazer(int index, int size)
+        {
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    if (CurrentArea.ContainsKey(index + y * Size + x) && CurrentArea[index + y * Size + x] == 2)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
         private void Next()
         {
+            CreatePlant();
+
+            var newGrazers = new List<Grazer>();
+            foreach (var grazer in grazerHash)
+            {
+                if (grazer.Value.Satiety > grazer.Value.LifeSpan / 2)
+                {
+                    var newLocation = GetNewPosition(grazer.Value);
+                    var guid = Guid.NewGuid();
+                    var newGrazer = new Grazer(newLocation, guid);
+                    CreaturesHash[guid] = newGrazer;
+                    newGrazers.Add(newGrazer);
+                    FillArea(newGrazer);
+                }
+            }
+            foreach (var newGrazer in newGrazers)
+            {
+                grazerHash[newGrazer.Id] = newGrazer;
+            }
             foreach (var creature in CreaturesHash)
             {
                 if (creature.Value.Speed > 0)
                 {
                     MoveCreature(creature.Value);
-                    Starve(creature);
                 }
+                if (creature.Value is Grazer grazer)
+                {
+                    grazer.Starve();
+                    if (grazer.Satiety > grazer.LifeSpan / 2)
+                    {
+                        var newLocation = GetNewPosition(grazer);
+
+                    }
+                }
+                Starve(creature);
                 OldCreature(creature.Value);
             }
+            ClearDead();
         }
 
         private void CreatePlant()
@@ -196,10 +245,17 @@ namespace MapProcessing
         private Point GetNewPosition(Creature creature)
         {
             var random = new Random();
-            var directionX = random.Next(-1, 2);
-            var directionY = random.Next(-1, 2);
-            var newX = creature.Location.X + directionX * creature.Speed;
-            var newY = creature.Location.Y + directionY * creature.Speed;
+            var newX = 0;
+            var newY = 0;
+            int index = 0;
+            do
+            {
+                var directionX = random.Next(-1, 2);
+                var directionY = random.Next(-1, 2);
+                newX = creature.Location.X + directionX * creature.Speed;
+                newY = creature.Location.Y + directionY * creature.Speed;
+                index++;
+            } while (!IsCellFreeForGrazer(newY * Size + newX, Grazer.DefaultSize) && index < 8);
 
             return new Point(Math.Clamp(newX, 0, Size - creature.Size), Math.Clamp(newY, 0, Size - creature.Size));
         }
@@ -210,7 +266,7 @@ namespace MapProcessing
             if (creature.Dead)
             {
                 if (creature is Grazer grazer)
-                    Debug.WriteLine($"Grazer dies in age of {grazer.Age}");
+                    Debug.WriteLine($"Grazer dies in age of {grazer.Age}; Term: {this.term}");
                 this.deadCreatures.Add(creature);
             }
         }

@@ -42,7 +42,7 @@
     private bool isAnimating;
     private List<Dictionary<int, int>> data = new();
     private int currentFrame;
-    private int size = 50;
+    private int size = 75;
     private Dictionary<int, int>? CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
             ? data[currentFrame]

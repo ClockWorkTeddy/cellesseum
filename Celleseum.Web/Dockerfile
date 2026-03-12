@@ -2,7 +2,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy csproj first for better layer caching
+# Copy NuGet.config and csproj files first for better layer caching
+COPY NuGet.config .
 COPY Celleseum.Web/Celleseum.Web.csproj Celleseum.Web/
 COPY Celleseum.ServiceDefaults/Celleseum.ServiceDefaults.csproj Celleseum.ServiceDefaults/
 RUN dotnet restore Celleseum.Web/Celleseum.Web.csproj

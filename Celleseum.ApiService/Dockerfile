@@ -2,9 +2,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy csproj first for better layer caching
+# Copy NuGet.config and csproj files first for better layer caching
+COPY NuGet.config .
 COPY Celleseum.ApiService/Celleseum.ApiService.csproj Celleseum.ApiService/
 COPY Celleseum.ServiceDefaults/Celleseum.ServiceDefaults.csproj Celleseum.ServiceDefaults/
+COPY Celleseum.Data/Celleseum.Data.csproj Celleseum.Data/
+COPY MapProcessing/MapProcessing.csproj MapProcessing/
 RUN dotnet restore Celleseum.ApiService/Celleseum.ApiService.csproj
 
 # Copy sources and publish

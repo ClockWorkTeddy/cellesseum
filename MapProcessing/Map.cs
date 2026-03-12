@@ -34,7 +34,7 @@ namespace MapProcessing
             int grazerCount = 1;
             CreateGrazer(1);
 
-            for (int i = 0; i < term; i++)
+            for (int i = 0; i < term && grazerHash.Count > 0; i++)
             {
                 this.term = i;
                 Next();

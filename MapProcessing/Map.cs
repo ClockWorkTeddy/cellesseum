@@ -25,7 +25,7 @@ namespace MapProcessing
         public Map(int size, Dictionary<Guid, Creature> creaturesHash)
         {
             Size = size;
-            fertility = (int)(Math.Pow(size, 2) * 0.1 / Plant.DefaultLifeSpan );
+            fertility = (int)(Math.Pow(size, 2) * 0.0875 / Plant.DefaultLifeSpan );
             CreaturesHash = creaturesHash;
         }
 
@@ -204,9 +204,9 @@ namespace MapProcessing
                 {
                     plantHash.Remove(plant.Location.Y * Size + plant.Location.X);
                 }
-                else
+                else if (dc is Grazer)
                 {
-                    ;
+                    grazerHash.Remove(dc.Id);
                 }
                 ClearArea(dc);
             });

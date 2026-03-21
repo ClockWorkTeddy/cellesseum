@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using MapProcessing
 @rendermode InteractiveServer
 @attribute [StreamRendering(true)]
 @attribute [OutputCache(Duration = 5)]
@@ -11,15 +12,15 @@
     <div class="cell-grid" aria-label="10x10 cells">
         @for (var i = 0; i < size*size; i++)
         {
-            if (CurrentFrame?.ContainsKey(i) == true)
+            if (CurrentFrame?.CurrentArea?.ContainsKey(i) == true)
             {
-                if (CurrentFrame?[i] == 1)
+                if (CurrentFrame.CurrentArea[i] == 1)
                 {
                     <div class="green-cell"></div>
                     continue;
 
                 }
-                if (CurrentFrame?[i] == 2)
+                if (CurrentFrame.CurrentArea[i] == 2)
                 {
                     <div class="yellow-cell"></div>
                     continue;
@@ -28,7 +29,11 @@
             <div class="cell"></div>
         }
     </div>
-
+    <div class="stats-bar">
+        <span>Epoch: @currentFrame</span>
+        <span>Plants: <strong class="lbl-green">@CurrentFrame?.PlantCount</strong></span>
+        <span>Grazers: <strong class="lbl-yellow">@CurrentFrame?.GrazerCount</strong></span>
+    </div>
     <button class="btn" id="btn" type="button" @onclick="GetData" disabled="@isAnimating">
         @(isAnimating ? "Loading..." : "Click me")
     </button> 
@@ -40,10 +45,10 @@
     private int visibleNumber = -1;
     private int averageNumber = -1;
     private bool isAnimating;
-    private List<Dictionary<int, int>> data = new();
+    private List<AreaData> data = new();
     private int currentFrame;
-    private int size = 75;
-    private Dictionary<int, int>? CurrentFrame =>
+    private int size = 50;
+    private AreaData CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
             ? data[currentFrame]
             : null;

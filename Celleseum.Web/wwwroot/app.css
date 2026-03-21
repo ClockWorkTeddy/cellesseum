@@ -118,10 +118,35 @@ body {
   font-size: 13px;
 }
 
+.lbl {
+    color: white;
+    font-size: 12px;
+    font-weight: 650;
+    margin: 0 auto 18px;
+}
+
+.stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    color: white;
+    font-size: 12px;
+    font-weight: 650;
+    margin: 0 auto 18px;
+}
+
+.lbl-green {
+    color: #00bb33;
+}
+
+.lbl-yellow {
+    color: #bbbb33;
+}
+
 /* 10x10 cell field: 4x4px black cells separated by 1px gray lines */
 .cell-grid {
-    --cells: 75;
-    --cell-size: 2px;
+    --cells: 50;
+    --cell-size: 4px;
     --gap: 1px; /* separator thickness */
 
     display: grid;

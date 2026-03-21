@@ -15,8 +15,8 @@ namespace MapProcessing
         public int Size { get; init; }
         private readonly List<Creature> deadCreatures = new List<Creature>();
         private readonly List<Creature> eatenCreatures = new List<Creature>();
-        public List<Dictionary<int, int>> AreaSnapShot = new List<Dictionary<int, int>>();
-        public Dictionary<int, int> CurrentArea = new Dictionary<int, int>();
+        public List<AreaData> AreaSnapShot = new List<AreaData>();
+        public AreaData CurrentAreaData = new AreaData();
         public int Epoche = 0;
         private int fertility;
         private Dictionary<int, Plant> plantHash = new Dictionary<int, Plant>();
@@ -75,7 +75,7 @@ namespace MapProcessing
             {
                 for (int x = 0; x < size; x++)
                 {
-                    if (CurrentArea.ContainsKey(index + y * Size + x))
+                    if (CurrentAreaData.CurrentArea.ContainsKey(index + y * Size + x))
                     {
                         return false;
                     }
@@ -90,7 +90,7 @@ namespace MapProcessing
             {
                 for (int x = 0; x < size; x++)
                 {
-                    if (CurrentArea.ContainsKey(index + y * Size + x) && CurrentArea[index + y * Size + x] == 2)
+                    if (CurrentAreaData.CurrentArea.ContainsKey(index + y * Size + x) && CurrentAreaData.CurrentArea[index + y * Size + x] == 2)
                     {
                         return false;
                     }
@@ -101,7 +101,7 @@ namespace MapProcessing
 
         private void Next()
         {
-            if (this.term < 200)
+            if (this.term < 500)
                 CreatePlant();
 
             var newGrazers = new List<Grazer>();
@@ -179,7 +179,7 @@ namespace MapProcessing
             {
                 for (int x = 0; x < creature.Size; x++)
                 {
-                    CurrentArea[(creature.Location.Y + y) * Size + (creature.Location.X + x)] = (int)creature.Type;
+                    CurrentAreaData.CurrentArea[(creature.Location.Y + y) * Size + (creature.Location.X + x)] = (int)creature.Type;
                 }
             }
         }
@@ -190,7 +190,7 @@ namespace MapProcessing
             {
                 for (int x = 0; x < creature.Size; x++)
                 {
-                    CurrentArea.Remove((creature.Location.Y + y) * Size + creature.Location.X + x);
+                    CurrentAreaData.CurrentArea.Remove((creature.Location.Y + y) * Size + creature.Location.X + x);
                 }
             }
         }
@@ -212,6 +212,13 @@ namespace MapProcessing
             });
 
             deadCreatures.Clear();
+
+            eatenCreatures.ForEach(ec =>
+            {
+                CreaturesHash.Remove(ec.Id);
+                plantHash.Remove(ec.Location.Y * Size + ec.Location.X);
+            });
+            eatenCreatures.Clear();
         }
 
         private void MoveCreature(Creature creature)
@@ -233,7 +240,7 @@ namespace MapProcessing
                 for (int x = 0; x < grazer.Size; x++)
                 {
                     var cellIndex = (grazer.Location.Y + y) * Size + grazer.Location.X + x;
-                    if (CurrentArea.ContainsKey(cellIndex) && CurrentArea[cellIndex] == (int)CellType.Plant)
+                    if (CurrentAreaData.CurrentArea.ContainsKey(cellIndex) && CurrentAreaData.CurrentArea[cellIndex] == (int)CellType.Plant)
                     {
                         var eatenPlant = plantHash[cellIndex];
                         eatenCreatures.Add(plantHash[cellIndex]);
@@ -274,7 +281,12 @@ namespace MapProcessing
 
         private void SnapShotArea()
         {
-            AreaSnapShot.Add(new Dictionary<int, int>(CurrentArea));
+            AreaSnapShot.Add(new AreaData
+            {
+                PlantCount = plantHash.Count,
+                GrazerCount = grazerHash.Count,
+                CurrentArea = new Dictionary<int, int>(CurrentAreaData.CurrentArea)
+            });
         }
     }
 }

@@ -7,9 +7,9 @@ namespace MapProcessing
 {
     public class Proccessor
     {
-        public List<Dictionary<int, int>> ProcessMap(Map map)
+        public List<AreaData> ProcessMap(Map map)
         {
-            map.Start(250);
+            map.Start(500);
 
             return map.AreaSnapShot;
         }

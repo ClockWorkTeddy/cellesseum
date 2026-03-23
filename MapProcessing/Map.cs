@@ -25,21 +25,23 @@ namespace MapProcessing
         public Map(int size, Dictionary<Guid, Creature> creaturesHash)
         {
             Size = size;
-            fertility = (int)(Math.Pow(size, 2) * 0.0875 / Plant.DefaultLifeSpan );
             CreaturesHash = creaturesHash;
         }
 
         public void Start(int term)
         {
             int grazerCount = 1;
-            CreateGrazer(1);
+            CreateGrazer(grazerCount);
 
             for (int i = 0; i < term && grazerHash.Count > 0; i++)
             {
+                var amplifier = 0.025;
+                fertility = (int)(amplifier * (Math.Pow(Size, 2) - grazerHash.Count * Math.Pow(Grazer.DefaultSize, 2) - plantHash.Count * Math.Pow(Plant.DefaultSize, 2)));
                 this.term = i;
                 Next();
                 SnapShotArea();
                 Epoche++;
+                Debug.WriteLine(Epoche);
             }
         }
 
@@ -109,6 +111,7 @@ namespace MapProcessing
             {
                 if (grazer.Value.Satiety > grazer.Value.LifeSpan / 2)
                 {
+                    grazer.Value.Satiety /= 2;
                     var newLocation = GetNewPosition(grazer.Value);
                     var guid = Guid.NewGuid();
                     var newGrazer = new Grazer(newLocation, guid);
@@ -130,13 +133,12 @@ namespace MapProcessing
                 if (creature.Value is Grazer grazer)
                 {
                     grazer.Starve();
-                    if (grazer.Satiety > grazer.LifeSpan / 2)
+                    if (grazer.Satiety > grazer.LifeSpan / 5 * 4)
                     {
                         var newLocation = GetNewPosition(grazer);
 
                     }
                 }
-                Starve(creature);
                 OldCreature(creature.Value);
             }
             ClearDead();
@@ -162,14 +164,6 @@ namespace MapProcessing
                 CreaturesHash[guid] = plant;
                 plantHash[y * Size + x] = plant;
                 FillArea(plant);
-            }
-        }
-
-        private void Starve(KeyValuePair<Guid, Creature> creature)
-        {
-            if (creature.Value is Grazer grazer)
-            {
-                grazer.Satiety--;
             }
         }
 
@@ -273,8 +267,6 @@ namespace MapProcessing
             creature.Age++;
             if (creature.Dead)
             {
-                if (creature is Grazer grazer)
-                    Debug.WriteLine($"Grazer dies in age of {grazer.Age}; Term: {this.term}");
                 this.deadCreatures.Add(creature);
             }
         }

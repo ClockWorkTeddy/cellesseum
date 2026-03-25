@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace Celleseum.Web;
 
-public class WeatherApiClient(HttpClient httpClient)
+public class MapClient(HttpClient httpClient)
 {
-    public async Task<List<AreaData>> GetWeatherAsync(int size, CancellationToken cancellationToken = default)
+    public async Task<List<AreaData>> GetMap(int size, CancellationToken cancellationToken = default)
     {
 
         var data = await httpClient.GetFromJsonAsync<List<AreaData>>($"/turn/{size}", cancellationToken);

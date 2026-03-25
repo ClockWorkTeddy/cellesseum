@@ -49,3 +49,7 @@ build_metadata.AdditionalFiles.CssScope = b-8943am6v5q
 [D:/Work/Celleseum/Celleseum.Web/Components/Layout/NavMenu.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTmF2TWVudS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-i1g6j7dsn3
+
+[D:/Work/Celleseum/Celleseum.Web/Components/LoginDisplay.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMb2dpbkRpc3BsYXkucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-mxadrsljsw

@@ -9,4 +9,4 @@ builder.AddProject<Projects.Celleseum_Web>("webfrontend")
     .WithReference(apiService)
     .WaitFor(apiService);
 
-builder.Build().Run();
+await builder.Build().RunAsync();

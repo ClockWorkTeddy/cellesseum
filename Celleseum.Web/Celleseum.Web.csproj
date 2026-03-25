@@ -11,4 +11,8 @@
     <ProjectReference Include="..\MapProcessing\MapProcessing.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.5" />
+  </ItemGroup>
+
 </Project>

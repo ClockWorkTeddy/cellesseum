@@ -143,42 +143,12 @@ body {
     color: #bbbb33;
 }
 
-/* 10x10 cell field: 4x4px black cells separated by 1px gray lines */
-.cell-grid {
-    --cells: 50;
-    --cell-size: 4px;
-    --gap: 1px; /* separator thickness */
-
-    display: grid;
-    grid-template-columns: repeat(var(--cells), var(--cell-size));
-    grid-auto-rows: var(--cell-size);
-    gap: var(--gap);
-    /* Add an outer border equal to gap so outer edges look like separators too */
-    padding: var(--gap);
-    background: var(--separator);
-    width: calc(var(--cells) * var(--cell-size) + (var(--cells) - 1) * var(--gap) + 2 * var(--gap));
+/* Cell canvas: single <canvas> element replaces thousands of divs */
+.cell-canvas {
+    display: block;
     margin: 0 auto 18px;
-}
-.cell {
-    width: var(--cell-size);
-    height: var(--cell-size);
-    background: var(--cell-bg);
-}
-.red-cell {
-  width: var(--cell-size);
-  height: var(--cell-size);
-  background: #ff3b3b;
-}
-.green-cell {
-  width: var(--cell-size);
-  height: var(--cell-size);
-  background: #00bb33;
-}
-
-.yellow-cell {
-  width: var(--cell-size);
-  height: var(--cell-size);
-  background: #bbbb33;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 /* Keep existing Blazor defaults (optional) */

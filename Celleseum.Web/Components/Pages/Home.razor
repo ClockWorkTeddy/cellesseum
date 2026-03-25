@@ -3,32 +3,22 @@
 @rendermode InteractiveServer
 @attribute [StreamRendering(true)]
 @attribute [OutputCache(Duration = 5)]
+@implements IAsyncDisposable
 
-@inject WeatherApiClient WeatherApi
+@inject MapClient MapApi
+@inject IConfiguration Configuration
+@inject IJSRuntime JS
 
 <main class="card">
     <div class="title">Cellesseum</div>
 
-    <div class="cell-grid" aria-label="10x10 cells">
-        @for (var i = 0; i < size*size; i++)
-        {
-            if (CurrentFrame?.CurrentArea?.ContainsKey(i) == true)
-            {
-                if (CurrentFrame.CurrentArea[i] == 1)
-                {
-                    <div class="green-cell"></div>
-                    continue;
+    <!--<AuthorizeView>
+        <Authorized>
+            <div class="welcome-text">Welcome back, @context.User.Identity?.Name!</div>
+        </Authorized>
+    </AuthorizeView>-->
 
-                }
-                if (CurrentFrame.CurrentArea[i] == 2)
-                {
-                    <div class="yellow-cell"></div>
-                    continue;
-                }
-            }
-            <div class="cell"></div>
-        }
-    </div>
+    <canvas id="cellCanvas" class="cell-canvas"></canvas>
     <div class="stats-bar">
         <span>Epoch: @currentFrame</span>
         <span>Plants: <strong class="lbl-green">@CurrentFrame?.PlantCount</strong></span>
@@ -42,35 +32,74 @@
 </main>
 
 @code {
-    private int visibleNumber = -1;
-    private int averageNumber = -1;
+    private const int CellSize = 5;
+    private const int Gap = 1;
+
+    private IJSObjectReference? jsModule;
     private bool isAnimating;
     private List<AreaData> data = new();
     private int currentFrame;
-    private int size = 50;
-    private AreaData CurrentFrame =>
+    private int size;
+
+    private AreaData? CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
             ? data[currentFrame]
             : null;
 
+    protected override void OnInitialized()
+    {
+        size = Configuration.GetValue("Grid:Size", 50);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/cellgrid.js");
+            await jsModule.InvokeVoidAsync("initCanvas", "cellCanvas", size, CellSize, Gap);
+        }
+    }
+
     private async Task GetData()
     {
-        if (isAnimating)
+        if (isAnimating || jsModule is null)
         {
             return;
         }
 
         isAnimating = true;
-        data = await WeatherApi.GetWeatherAsync(this.size);
+        data = await MapApi.GetMap(size);
         currentFrame = 0;
 
         for (var i = 0; i < data.Count; i++)
         {
             currentFrame = i;
+            var bytes = FrameToBytes(data[i]);
+            await jsModule.InvokeVoidAsync("drawFrame", "cellCanvas", bytes);
             await InvokeAsync(StateHasChanged);
-            await Task.Delay(50);
+            await Task.Delay(25);
         }
 
         isAnimating = false;
+    }
+
+    private byte[] FrameToBytes(AreaData frame)
+    {
+        var bytes = new byte[size * size];
+        foreach (var (index, value) in frame.CurrentArea)
+        {
+            if ((uint)index < (uint)bytes.Length)
+                bytes[index] = (byte)value;
+        }
+        return bytes;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (jsModule is not null)
+        {
+            await jsModule.InvokeVoidAsync("dispose", "cellCanvas");
+            await jsModule.DisposeAsync();
+        }
     }
 }

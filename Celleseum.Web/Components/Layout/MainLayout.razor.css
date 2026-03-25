@@ -4,6 +4,13 @@
     flex-direction: column;
 }
 
+.top-bar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 12px 24px;
+}
+
 main {
     flex: 1;
 }

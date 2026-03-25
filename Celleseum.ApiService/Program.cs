@@ -1,10 +1,7 @@
-using Celleseum.Data;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization;
-using MapProcessing;
-using System.Collections.Immutable;
 using Celleseum.ApiService;
-using System.Runtime.CompilerServices;
+using Celleseum.Data;
+using MapProcessing;
+using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 var host = builder.Configuration["DatabaseHost"] ?? "localhost";
@@ -43,48 +40,17 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/turn/{size}", async (int size, CellesseumDbContext db, HttpContext httpContext, AuxService auxService) =>
+app.MapGet("/turn/{size}", async (int size, CellesseumDbContext db, HttpContext httpContext) =>
 {
     var processor = new Proccessor();
     var creaturesHash = new Dictionary<Guid, Creature>();
     var map = new Map(size, creaturesHash);
     var data = processor.ProcessMap(map);
-    auxService.Size = size;
-    // Prefer X-Forwarded-For if present (first IP), otherwise use connection address
-    var xff = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-    var clientIp = !string.IsNullOrWhiteSpace(xff)
-        ? xff.Split(',')[0].Trim()
-        : httpContext.Connection.RemoteIpAddress?.ToString();
 
-    //auxService.PrintData(data);
     return data;
 })
 .WithName("NextTurn");
 
 app.MapDefaultEndpoints();
 
-app.Run();
-
-string TrimClientIp(string? ipAddress)
-{
-    if (string.IsNullOrWhiteSpace(ipAddress))
-    {
-        return "";
-    }
-
-    var segments = ipAddress.Split('.');
-
-    return segments.Last();
-}
-
-record NumberSet
-{
-    [JsonConstructor]
-    public NumberSet(int[] numbers)
-    {
-        Numbers = numbers ?? Array.Empty<int>();
-    }
-
-    public int[] Numbers { get; init; }
-    public int Average => Numbers.Length > 0 ? Numbers.Sum() / Numbers.Length : 0;
-}
+await app.RunAsync();

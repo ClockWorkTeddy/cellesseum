@@ -1,0 +1,34 @@
+.login-text {
+    color: var(--muted);
+    font-size: 13px;
+    margin-right: 10px;
+}
+
+.login-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text);
+    background: var(--card2);
+    border: 1px solid rgba(255, 255, 255, .12);
+    transition: background .15s ease, transform .1s ease;
+    cursor: pointer;
+}
+
+.login-btn:hover {
+    background: rgba(255, 255, 255, .15);
+    transform: translateY(-1px);
+}
+
+.login-btn-google {
+    background: rgba(255, 255, 255, .08);
+}
+
+.google-icon {
+    flex-shrink: 0;
+}

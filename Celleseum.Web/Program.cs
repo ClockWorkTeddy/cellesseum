@@ -79,4 +79,4 @@ app.MapGet("/Account/Logout", async (HttpContext context) =>
     return Results.Redirect("/");
 });
 
-app.Run();
+await app.RunAsync();

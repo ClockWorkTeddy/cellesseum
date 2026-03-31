@@ -18,10 +18,9 @@ namespace MapProcessing
         public List<AreaData> AreaSnapShot = new List<AreaData>();
         public AreaData CurrentAreaData = new AreaData();
         public int Epoche = 0;
-        private int fertility;
         private Dictionary<int, Plant> plantHash = new Dictionary<int, Plant>();
         private Dictionary<Guid, Grazer> grazerHash = new Dictionary<Guid, Grazer>();
-        private int term = 0;
+
         public Map(int size, Dictionary<Guid, Creature> creaturesHash)
         {
             Size = size;
@@ -35,117 +34,63 @@ namespace MapProcessing
 
             for (int i = 0; i < term && grazerHash.Count > 0; i++)
             {
-                var amplifier = 0.025;
-                fertility = (int)(amplifier * (Math.Pow(Size, 2) - grazerHash.Count * Math.Pow(Grazer.DefaultSize, 2) - plantHash.Count * Math.Pow(Plant.DefaultSize, 2)));
-                this.term = i;
                 Next();
                 SnapShotArea();
                 Epoche++;
-                Debug.WriteLine(Epoche);
             }
+        }
+
+        private void Next()
+        {
+            CreatePlants();
+
+            for (int i = 0; i < grazerHash.Count; i++)
+            {
+                var grazer = grazerHash.ElementAt(i);
+                grazer.Value.Starve();
+                MoveCreature(grazer.Value);
+
+                if (grazer.Value.Satiety > grazer.Value.LifeSpan / 5 * 3)
+                {
+                    grazer.Value.Satiety /= 2;
+                    var newLocation = GetNewPositionNearParent(grazer.Value);
+                    PlaceGrazer(newLocation);
+                }
+            }
+
+            foreach (var creature in CreaturesHash)
+            {
+                OldCreature(creature.Value);
+            }
+
+            ClearDead();
         }
 
         private void CreateGrazer(int quantity)
         {
             Random random = new Random();
-
             for (int i = 0; i < quantity; i++)
             {
-                var x = 0;
-                var y = 0;
-                do
-                {
-                    x = random.Next(0, Size);
-                    y = random.Next(0, Size);
-                    y = Math.Clamp(y%2 == 0 ? y : y -1, 0, Size - 1);
-                    x = Math.Clamp(x%2 == 0 ? x : x -1, 0, Size - 1);
-                } while (!IsCellFreeForGrazer(y * Size + x, Grazer.DefaultSize));
-
-                var guid = Guid.NewGuid();
-                var grazer = new Grazer(new Point(x, y), guid);
-                CreaturesHash[guid] = grazer;
-                grazerHash[guid] = grazer;
-                Grazing(grazer);
-                FillArea(grazer);
+                var position = GetNewPositionRandomly(random);
+                PlaceGrazer(position);
             }
-
         }
 
-        private bool IsCellFree(int index, int size)
+        private void PlaceGrazer(Point position)
         {
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    if (CurrentAreaData.CurrentArea.ContainsKey(index + y * Size + x))
-                    {
-                        return false;
-                    }
-                }
-            }
-            return true;
+            var guid = Guid.NewGuid();
+            var grazer = new Grazer(position, guid);
+            CreaturesHash[guid] = grazer;
+            grazerHash[guid] = grazer;
+            Grazing(grazer);
+            FillArea(grazer);
         }
 
-        private bool IsCellFreeForGrazer(int index, int size)
+        private void CreatePlants()
         {
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    if (CurrentAreaData.CurrentArea.ContainsKey(index + y * Size + x) && CurrentAreaData.CurrentArea[index + y * Size + x] == 2)
-                    {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
+            var amplifier = 0.025;
+            var fertility = (int)(amplifier * (Math.Pow(Size, 2) - grazerHash.Count * Math.Pow(Grazer.DefaultSize, 2) - plantHash.Count * Math.Pow(Plant.DefaultSize, 2)));
 
-        private void Next()
-        {
-            if (this.term < 500)
-                CreatePlant();
-
-            var newGrazers = new List<Grazer>();
-            foreach (var grazer in grazerHash)
-            {
-                if (grazer.Value.Satiety > grazer.Value.LifeSpan / 2)
-                {
-                    grazer.Value.Satiety /= 2;
-                    var newLocation = GetNewPosition(grazer.Value);
-                    var guid = Guid.NewGuid();
-                    var newGrazer = new Grazer(newLocation, guid);
-                    CreaturesHash[guid] = newGrazer;
-                    newGrazers.Add(newGrazer);
-                    FillArea(newGrazer);
-                }
-            }
-            foreach (var newGrazer in newGrazers)
-            {
-                grazerHash[newGrazer.Id] = newGrazer;
-            }
-            foreach (var creature in CreaturesHash)
-            {
-                if (creature.Value.Speed > 0)
-                {
-                    MoveCreature(creature.Value);
-                }
-                if (creature.Value is Grazer grazer)
-                {
-                    grazer.Starve();
-                    if (grazer.Satiety > grazer.LifeSpan / 5 * 4)
-                    {
-                        var newLocation = GetNewPosition(grazer);
-
-                    }
-                }
-                OldCreature(creature.Value);
-            }
-            ClearDead();
-        }
-
-        private void CreatePlant()
-        {
             Random random = new Random();
 
             for (int i = 0; i < fertility; i++)
@@ -156,14 +101,91 @@ namespace MapProcessing
                 {
                     x = random.Next(0, Size);
                     y = random.Next(0, Size);
-                            
-                } while (!IsCellFree(y * Size + x, Plant.DefaultSize));
+
+                } while (!IsCellFreeFor(y * Size + x, Plant.DefaultSize, CellType.Plant));
 
                 var guid = Guid.NewGuid();
                 var plant = new Plant(new Point(x, y), guid);
                 CreaturesHash[guid] = plant;
                 plantHash[y * Size + x] = plant;
                 FillArea(plant);
+            }
+        }
+
+        private Point GetNewPositionNearParent(Creature creature)
+        {
+            var random = new Random();
+            var newX = 0;
+            var newY = 0;
+            int index = 0;
+            do
+            {
+                var directionX = random.Next(-1, 2);
+                var directionY = random.Next(-1, 2);
+                newX = creature.Location.X + directionX * creature.Speed;
+                newY = creature.Location.Y + directionY * creature.Speed;
+                index++;
+            } while (!IsCellFreeFor(newY * Size + newX, Grazer.DefaultSize, CellType.Grazer) && index < 8);
+
+            return new Point(Math.Clamp(newX, 0, Size - creature.Size), Math.Clamp(newY, 0, Size - creature.Size));
+        }
+
+        private Point GetNewPositionRandomly(Random random)
+        {
+            var x = 0;
+            var y = 0;
+            do
+            {
+                x = random.Next(0, Size);
+                y = random.Next(0, Size);
+                y = Math.Clamp(y % 2 == 0 ? y : y - 1, 0, Size - 1);
+                x = Math.Clamp(x % 2 == 0 ? x : x - 1, 0, Size - 1);
+            } while (!IsCellFreeFor(y * Size + x, Grazer.DefaultSize, CellType.Grazer));
+
+            return new Point(x, y);
+        }
+
+        private bool IsCellFreeFor(int index, int size, CellType cellType)
+        {
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    if (CurrentAreaData.CurrentArea.ContainsKey(index + y * Size + x) && CurrentAreaData.CurrentArea[index + y * Size + x] == (int)cellType)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private void MoveCreature(Creature creature)
+        {
+            ClearArea(creature);
+
+            creature.Location = GetNewPositionNearParent(creature);
+            if (creature is Grazer grazer)
+            {
+                Grazing(grazer);
+            }
+            FillArea(creature);
+        }
+
+        private void Grazing(Grazer grazer)
+        {
+            for (int y = 0; y < grazer.Size; y++)
+            {
+                for (int x = 0; x < grazer.Size; x++)
+                {
+                    var cellIndex = (grazer.Location.Y + y) * Size + grazer.Location.X + x;
+                    if (CurrentAreaData.CurrentArea.ContainsKey(cellIndex) && CurrentAreaData.CurrentArea[cellIndex] == (int)CellType.Plant)
+                    {
+                        var eatenPlant = plantHash[cellIndex];
+                        eatenCreatures.Add(plantHash[cellIndex]);
+                        grazer.Eat(eatenPlant);
+                    }
+                }
             }
         }
 
@@ -213,53 +235,6 @@ namespace MapProcessing
                 plantHash.Remove(ec.Location.Y * Size + ec.Location.X);
             });
             eatenCreatures.Clear();
-        }
-
-        private void MoveCreature(Creature creature)
-        {
-            ClearArea(creature);
-
-            creature.Location = GetNewPosition(creature);
-            if (creature is Grazer grazer)
-            {
-                Grazing(grazer);
-            }
-            FillArea(creature);
-        }
-
-        private void Grazing(Grazer grazer)
-        {
-            for (int y = 0; y < grazer.Size; y++)
-            {
-                for (int x = 0; x < grazer.Size; x++)
-                {
-                    var cellIndex = (grazer.Location.Y + y) * Size + grazer.Location.X + x;
-                    if (CurrentAreaData.CurrentArea.ContainsKey(cellIndex) && CurrentAreaData.CurrentArea[cellIndex] == (int)CellType.Plant)
-                    {
-                        var eatenPlant = plantHash[cellIndex];
-                        eatenCreatures.Add(plantHash[cellIndex]);
-                        grazer.Eat(eatenPlant);
-                    }
-                }
-            }
-        }
-
-        private Point GetNewPosition(Creature creature)
-        {
-            var random = new Random();
-            var newX = 0;
-            var newY = 0;
-            int index = 0;
-            do
-            {
-                var directionX = random.Next(-1, 2);
-                var directionY = random.Next(-1, 2);
-                newX = creature.Location.X + directionX * creature.Speed;
-                newY = creature.Location.Y + directionY * creature.Speed;
-                index++;
-            } while (!IsCellFreeForGrazer(newY * Size + newX, Grazer.DefaultSize) && index < 8);
-
-            return new Point(Math.Clamp(newX, 0, Size - creature.Size), Math.Clamp(newY, 0, Size - creature.Size));
         }
 
         private void OldCreature(Creature creature)

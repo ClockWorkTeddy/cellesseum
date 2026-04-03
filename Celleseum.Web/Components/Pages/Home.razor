@@ -34,6 +34,7 @@
 @code {
     private const int CellSize = 5;
     private const int Gap = 1;
+    private const int LineEvery = 2;
 
     private IJSObjectReference? jsModule;
     private bool isAnimating;
@@ -56,7 +57,7 @@
         if (firstRender)
         {
             jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/cellgrid.js");
-            await jsModule.InvokeVoidAsync("initCanvas", "cellCanvas", size, CellSize, Gap);
+            await jsModule.InvokeVoidAsync("initCanvas", "cellCanvas", size, CellSize, Gap, LineEvery);
         }
     }
 

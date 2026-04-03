@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Diagnostics;
+﻿using System.Collections.ObjectModel;
 using System.Drawing;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace MapProcessing
 {
@@ -15,17 +9,18 @@ namespace MapProcessing
         public int Size { get; init; }
         private readonly List<Creature> deadCreatures = new List<Creature>();
         private readonly List<Creature> eatenCreatures = new List<Creature>();
-        public List<AreaData> AreaSnapShot = new List<AreaData>();
-        public AreaData CurrentAreaData = new AreaData();
-        public int Epoche = 0;
-        private Dictionary<int, Plant> plantHash = new Dictionary<int, Plant>();
-        private Dictionary<Guid, Grazer> grazerHash = new Dictionary<Guid, Grazer>();
+        private readonly Dictionary<int, Plant> plantHash = new Dictionary<int, Plant>();
+        private readonly Dictionary<Guid, Grazer> grazerHash = new Dictionary<Guid, Grazer>();
 
         public Map(int size, Dictionary<Guid, Creature> creaturesHash)
         {
             Size = size;
             CreaturesHash = creaturesHash;
         }
+
+        public List<AreaData> AreaSnapShot { get; private set; } = new List<AreaData>();
+        public AreaData CurrentAreaData { get; private set; } = new AreaData();
+        public int Epoche { get; private set; } = 0;
 
         public void Start(int term)
         {

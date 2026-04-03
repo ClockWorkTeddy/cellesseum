@@ -12,10 +12,10 @@ namespace MapProcessing
             CounsumptionRate = DefaultCounsumptionRate;
             Satiety = DefaultSatiety;
         }
-        public static int DefaultSatiety = 1;
-        public static int DefaultNutritionValue = 2;
-        public static int DefaultSize = 1;
-        public static int DefaultLifeSpan = 1000;
-        public static int DefaultCounsumptionRate = 0;
+        public static int DefaultSatiety => 1;
+        public static int DefaultNutritionValue => 2;
+        public static int DefaultSize => 1;
+        public static int DefaultLifeSpan => 1000;
+        public static int DefaultCounsumptionRate => 0;
     }
 }

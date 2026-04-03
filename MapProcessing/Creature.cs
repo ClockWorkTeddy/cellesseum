@@ -14,7 +14,7 @@ namespace MapProcessing
         public Guid Id { get; }
         public int LifeSpan { get; protected set; }
         public int Size { get; protected set; }
-        public int NutritionValue { get; protected set; }
+        public virtual int NutritionValue { get; protected set; }
         public Point Location { get; set; }
         public int Speed { get; set; }
         public int Age { get; set; }

@@ -12,6 +12,7 @@ namespace MapProcessing
             CounsumptionRate = DefaultCounsumptionRate;
             Satiety = DefaultSatiety;
         }
+        public override int NutritionValue => DefaultNutritionValue + Age / 50;
         public static int DefaultSatiety => 1;
         public static int DefaultNutritionValue => 2;
         public static int DefaultSize => 1;

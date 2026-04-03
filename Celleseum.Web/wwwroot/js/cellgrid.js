@@ -63,7 +63,7 @@ export function drawFrame(canvasId, frameData, saturationData) {
     // 4. Draw solid 2x2 grazers (type 2) — fills internal gap between the 4 cells
     const drawn = new Uint8Array(gridSize * gridSize);
     const bigSize = cellSize * 2 + gap;
-    ctx.fillStyle = "#bbbb33";
+
     for (let row = 0; row < gridSize - 1; row++) {
         for (let col = 0; col < gridSize - 1; col++) {
             const i = row * gridSize + col;
@@ -74,6 +74,8 @@ export function drawFrame(canvasId, frameData, saturationData) {
             if ((frameData[r] || 0) === 2 &&
                 (frameData[b] || 0) === 2 &&
                 (frameData[d] || 0) === 2) {
+                const alpha = ((saturationData[i] || 0) + (saturationData[r] || 0) + (saturationData[b] || 0) + (saturationData[d] || 0)) / 40;
+                ctx.fillStyle = `rgba(255,255,51,${alpha})`;
                 ctx.fillRect(gap + col * step, gap + row * step, bigSize, bigSize);
                 drawn[i] = drawn[r] = drawn[b] = drawn[d] = 1;
             }
@@ -84,6 +86,8 @@ export function drawFrame(canvasId, frameData, saturationData) {
         if (drawn[i] || (frameData[i] || 0) !== 2) continue;
         const col = i % gridSize;
         const row = (i - col) / gridSize;
+        const alpha = (saturationData[i] || 0) / 10;
+        ctx.fillStyle = `rgba(255,255,51,${alpha})`;
         ctx.fillRect(gap + col * step, gap + row * step, cellSize, cellSize);
     }
 }

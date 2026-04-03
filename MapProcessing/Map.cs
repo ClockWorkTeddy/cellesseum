@@ -192,7 +192,7 @@ namespace MapProcessing
             {
                 for (int x = 0; x < creature.Size; x++)
                 {
-                    var saturation = creature.Type == CellType.Plant ? Math.Clamp(creature.NutritionValue, 2, 10) : 0;
+                    var saturation = creature.Type == CellType.Plant ? Math.Clamp(creature.NutritionValue, 2, 10) : Math.Clamp(creature.Satiety / 20, 5, 10);
                     CurrentAreaData.CurrentArea[(creature.Location.Y + y) * Size + (creature.Location.X + x)] = new Point((int)creature.Type, saturation);
                 }
             }

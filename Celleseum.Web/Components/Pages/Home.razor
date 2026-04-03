@@ -20,9 +20,9 @@
 
     <canvas id="cellCanvas" class="cell-canvas"></canvas>
     <div class="stats-bar">
-        <span>Step: @currentFrame</span>
-        <span>Plants: <strong class="lbl-green">@CurrentFrame?.PlantCount</strong></span>
-        <span>Grazers: <strong class="lbl-yellow">@CurrentFrame?.GrazerCount</strong></span>
+        <span>Step: <span id="stat-step">@currentFrame</span></span>
+        <span>Plants: <strong class="lbl-green" id="stat-plants">@CurrentFrame?.PlantCount</strong></span>
+        <span>Grazers: <strong class="lbl-yellow" id="stat-grazers">@CurrentFrame?.GrazerCount</strong></span>
     </div>
     <button class="btn" id="btn" type="button" @onclick="GetData" disabled="@isAnimating">
         @(isAnimating ? "Loading..." : "Click me")
@@ -32,11 +32,12 @@
 </main>
 
 @code {
-    private const int CellSize = 5;
+    private const int CellSize = 2;
     private const int Gap = 1;
     private const int LineEvery = 2;
 
     private IJSObjectReference? jsModule;
+    private DotNetObjectReference<Home>? dotNetRef;
     private bool isAnimating;
     private List<AreaData> data = new();
     private int currentFrame;
@@ -72,35 +73,45 @@
         data = await MapApi.GetMap(size);
         currentFrame = 0;
 
+        var cellCount = size * size;
+        var allTypes = new byte[data.Count * cellCount];
+        var allSaturation = new byte[data.Count * cellCount];
+        var plantCounts = new int[data.Count];
+        var grazerCounts = new int[data.Count];
+
         for (var i = 0; i < data.Count; i++)
         {
-            currentFrame = i;
-            var (types, saturation) = FrameToBytes(data[i]);
-            await jsModule.InvokeVoidAsync("drawFrame", "cellCanvas", types, saturation);
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(25);
-        }
-
-        isAnimating = false;
-    }
-
-    private (byte[] types, byte[] saturation) FrameToBytes(AreaData frame)
-    {
-        var types = new byte[size * size];
-        var saturation = new byte[size * size];
-        foreach (var (index, value) in frame.CurrentArea)
-        {
-            if ((uint)index < (uint)types.Length)
+            var frame = data[i];
+            plantCounts[i] = frame.PlantCount;
+            grazerCounts[i] = frame.GrazerCount;
+            var offset = i * cellCount;
+            foreach (var (index, value) in frame.CurrentArea)
             {
-                types[index] = (byte)value.X;
-                saturation[index] = (byte)value.Y;
+                if ((uint)index < (uint)cellCount)
+                {
+                    allTypes[offset + index] = (byte)value.X;
+                    allSaturation[offset + index] = (byte)value.Y;
+                }
             }
         }
-        return (types, saturation);
+
+        dotNetRef ??= DotNetObjectReference.Create(this);
+        await jsModule.InvokeVoidAsync("playAllFrames",
+            "cellCanvas", allTypes, allSaturation,
+            plantCounts, grazerCounts, 25, dotNetRef);
+    }
+
+    [JSInvokable]
+    public void OnAnimationComplete()
+    {
+        isAnimating = false;
+        currentFrame = data.Count - 1;
+        InvokeAsync(StateHasChanged);
     }
 
     public async ValueTask DisposeAsync()
     {
+        dotNetRef?.Dispose();
         if (jsModule is not null)
         {
             await jsModule.InvokeVoidAsync("dispose", "cellCanvas");

@@ -107,6 +107,51 @@ function drawEmpty(config) {
     }
 }
 
+/**
+ * Plays all frames locally in the browser, no per-frame SignalR round-trips.
+ * @param {string}   canvasId       - Canvas element ID
+ * @param {Uint8Array} allTypes     - Flat buffer: frameCount * cellCount bytes of cell types
+ * @param {Uint8Array} allSaturation- Flat buffer: frameCount * cellCount bytes of saturation
+ * @param {number[]} plantCounts    - Plant count per frame
+ * @param {number[]} grazerCounts   - Grazer count per frame
+ * @param {number}   delay          - ms between frames
+ * @param {object}   dotNetRef      - DotNetObjectReference for completion callback
+ */
+export function playAllFrames(canvasId, allTypes, allSaturation, plantCounts, grazerCounts, delay, dotNetRef) {
+    const config = grids.get(canvasId);
+    if (!config) return;
+
+    const cellCount = config.gridSize * config.gridSize;
+    const frameCount = plantCounts.length;
+
+    const stepEl = document.getElementById("stat-step");
+    const plantEl = document.getElementById("stat-plants");
+    const grazerEl = document.getElementById("stat-grazers");
+
+    let frame = 0;
+
+    function tick() {
+        const offset = frame * cellCount;
+        const types = allTypes.subarray(offset, offset + cellCount);
+        const saturation = allSaturation.subarray(offset, offset + cellCount);
+
+        drawFrame(canvasId, types, saturation);
+
+        if (stepEl) stepEl.textContent = frame;
+        if (plantEl) plantEl.textContent = plantCounts[frame];
+        if (grazerEl) grazerEl.textContent = grazerCounts[frame];
+
+        frame++;
+        if (frame < frameCount) {
+            setTimeout(tick, delay);
+        } else {
+            dotNetRef.invokeMethodAsync("OnAnimationComplete");
+        }
+    }
+
+    tick();
+}
+
 export function dispose(canvasId) {
     grids.delete(canvasId);
 }

@@ -24,7 +24,7 @@ export function initCanvas(canvasId, gridSize, cellSize, gap, lineEvery) {
     drawEmpty(config);
 }
 
-export function drawFrame(canvasId, frameData) {
+export function drawFrame(canvasId, frameData, saturationData) {
     const config = grids.get(canvasId);
     if (!config) return;
 
@@ -42,23 +42,28 @@ export function drawFrame(canvasId, frameData) {
         ctx.fillRect(0, g * step, totalSize, gap);    // horizontal
     }
 
-    // Color palette: 0 = empty, 1 = plant (green), 2 = grazer (yellow)
-    const colors = ["rgba(0,0,0,0.25)", "#00bb33", "#bbbb33"];
+    // CellType enum: 0 = Empty, 1 = Plant, 2 = Grazer
 
     // 3. Draw empty and plant cells
+    // Plants (type 1) use saturation (0–10) to control opacity
     for (let i = 0; i < gridSize * gridSize; i++) {
         const cellType = frameData[i] || 0;
-        if (cellType === 2) continue;
+        if (cellType === 2) continue; // grazers drawn in pass 4
         const col = i % gridSize;
         const row = (i - col) / gridSize;
-        ctx.fillStyle = colors[cellType];
+        if (cellType === 1) {
+            const alpha = (saturationData[i] || 0) / 10;
+            ctx.fillStyle = `rgba(0,187,51,${alpha})`;
+        } else {
+            ctx.fillStyle = "rgba(0,0,0,0.25)";
+        }
         ctx.fillRect(gap + col * step, gap + row * step, cellSize, cellSize);
     }
 
-    // 4. Draw solid 2x2 grazers (fills internal gap between the 4 cells)
+    // 4. Draw solid 2x2 grazers (type 2) — fills internal gap between the 4 cells
     const drawn = new Uint8Array(gridSize * gridSize);
     const bigSize = cellSize * 2 + gap;
-    ctx.fillStyle = colors[2];
+    ctx.fillStyle = "#bbbb33";
     for (let row = 0; row < gridSize - 1; row++) {
         for (let col = 0; col < gridSize - 1; col++) {
             const i = row * gridSize + col;

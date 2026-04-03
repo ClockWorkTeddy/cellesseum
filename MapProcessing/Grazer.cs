@@ -21,6 +21,8 @@ namespace MapProcessing
         public static int DefaultSatiety => DefaultLifeSpan / 4;
         public static int DefaultSpeed => 2;
 
+        public static int BreedingThreshold => DefaultLifeSpan * 2;
+
         public void Eat(Creature plant)
         {
             Satiety += plant.NutritionValue;

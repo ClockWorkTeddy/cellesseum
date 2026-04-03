@@ -43,8 +43,7 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/turn/{size}", async (int size, CellesseumDbContext db, HttpContext httpContext) =>
 {
     var processor = new Proccessor();
-    var creaturesHash = new Dictionary<Guid, Creature>();
-    var map = new Map(size, creaturesHash);
+    var map = new Map(size);
     var data = processor.ProcessMap(map);
 
     return data;

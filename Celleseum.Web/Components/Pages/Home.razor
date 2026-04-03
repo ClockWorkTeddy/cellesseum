@@ -75,8 +75,8 @@
         for (var i = 0; i < data.Count; i++)
         {
             currentFrame = i;
-            var bytes = FrameToBytes(data[i]);
-            await jsModule.InvokeVoidAsync("drawFrame", "cellCanvas", bytes);
+            var (types, saturation) = FrameToBytes(data[i]);
+            await jsModule.InvokeVoidAsync("drawFrame", "cellCanvas", types, saturation);
             await InvokeAsync(StateHasChanged);
             await Task.Delay(25);
         }
@@ -84,15 +84,19 @@
         isAnimating = false;
     }
 
-    private byte[] FrameToBytes(AreaData frame)
+    private (byte[] types, byte[] saturation) FrameToBytes(AreaData frame)
     {
-        var bytes = new byte[size * size];
+        var types = new byte[size * size];
+        var saturation = new byte[size * size];
         foreach (var (index, value) in frame.CurrentArea)
         {
-            if ((uint)index < (uint)bytes.Length)
-                bytes[index] = (byte)value;
+            if ((uint)index < (uint)types.Length)
+            {
+                types[index] = (byte)value.X;
+                saturation[index] = (byte)value.Y;
+            }
         }
-        return bytes;
+        return (types, saturation);
     }
 
     public async ValueTask DisposeAsync()

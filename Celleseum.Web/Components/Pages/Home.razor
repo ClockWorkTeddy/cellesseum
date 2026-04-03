@@ -85,14 +85,8 @@
             plantCounts[i] = frame.PlantCount;
             grazerCounts[i] = frame.GrazerCount;
             var offset = i * cellCount;
-            foreach (var (index, value) in frame.CurrentArea)
-            {
-                if ((uint)index < (uint)cellCount)
-                {
-                    allTypes[offset + index] = (byte)value.X;
-                    allSaturation[offset + index] = (byte)value.Y;
-                }
-            }
+            Buffer.BlockCopy(frame.Types, 0, allTypes, offset, cellCount);
+            Buffer.BlockCopy(frame.Saturations, 0, allSaturation, offset, cellCount);
         }
 
         dotNetRef ??= DotNetObjectReference.Create(this);

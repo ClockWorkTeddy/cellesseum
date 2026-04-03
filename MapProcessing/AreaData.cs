@@ -1,11 +1,10 @@
-﻿using System.Drawing;
-
-namespace MapProcessing
+﻿namespace MapProcessing
 {
     public class AreaData
     {
-        public int PlantCount { get; set;  } = 0;
+        public int PlantCount { get; set; } = 0;
         public int GrazerCount { get; set; } = 0;
-        public Dictionary<int, Point> CurrentArea { get; set; } = new Dictionary<int, Point>();
+        public byte[] Types { get; set; } = Array.Empty<byte>();
+        public byte[] Saturations { get; set; } = Array.Empty<byte>();
     }
 }

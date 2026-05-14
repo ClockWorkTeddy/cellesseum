@@ -100,11 +100,11 @@ function drawEmpty(config) {
     ctx.fillRect(0, 0, totalSize, totalSize);
 
     // Draw visible grid lines
-    ctx.fillStyle = "rgba(255,255,255,0.1)";
+    /*ctx.fillStyle = "rgba(255,255,255,0.1)";
     for (let g = 0; g <= gridSize; g += lineEvery) {
         ctx.fillRect(g * step, 0, gap, totalSize);
         ctx.fillRect(0, g * step, totalSize, gap);
-    }
+    }*/
 }
 
 /**

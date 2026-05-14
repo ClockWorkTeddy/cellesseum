@@ -34,7 +34,7 @@
 @code {
     private const int CellSize = 2;
     private const int Gap = 1;
-    private const int LineEvery = 2;
+    private const int LineEvery = 1;
 
     private IJSObjectReference? jsModule;
     private DotNetObjectReference<Home>? dotNetRef;
@@ -92,7 +92,7 @@
         dotNetRef ??= DotNetObjectReference.Create(this);
         await jsModule.InvokeVoidAsync("playAllFrames",
             "cellCanvas", allTypes, allSaturation,
-            plantCounts, grazerCounts, 25, dotNetRef);
+            plantCounts, grazerCounts, 10, dotNetRef);
     }
 
     [JSInvokable]

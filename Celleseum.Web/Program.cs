@@ -40,6 +40,7 @@ builder.Services.AddHttpClient<MapClient>(client =>
 {
     var configured = builder.Configuration["Api:BaseAddress"];
     client.BaseAddress = new Uri(configured ?? "http://apiservice:8080");
+    client.Timeout = TimeSpan.FromSeconds(60);
 });
 
 var app = builder.Build();

@@ -15,6 +15,14 @@ namespace MapProcessing
         private readonly byte[] _types;
         private readonly byte[] _saturations;
 
+        private long _profileCreatePlantsTicks;
+        private long _profileMoveAndBreedTicks;
+        private long _profileClearDeadTicks;
+        private long _profileAgingTicks;
+        private long _profileSnapshotTicks;
+        private long _profileTotalTicks;
+        private int _profileSampleCount;
+
         public Map(int size)
         {
             Size = size;
@@ -33,20 +41,31 @@ namespace MapProcessing
             List<int> milliseconds = new List<int>();
             for (int i = 0; i < term && grazerHash.Count > 0; i++)
             {
-                var sw = Stopwatch.StartNew();
+                var totalStart = Stopwatch.GetTimestamp();
+
                 Next();
-                sw.Stop();
+
+                var snapshotStart = Stopwatch.GetTimestamp();
                 SnapShotArea();
+                _profileSnapshotTicks += Stopwatch.GetTimestamp() - snapshotStart;
+
                 Epoche++;
-                milliseconds.Add((int)sw.ElapsedMilliseconds);
+
+                var totalTicks = Stopwatch.GetTimestamp() - totalStart;
+                _profileTotalTicks += totalTicks;
+                milliseconds.Add((int)(totalTicks * 1000 / Stopwatch.Frequency));
+                RecordProfileSample();
             }
             Debug.WriteLine("");
         }
 
         private void Next()
         {
+            var phaseStart = Stopwatch.GetTimestamp();
             CreatePlants();
+            _profileCreatePlantsTicks += Stopwatch.GetTimestamp() - phaseStart;
 
+            phaseStart = Stopwatch.GetTimestamp();
             var currentGrazers = grazerHash.Values.ToList();
             foreach (var grazer in currentGrazers)
             {
@@ -60,19 +79,26 @@ namespace MapProcessing
                     PlaceGrazer(newLocation);
                 }
             }
+            _profileMoveAndBreedTicks += Stopwatch.GetTimestamp() - phaseStart;
 
+            phaseStart = Stopwatch.GetTimestamp();
             ClearDead();
+            _profileClearDeadTicks += Stopwatch.GetTimestamp() - phaseStart;
 
+            phaseStart = Stopwatch.GetTimestamp();
             foreach (var plant in plantHash)
             {
                 OldCreature(plant.Value);
             }
             foreach(var grazer in grazerHash)
             {
-                OldCreature(grazer.Value);
+                OldCreatureWithoutSaturation(grazer.Value);
             }
+            _profileAgingTicks += Stopwatch.GetTimestamp() - phaseStart;
 
+            phaseStart = Stopwatch.GetTimestamp();
             ClearDead();
+            _profileClearDeadTicks += Stopwatch.GetTimestamp() - phaseStart;
         }
 
         private void CreateGrazer(int quantity)
@@ -263,13 +289,50 @@ namespace MapProcessing
         {
             creature.Age++;
 
-            var saturation = (byte)Math.Clamp(creature.NutritionValue, 2, 10);
             var baseIndex = creature.Location.Y * Size + creature.Location.X;
-                _saturations[baseIndex] = saturation;
+            if (Epoche % 10 == 0)
+            {
+                _saturations[baseIndex] = (byte)creature.NutritionValue;
+            }
             if (creature.Dead)
             {
                 this.deadCreatures.Add(creature);
             }
+        }
+
+        private void OldCreatureWithoutSaturation(Creature creature)
+        {
+            creature.Age++;
+
+            if (creature.Dead)
+            {
+                this.deadCreatures.Add(creature);
+            }
+        }
+
+
+        private void RecordProfileSample()
+        {
+            _profileSampleCount++;
+            if (_profileSampleCount % 100 != 0)
+            {
+                return;
+            }
+
+            var windowSize = 100d;
+            Debug.WriteLine($"Epoch {Epoche}: avg total {TicksToMilliseconds(_profileTotalTicks / windowSize):F3} ms | plants {TicksToMilliseconds(_profileCreatePlantsTicks / windowSize):F3} ms | move+breed {TicksToMilliseconds(_profileMoveAndBreedTicks / windowSize):F3} ms | clearDead {TicksToMilliseconds(_profileClearDeadTicks / windowSize):F3} ms | aging {TicksToMilliseconds(_profileAgingTicks / windowSize):F3} ms | snapshot {TicksToMilliseconds(_profileSnapshotTicks / windowSize):F3} ms");
+
+            _profileCreatePlantsTicks = 0;
+            _profileMoveAndBreedTicks = 0;
+            _profileClearDeadTicks = 0;
+            _profileAgingTicks = 0;
+            _profileSnapshotTicks = 0;
+            _profileTotalTicks = 0;
+        }
+
+        private static double TicksToMilliseconds(double ticks)
+        {
+            return ticks * 1000d / Stopwatch.Frequency;
         }
 
         private void SnapShotArea()

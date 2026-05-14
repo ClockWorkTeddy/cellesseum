@@ -118,19 +118,41 @@ namespace MapProcessing
 
         private Point GetNewPositionNearParent(Creature creature)
         {
-            var newX = 0;
-            var newY = 0;
-            int index = 0;
-            do
-            {
-                var directionX = _random.Next(-1, 2);
-                var directionY = _random.Next(-1, 2);
-                newX = creature.Location.X + directionX * creature.Speed;
-                newY = creature.Location.Y + directionY * creature.Speed;
-                index++;
-            } while (!IsCellFreeFor(newY * Size + newX, Grazer.DefaultSize, CellType.Grazer) && index < 8);
+            var maxCoordinate = Size - creature.Size;
+            var chosen = creature.Location;
+            var freeCount = 0;
 
-            return new Point(Math.Clamp(newX, 0, Size - creature.Size), Math.Clamp(newY, 0, Size - creature.Size));
+            for (int directionY = -1; directionY <= 1; directionY++)
+            {
+                for (int directionX = -1; directionX <= 1; directionX++)
+                {
+                    if (directionX == 0 && directionY == 0)
+                    {
+                        continue;
+                    }
+
+                    var newX = creature.Location.X + directionX * creature.Speed;
+                    var newY = creature.Location.Y + directionY * creature.Speed;
+
+                    if ((uint)newX > (uint)maxCoordinate || (uint)newY > (uint)maxCoordinate)
+                    {
+                        continue;
+                    }
+
+                    if (!IsCellFreeFor(newY * Size + newX, Grazer.DefaultSize, CellType.Grazer))
+                    {
+                        continue;
+                    }
+
+                    freeCount++;
+                    if (_random.Next(freeCount) == 0)
+                    {
+                        chosen = new Point(newX, newY);
+                    }
+                }
+            }
+
+            return chosen;
         }
 
         private Point GetNewPositionRandomly()
@@ -150,20 +172,7 @@ namespace MapProcessing
 
         private bool IsCellFreeFor(int index, int size, CellType cellType)
         {
-            var cellTypeVal = (byte)cellType;
-            var cellCount = _types.Length;
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    var idx = index + y * Size + x;
-                    if ((uint)idx < (uint)cellCount && _types[idx] == cellTypeVal)
-                    {
-                        return false;
-                    }
-                }
-            }
-            return true;
+            return !((uint)index < (uint)_types.Length && _types[index] == (byte)cellType);
         }
 
         private void MoveCreature(Creature creature)
@@ -198,7 +207,7 @@ namespace MapProcessing
 
         private void FillArea(Creature creature)
         {
-            var saturation = (byte)(creature.Type == CellType.Plant ? Math.Clamp(creature.NutritionValue, 2, 10) : Math.Clamp(creature.Satiety / 20, 5, 10));
+            var saturation = (byte)Math.Clamp(creature.NutritionValue, 2, 10);
             var type = (byte)creature.Type;
             var baseIndex = creature.Location.Y * Size + creature.Location.X;
             for (int y = 0; y < creature.Size; y++)
@@ -253,8 +262,10 @@ namespace MapProcessing
         private void OldCreature(Creature creature)
         {
             creature.Age++;
-            FillArea(creature);
 
+            var saturation = (byte)Math.Clamp(creature.NutritionValue, 2, 10);
+            var baseIndex = creature.Location.Y * Size + creature.Location.X;
+                _saturations[baseIndex] = saturation;
             if (creature.Dead)
             {
                 this.deadCreatures.Add(creature);

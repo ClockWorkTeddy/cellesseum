@@ -74,8 +74,8 @@ export function drawFrame(canvasId, frameData, saturationData) {
             if ((frameData[r] || 0) === 2 &&
                 (frameData[b] || 0) === 2 &&
                 (frameData[d] || 0) === 2) {
-                const alpha = ((saturationData[i] || 0) + (saturationData[r] || 0) + (saturationData[b] || 0) + (saturationData[d] || 0)) / 40;
-                ctx.fillStyle = `rgba(255,255,51,${alpha})`;
+                
+                ctx.fillStyle = `rgba(255,255,51)`;
                 ctx.fillRect(gap + col * step, gap + row * step, bigSize, bigSize);
                 drawn[i] = drawn[r] = drawn[b] = drawn[d] = 1;
             }

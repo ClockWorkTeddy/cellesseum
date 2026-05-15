@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Text;
-
-namespace MapProcessing
+﻿namespace MapProcessing
 {
     public class Proccessor
     {
-        public List<AreaData> ProcessMap(Map map)
+        public List<AreaData> ProcessMap(Map map, int term = 1000)
         {
-            map.Start(1000);
+            return ProcessMapFrames(map, term).ToList();
+        }
 
-            return map.AreaSnapShot;
+        public IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 1000)
+        {
+            return map.GenerateFrames(term);
         }
     }
 }

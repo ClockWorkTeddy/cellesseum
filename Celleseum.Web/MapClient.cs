@@ -7,10 +7,25 @@ public class MapClient(HttpClient httpClient)
 {
     public async Task<List<AreaData>> GetMap(int size, CancellationToken cancellationToken = default)
     {
-
-        var data = await httpClient.GetFromJsonAsync<List<AreaData>>($"/turn/{size}", cancellationToken);
+        var data = new List<AreaData>();
+        await foreach (var frame in GetMapStream(size, cancellationToken))
+        {
+            data.Add(frame);
+        }
 
         return data;
+    }
+
+    public async IAsyncEnumerable<AreaData> GetMapStream(int size, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var stream = httpClient.GetFromJsonAsAsyncEnumerable<AreaData>($"/turn/{size}", cancellationToken);
+        await foreach (var frame in stream.WithCancellation(cancellationToken))
+        {
+            if (frame is not null)
+            {
+                yield return frame;
+            }
+        }
     }
 }
 

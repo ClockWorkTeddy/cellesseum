@@ -35,12 +35,17 @@
     private const int CellSize = 2;
     private const int Gap = 1;
     private const int LineEvery = 1;
+    private const int AnimationDelayMilliseconds = 25;
+    private const int InitialBufferSize = 100;
+    private const int BatchSize = 150;
 
     private IJSObjectReference? jsModule;
     private DotNetObjectReference<Home>? dotNetRef;
+    private TaskCompletionSource<bool>? playbackCompletion;
     private bool isAnimating;
-    private List<AreaData> data = new();
+    private readonly List<AreaData> data = new();
     private int currentFrame;
+    private int nextFrameStart;
     private int size;
 
     private AreaData? CurrentFrame =>
@@ -70,18 +75,81 @@
         }
 
         isAnimating = true;
-        data = await MapApi.GetMap(size);
+        data.Clear();
         currentFrame = 0;
+        nextFrameStart = 0;
+        await InvokeAsync(StateHasChanged);
 
-        var cellCount = size * size;
-        var allTypes = new byte[data.Count * cellCount];
-        var allSaturation = new byte[data.Count * cellCount];
-        var plantCounts = new int[data.Count];
-        var grazerCounts = new int[data.Count];
-
-        for (var i = 0; i < data.Count; i++)
+        try
         {
-            var frame = data[i];
+            await using var stream = MapApi.GetMapStream(size).GetAsyncEnumerator();
+
+            var startupBatch = await ReadBatchAsync(stream, InitialBufferSize);
+            if (startupBatch.Count == 0)
+            {
+                isAnimating = false;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            playbackCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            dotNetRef ??= DotNetObjectReference.Create(this);
+
+            await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", AnimationDelayMilliseconds, dotNetRef);
+            await QueueBatchAsync(startupBatch);
+
+            while (true)
+            {
+                var nextBatch = await ReadBatchAsync(stream, BatchSize);
+                if (nextBatch.Count == 0)
+                {
+                    break;
+                }
+
+                await QueueBatchAsync(nextBatch);
+            }
+
+            await jsModule.InvokeVoidAsync("completePlayback", "cellCanvas");
+            await playbackCompletion.Task;
+        }
+        finally
+        {
+            isAnimating = false;
+            currentFrame = Math.Max(data.Count - 1, 0);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<List<AreaData>> ReadBatchAsync(IAsyncEnumerator<AreaData> stream, int maxCount)
+    {
+        var batch = new List<AreaData>(maxCount);
+        while (batch.Count < maxCount && await stream.MoveNextAsync())
+        {
+            var frame = stream.Current;
+            data.Add(frame);
+            batch.Add(frame);
+        }
+
+        return batch;
+    }
+
+    private async Task QueueBatchAsync(List<AreaData> batch)
+    {
+        if (jsModule is null || batch.Count == 0)
+        {
+            return;
+        }
+
+        var startFrame = nextFrameStart;
+        var cellCount = size * size;
+        var allTypes = new byte[batch.Count * cellCount];
+        var allSaturation = new byte[batch.Count * cellCount];
+        var plantCounts = new int[batch.Count];
+        var grazerCounts = new int[batch.Count];
+
+        for (var i = 0; i < batch.Count; i++)
+        {
+            var frame = batch[i];
             plantCounts[i] = frame.PlantCount;
             grazerCounts[i] = frame.GrazerCount;
             var offset = i * cellCount;
@@ -89,18 +157,18 @@
             Buffer.BlockCopy(frame.Saturations, 0, allSaturation, offset, cellCount);
         }
 
-        dotNetRef ??= DotNetObjectReference.Create(this);
-        await jsModule.InvokeVoidAsync("playAllFrames",
+        nextFrameStart += batch.Count;
+        currentFrame = nextFrameStart - 1;
+
+        await jsModule.InvokeVoidAsync("enqueueFrames",
             "cellCanvas", allTypes, allSaturation,
-            plantCounts, grazerCounts, 10, dotNetRef);
+            plantCounts, grazerCounts, startFrame);
     }
 
     [JSInvokable]
-    public void OnAnimationComplete()
+    public void OnPlaybackComplete()
     {
-        isAnimating = false;
-        currentFrame = data.Count - 1;
-        InvokeAsync(StateHasChanged);
+        playbackCompletion?.TrySetResult(true);
     }
 
     public async ValueTask DisposeAsync()

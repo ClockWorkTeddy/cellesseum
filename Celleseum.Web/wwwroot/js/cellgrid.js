@@ -107,51 +107,101 @@ function drawEmpty(config) {
     }*/
 }
 
-/**
- * Plays all frames locally in the browser, no per-frame SignalR round-trips.
- * @param {string}   canvasId       - Canvas element ID
- * @param {Uint8Array} allTypes     - Flat buffer: frameCount * cellCount bytes of cell types
- * @param {Uint8Array} allSaturation- Flat buffer: frameCount * cellCount bytes of saturation
- * @param {number[]} plantCounts    - Plant count per frame
- * @param {number[]} grazerCounts   - Grazer count per frame
- * @param {number}   delay          - ms between frames
- * @param {object}   dotNetRef      - DotNetObjectReference for completion callback
- */
-export function playAllFrames(canvasId, allTypes, allSaturation, plantCounts, grazerCounts, delay, dotNetRef) {
-    const config = grids.get(canvasId);
-    if (!config) return;
+const players = new Map();
 
-    const cellCount = config.gridSize * config.gridSize;
-    const frameCount = plantCounts.length;
+export function startPlayback(canvasId, delay, dotNetRef) {
+    players.set(canvasId, {
+        delay,
+        dotNetRef,
+        queue: [],
+        currentBatch: null,
+        frameInBatch: 0,
+        isPlaying: false,
+        isCompleted: false,
+        timerId: null
+    });
+}
+
+export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, grazerCounts, startFrame) {
+    const config = grids.get(canvasId);
+    const player = players.get(canvasId);
+    if (!config || !player) return;
+
+    player.queue.push({
+        allTypes,
+        allSaturation,
+        plantCounts,
+        grazerCounts,
+        startFrame,
+        frameCount: plantCounts.length,
+        cellCount: config.gridSize * config.gridSize
+    });
+
+    if (!player.isPlaying) {
+        player.isPlaying = true;
+        tickPlayer(canvasId);
+    }
+}
+
+export function completePlayback(canvasId) {
+    const player = players.get(canvasId);
+    if (!player) return;
+
+    player.isCompleted = true;
+    if (!player.isPlaying && player.queue.length === 0 && !player.currentBatch) {
+        player.dotNetRef.invokeMethodAsync("OnPlaybackComplete");
+    }
+}
+
+function tickPlayer(canvasId) {
+    const config = grids.get(canvasId);
+    const player = players.get(canvasId);
+    if (!config || !player) return;
 
     const stepEl = document.getElementById("stat-step");
     const plantEl = document.getElementById("stat-plants");
     const grazerEl = document.getElementById("stat-grazers");
 
-    let frame = 0;
-
-    function tick() {
-        const offset = frame * cellCount;
-        const types = allTypes.subarray(offset, offset + cellCount);
-        const saturation = allSaturation.subarray(offset, offset + cellCount);
-
-        drawFrame(canvasId, types, saturation);
-
-        if (stepEl) stepEl.textContent = frame;
-        if (plantEl) plantEl.textContent = plantCounts[frame];
-        if (grazerEl) grazerEl.textContent = grazerCounts[frame];
-
-        frame++;
-        if (frame < frameCount) {
-            setTimeout(tick, delay);
-        } else {
-            dotNetRef.invokeMethodAsync("OnAnimationComplete");
-        }
+    if (!player.currentBatch) {
+        player.currentBatch = player.queue.shift() || null;
+        player.frameInBatch = 0;
     }
 
-    tick();
+    if (!player.currentBatch) {
+        player.isPlaying = false;
+        if (player.isCompleted) {
+            player.dotNetRef.invokeMethodAsync("OnPlaybackComplete");
+        }
+        return;
+    }
+
+    const batch = player.currentBatch;
+    const frame = player.frameInBatch;
+    const offset = frame * batch.cellCount;
+    const types = batch.allTypes.subarray(offset, offset + batch.cellCount);
+    const saturation = batch.allSaturation.subarray(offset, offset + batch.cellCount);
+
+    drawFrame(canvasId, types, saturation);
+
+    if (stepEl) stepEl.textContent = batch.startFrame + frame;
+    if (plantEl) plantEl.textContent = batch.plantCounts[frame];
+    if (grazerEl) grazerEl.textContent = batch.grazerCounts[frame];
+
+    player.frameInBatch++;
+    if (player.frameInBatch >= batch.frameCount) {
+        player.currentBatch = null;
+        player.frameInBatch = 0;
+    }
+
+    player.timerId = setTimeout(() => tickPlayer(canvasId), player.delay);
 }
 
 export function dispose(canvasId) {
+    const player = players.get(canvasId);
+    if (player?.timerId) {
+        clearTimeout(player.timerId);
+    }
+
+    players.delete(canvasId);
     grids.delete(canvasId);
 }

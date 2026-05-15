@@ -40,13 +40,12 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/turn/{size}", async (int size, CellesseumDbContext db, HttpContext httpContext) =>
+app.MapGet("/turn/{size}", (int size) =>
 {
     var processor = new Proccessor();
     var map = new Map(size);
-    var data = processor.ProcessMap(map);
 
-    return data;
+    return processor.ProcessMapFrames(map);
 })
 .WithName("NextTurn");
 

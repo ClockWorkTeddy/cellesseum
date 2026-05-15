@@ -34,11 +34,11 @@ namespace MapProcessing
         public List<AreaData> AreaSnapShot { get; private set; } = new List<AreaData>();
         public int Epoche { get; private set; } = 0;
 
-        public void Start(int term)
+        public IEnumerable<AreaData> GenerateFrames(int term)
         {
-            int grazerCount = 1;
-            CreateGrazer(grazerCount);
-            List<int> milliseconds = new List<int>();
+            const int initialGrazerCount = 1;
+            CreateGrazer(initialGrazerCount);
+
             for (int i = 0; i < term && grazerHash.Count > 0; i++)
             {
                 var totalStart = Stopwatch.GetTimestamp();
@@ -46,17 +46,24 @@ namespace MapProcessing
                 Next();
 
                 var snapshotStart = Stopwatch.GetTimestamp();
-                SnapShotArea();
+                var frame = SnapShotArea();
                 _profileSnapshotTicks += Stopwatch.GetTimestamp() - snapshotStart;
 
                 Epoche++;
 
                 var totalTicks = Stopwatch.GetTimestamp() - totalStart;
                 _profileTotalTicks += totalTicks;
-                milliseconds.Add((int)(totalTicks * 1000 / Stopwatch.Frequency));
                 RecordProfileSample();
+
+                yield return frame;
             }
+
             Debug.WriteLine("");
+        }
+
+        public void Start(int term)
+        {
+            AreaSnapShot = GenerateFrames(term).ToList();
         }
 
         private void Next()
@@ -290,10 +297,7 @@ namespace MapProcessing
             creature.Age++;
 
             var baseIndex = creature.Location.Y * Size + creature.Location.X;
-            if (Epoche % 10 == 0)
-            {
-                _saturations[baseIndex] = (byte)creature.NutritionValue;
-            }
+            _saturations[baseIndex] = (byte)creature.NutritionValue;
             if (creature.Dead)
             {
                 this.deadCreatures.Add(creature);
@@ -335,20 +339,20 @@ namespace MapProcessing
             return ticks * 1000d / Stopwatch.Frequency;
         }
 
-        private void SnapShotArea()
+        private AreaData SnapShotArea()
         {
             var cellCount = _types.Length;
             var types = new byte[cellCount];
             var saturations = new byte[cellCount];
             Array.Copy(_types, types, cellCount);
             Array.Copy(_saturations, saturations, cellCount);
-            AreaSnapShot.Add(new AreaData
+            return new AreaData
             {
                 PlantCount = plantHash.Count,
                 GrazerCount = grazerHash.Count,
                 Types = types,
                 Saturations = saturations
-            });
+            };
         }
     }
 }

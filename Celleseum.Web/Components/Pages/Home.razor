@@ -26,7 +26,7 @@
             <div class="divider"></div>
         </Authorized>
         <NotAuthorized>
-            <img src="/images/demo.png" class="cell-canvas" alt="Cellesseum preview" />
+            <canvas id="demoCanvas" class="cell-canvas"></canvas>
             <LoginDisplay />
         </NotAuthorized>
     </AuthorizeView>
@@ -40,6 +40,8 @@
     private const int BatchSize = 150;
 
     private IJSObjectReference? jsModule;
+    private IJSObjectReference? demoModule;
+    private bool demoInitialized;
     private DotNetObjectReference<Home>? dotNetRef;
     private TaskCompletionSource<bool>? playbackCompletion;
     private bool isAnimating;
@@ -63,7 +65,14 @@
         if (firstRender)
         {
             jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/cellgrid.js");
+            demoModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/demo.js");
+
             await jsModule.InvokeVoidAsync("initCanvas", "cellCanvas", size, CellSize, Gap, LineEvery);
+        }
+
+        if (!demoInitialized && demoModule is not null)
+        {
+            demoInitialized = await demoModule.InvokeAsync<bool>("initDemo", "demoCanvas");
         }
     }
 
@@ -174,17 +183,22 @@
     public async ValueTask DisposeAsync()
     {
         dotNetRef?.Dispose();
-        if (jsModule is not null)
+        try
         {
-            try
+            if (jsModule is not null)
             {
                 await jsModule.InvokeVoidAsync("dispose", "cellCanvas");
                 await jsModule.DisposeAsync();
             }
-            catch (JSDisconnectedException)
+            if (demoModule is not null)
             {
-                // Browser navigated away, circuit is gone — JS cleanup is not needed
+                await demoModule.InvokeVoidAsync("disposeDemo", "demoCanvas");
+                await demoModule.DisposeAsync();
             }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Browser navigated away, circuit is gone — JS cleanup is not needed
         }
     }
 }

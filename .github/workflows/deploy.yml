@@ -85,6 +85,8 @@ jobs:
             DATABASE_PASSWORD=${{ secrets.DB_PASSWORD }}
             DATABASE_HOST=postgres
             DATABASE_PORT=5432
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             EOF
 
             # Login to GHCR on the VM (use a PAT if your GHCR repo is private)

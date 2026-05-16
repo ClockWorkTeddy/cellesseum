@@ -11,10 +11,9 @@
 <main class="card">
     <div class="title">Cellesseum</div>
 
-    <LoginDisplay />
-
     <AuthorizeView>
         <Authorized>
+            <LoginDisplay />
             <canvas id="cellCanvas" class="cell-canvas"></canvas>
             <div class="stats-bar">
                 <span>Step: <span id="stat-step">@currentFrame</span></span>
@@ -24,12 +23,14 @@
             <button class="btn" id="btn" type="button" @onclick="GetData" disabled="@isAnimating">
                 @(isAnimating ? "Loading..." : "Start")
             </button>
-
             <div class="divider"></div>
         </Authorized>
+        <NotAuthorized>
+            <img src="/images/demo.png" class="cell-canvas" alt="Cellesseum preview" />
+            <LoginDisplay />
+        </NotAuthorized>
     </AuthorizeView>
 </main>
-
 @code {
     private const int CellSize = 2;
     private const int Gap = 1;

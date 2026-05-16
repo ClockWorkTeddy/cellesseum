@@ -15,4 +15,13 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.7" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="wwwroot\demo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\images\demo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

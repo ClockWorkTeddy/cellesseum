@@ -176,8 +176,15 @@
         dotNetRef?.Dispose();
         if (jsModule is not null)
         {
-            await jsModule.InvokeVoidAsync("dispose", "cellCanvas");
-            await jsModule.DisposeAsync();
+            try
+            {
+                await jsModule.InvokeVoidAsync("dispose", "cellCanvas");
+                await jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Browser navigated away, circuit is gone — JS cleanup is not needed
+            }
         }
     }
 }

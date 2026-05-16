@@ -1,21 +1,37 @@
 const RADIUS = 50;
+// Grid geometry — must match the demo.png generation parameters
+const GRID = 120;
+const CELL = 2;
+const GAP  = 1;
+const STEP = CELL + GAP; // 3px per cell
+
 const demos = new Map();
 
+function drawGridBase(ctx, w, h) {
+    // Dark cell background
+    ctx.fillStyle = 'rgba(11,18,32,1)';
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle grid lines
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    for (let g = 0; g <= GRID; g++) {
+        ctx.fillRect(g * STEP, 0, GAP, h);
+        ctx.fillRect(0, g * STEP, w, GAP);
+    }
+}
+
 function draw(ctx, img, w, h, mx, my) {
-    // 1. Full image in grayscale as base layer
-    ctx.filter = 'grayscale(1)';
-    ctx.drawImage(img, 0, 0, w, h);
-    ctx.filter = 'none';
+    // 1. Base layer: dark background + grid lines only (no cell content)
+    drawGridBase(ctx, w, h);
 
     if (mx === null) return;
 
-    // 2. Draw color image onto offscreen canvas
+    // 2. Draw full color image onto offscreen canvas
     const off = new OffscreenCanvas(w, h);
     const offCtx = off.getContext('2d');
     offCtx.drawImage(img, 0, 0, w, h);
 
-    // 3. Mask the color layer with a radial gradient:
-    //    full opacity at cursor → 50% halfway → transparent at edge
+    // 3. Mask with radial gradient: full color at cursor → fade to transparent at edge
     offCtx.globalCompositeOperation = 'destination-in';
     const grad = offCtx.createRadialGradient(mx, my, 0, mx, my, RADIUS);
     grad.addColorStop(0,   'rgba(0,0,0,1)');
@@ -24,7 +40,7 @@ function draw(ctx, img, w, h, mx, my) {
     offCtx.fillStyle = grad;
     offCtx.fillRect(0, 0, w, h);
 
-    // 4. Paint the masked color layer on top of the grayscale base
+    // 4. Paint masked color layer over the grid base
     ctx.drawImage(off, 0, 0);
 }
 

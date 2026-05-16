@@ -8,11 +8,10 @@
 @inject IConfiguration Configuration
 @inject IJSRuntime JS
 
-<main class="card">
-    <div class="title">Cellesseum</div>
-
-    <AuthorizeView>
-        <Authorized>
+<AuthorizeView>
+    <Authorized>
+        <main class="card">
+            <div class="title">Cellesseum</div>
             <LoginDisplay />
             <canvas id="cellCanvas" class="cell-canvas"></canvas>
             <div class="stats-bar">
@@ -24,13 +23,19 @@
                 @(isAnimating ? "Loading..." : "Start")
             </button>
             <div class="divider"></div>
-        </Authorized>
-        <NotAuthorized>
-            <canvas id="demoCanvas" class="cell-canvas"></canvas>
-            <LoginDisplay />
-        </NotAuthorized>
-    </AuthorizeView>
-</main>
+        </main>
+    </Authorized>
+    <NotAuthorized>
+        <main class="card card-guest">
+            <canvas id="demoCanvas" class="card-guest-canvas"></canvas>
+            <div class="card-guest-content">
+                <div class="title">Cellesseum</div>
+                <div class="card-guest-spacer"></div>
+                <LoginDisplay />
+            </div>
+        </main>
+    </NotAuthorized>
+</AuthorizeView>
 @code {
     private const int CellSize = 2;
     private const int Gap = 1;

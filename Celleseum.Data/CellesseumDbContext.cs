@@ -1,9 +1,10 @@
 ﻿
 namespace Celleseum.Data
 {
+    using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore;
-    
-    public class CellesseumDbContext : DbContext
+
+    public class CellesseumDbContext : IdentityDbContext<ApplicationUser>
     {
         public CellesseumDbContext(DbContextOptions<CellesseumDbContext> options)
             : base(options)
@@ -14,6 +15,8 @@ namespace Celleseum.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<NumberSetDbRecord>(n =>
             {
                 n.HasKey(e => e.Id);

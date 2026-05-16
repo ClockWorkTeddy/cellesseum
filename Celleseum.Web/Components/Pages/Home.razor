@@ -2,7 +2,6 @@
 @using MapProcessing
 @rendermode InteractiveServer
 @attribute [StreamRendering(true)]
-@attribute [OutputCache(Duration = 5)]
 @implements IAsyncDisposable
 
 @inject MapClient MapApi
@@ -12,23 +11,23 @@
 <main class="card">
     <div class="title">Cellesseum</div>
 
-    <!--<AuthorizeView>
+    <LoginDisplay />
+
+    <AuthorizeView>
         <Authorized>
-            <div class="welcome-text">Welcome back, @context.User.Identity?.Name!</div>
+            <canvas id="cellCanvas" class="cell-canvas"></canvas>
+            <div class="stats-bar">
+                <span>Step: <span id="stat-step">@currentFrame</span></span>
+                <span>Plants: <strong class="lbl-green" id="stat-plants">@CurrentFrame?.PlantCount</strong></span>
+                <span>Grazers: <strong class="lbl-yellow" id="stat-grazers">@CurrentFrame?.GrazerCount</strong></span>
+            </div>
+            <button class="btn" id="btn" type="button" @onclick="GetData" disabled="@isAnimating">
+                @(isAnimating ? "Loading..." : "Start")
+            </button>
+
+            <div class="divider"></div>
         </Authorized>
-    </AuthorizeView>-->
-
-    <canvas id="cellCanvas" class="cell-canvas"></canvas>
-    <div class="stats-bar">
-        <span>Step: <span id="stat-step">@currentFrame</span></span>
-        <span>Plants: <strong class="lbl-green" id="stat-plants">@CurrentFrame?.PlantCount</strong></span>
-        <span>Grazers: <strong class="lbl-yellow" id="stat-grazers">@CurrentFrame?.GrazerCount</strong></span>
-    </div>
-    <button class="btn" id="btn" type="button" @onclick="GetData" disabled="@isAnimating">
-        @(isAnimating ? "Loading..." : "Start")
-    </button> 
-
-    <div class="divider"></div>
+    </AuthorizeView>
 </main>
 
 @code {

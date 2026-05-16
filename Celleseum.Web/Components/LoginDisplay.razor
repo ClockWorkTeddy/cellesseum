@@ -1,7 +1,9 @@
+@inject NavigationManager Nav
+
 <AuthorizeView>
     <Authorized>
         <span class="login-text">Hello, @context.User.Identity?.Name</span>
-        <a class="login-btn" href="/Account/Logout">Sign out</a>
+        <button class="login-btn" @onclick='() => Nav.NavigateTo("/Account/Logout", forceLoad: true)'>Sign out</button>
     </Authorized>
     <NotAuthorized>
         <a class="login-btn login-btn-google" href="/Account/Login">

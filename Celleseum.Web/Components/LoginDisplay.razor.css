@@ -46,7 +46,7 @@
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     color: rgba(229, 231, 235, 0.85);
-    background: rgba(23, 32, 47, .25);
+    background: rgba(23, 32, 47, .9);
     font-size: 13px;
     font-weight: 590;
     line-height: 40px;
@@ -65,7 +65,7 @@
 
 .guest-register-btn {
     flex: 1;
-    background: rgba(23, 32, 60, .25);
+    background: rgba(23, 32, 60, .9);
     border-color: rgba(129, 194, 255, 0.15);
 }
 
@@ -78,7 +78,7 @@
     width: 40px;
     min-width: 40px;
     padding: 0;
-    background: rgba(129, 194, 255, 0.1);
+    background: rgba(23, 32, 60, .9);
     border-color: rgba(129, 194, 255, 0.15);
 }
 

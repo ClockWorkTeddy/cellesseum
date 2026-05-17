@@ -78,23 +78,33 @@ export function initDemo(canvasId) {
 
         render();
 
-        const surface = canvas.parentElement ?? canvas;
-
         const onMouseMove = (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
+
+            const withinGlowReach =
+                x >= -RADIUS &&
+                x <= rect.width + RADIUS &&
+                y >= -RADIUS &&
+                y <= rect.height + RADIUS;
+
+            if (!withinGlowReach) {
+                render();
+                return;
+            }
+
             render(x, y);
         };
 
         const onMouseLeave = () => render();
         const onResize = () => render();
 
-        surface.addEventListener('mousemove', onMouseMove);
-        surface.addEventListener('mouseleave', onMouseLeave);
+        window.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseleave', onMouseLeave);
         window.addEventListener('resize', onResize);
 
-        demos.set(canvasId, { onMouseMove, onMouseLeave, onResize, surface });
+        demos.set(canvasId, { onMouseMove, onMouseLeave, onResize });
     };
 
     return true;
@@ -104,9 +114,8 @@ export function disposeDemo(canvasId) {
     const canvas = document.getElementById(canvasId);
     const demo = demos.get(canvasId);
     if (canvas && demo) {
-        const surface = demo.surface ?? canvas;
-        surface.removeEventListener('mousemove', demo.onMouseMove);
-        surface.removeEventListener('mouseleave', demo.onMouseLeave);
+        window.removeEventListener('mousemove', demo.onMouseMove);
+        document.removeEventListener('mouseleave', demo.onMouseLeave);
         window.removeEventListener('resize', demo.onResize);
     }
 

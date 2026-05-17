@@ -1,0 +1,30 @@
+@page "/Account/Register"
+
+<main class="card auth-card">
+	<h1 class="title">Create account</h1>
+
+	@if (!string.IsNullOrWhiteSpace(Error))
+	{
+		<div class="auth-error">@Error</div>
+	}
+
+	<form class="auth-form" method="post" action="/Account/Register/Local" data-enhance="false">
+		<label class="auth-label" for="register-email">Email</label>
+		<input id="register-email" name="email" type="email" required class="auth-input" autocomplete="email" />
+
+		<label class="auth-label" for="register-password">Password</label>
+		<input id="register-password" name="password" type="password" required class="auth-input" autocomplete="new-password" />
+
+		<label class="auth-label" for="register-confirm">Confirm password</label>
+		<input id="register-confirm" name="confirmPassword" type="password" required class="auth-input" autocomplete="new-password" />
+
+		<button class="btn auth-submit" type="submit">Create account</button>
+	</form>
+
+	<p class="auth-switch">Already have an account? <a href="/Account/Login">Sign in</a></p>
+</main>
+
+@code {
+	[SupplyParameterFromQuery(Name = "error")]
+	public string? Error { get; set; }
+}

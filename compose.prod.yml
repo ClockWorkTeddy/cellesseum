@@ -44,6 +44,11 @@ services:
     environment:
       - ASPNETCORE_URLS=http://0.0.0.0:8080
       - Api__BaseAddress=http://apiservice:8080  # critical: container-to-container URL
+      - DatabaseHost=postgres
+      - DatabasePort=5432
+      - Database=${DATABASE}
+      - DatabaseUser=${DATABASE_USER}
+      - DatabasePassword=${DATABASE_PASSWORD}
       - Authentication__Google__ClientId=${GOOGLE_CLIENT_ID}
       - Authentication__Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
 

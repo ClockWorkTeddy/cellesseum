@@ -1,4 +1,4 @@
-const RADIUS = 100;
+const RADIUS = 75;
 const demos = new Map();
 
 function drawBase(ctx, w, h) {
@@ -42,7 +42,7 @@ function draw(ctx, img, w, h, mx, my) {
     offCtx.globalCompositeOperation = 'destination-in';
     const grad = offCtx.createRadialGradient(mx, my, 0, mx, my, RADIUS);
     grad.addColorStop(0, 'rgba(0,0,0,1)');
-    grad.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+    grad.addColorStop(0.5, 'rgba(0,0,0,1)');
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     offCtx.fillStyle = grad;
     offCtx.fillRect(0, 0, w, h);

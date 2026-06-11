@@ -100,8 +100,13 @@ jobs:
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             EOF
 
-            # Login to GHCR on the VM (use a PAT if your GHCR repo is private)
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin || true
+            # Login to GHCR on the VM (required for private packages)
+            if [ -z "${{ secrets.GHCR_PAT }}" ]; then
+              echo "GHCR_PAT is empty. Set a PAT with read:packages scope."
+              exit 1
+            fi
+
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
             # Lowercase owner for compose image references
             export GITHUB_OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"

@@ -78,10 +78,15 @@ builder.Services.AddHttpClient<MapClient>(client =>
 
 var app = builder.Build();
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    ForwardLimit = 2,
+    RequireHeaderSymmetry = false
+};
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 if (!app.Environment.IsDevelopment())
 {

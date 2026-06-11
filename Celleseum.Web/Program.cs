@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,7 +49,7 @@ var authenticationBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
     options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
 });
 
 authenticationBuilder.AddIdentityCookies();
@@ -56,6 +57,8 @@ authenticationBuilder.AddGoogle(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+    options.CallbackPath = "/signin-google";
+    options.SignInScheme = IdentityConstants.ExternalScheme;
 });
 
 builder.Services.AddAuthorization();
@@ -163,10 +166,74 @@ app.MapPost("/Account/Register/Local", async (HttpContext context, UserManager<A
 .DisableAntiforgery();
 
 // Google sign-in challenge endpoint
-app.MapGet("/Account/Login/Google", () =>
-    Results.Challenge(
-        new AuthenticationProperties { RedirectUri = "/" },
-        [GoogleDefaults.AuthenticationScheme]));
+app.MapGet("/Account/Login/Google", (SignInManager<ApplicationUser> signInManager) =>
+{
+    var properties = signInManager.ConfigureExternalAuthenticationProperties(
+        GoogleDefaults.AuthenticationScheme,
+        "/signin-google-complete");
+
+    return Results.Challenge(properties, [GoogleDefaults.AuthenticationScheme]);
+});
+
+// Google OAuth post-auth processing endpoint
+app.MapGet("/signin-google-complete", async (SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager) =>
+{
+    var info = await signInManager.GetExternalLoginInfoAsync();
+    if (info is null)
+    {
+        return Results.Redirect("/Account/Login?error=Google%20login%20failed.");
+    }
+
+    var signInResult = await signInManager.ExternalLoginSignInAsync(
+        info.LoginProvider,
+        info.ProviderKey,
+        isPersistent: true,
+        bypassTwoFactor: true);
+
+    if (signInResult.Succeeded)
+    {
+        return Results.Redirect("/");
+    }
+
+    var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+    if (string.IsNullOrWhiteSpace(email))
+    {
+        return Results.Redirect("/Account/Login?error=Unable%20to%20read%20email%20from%20Google.");
+    }
+
+    var user = await userManager.FindByEmailAsync(email);
+    if (user is null)
+    {
+        user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true
+        };
+
+        var createResult = await userManager.CreateAsync(user);
+        if (!createResult.Succeeded)
+        {
+            var firstError = createResult.Errors.FirstOrDefault()?.Description ?? "Failed to create account.";
+            return Results.Redirect($"/Account/Login?error={Uri.EscapeDataString(firstError)}");
+        }
+    }
+
+    var existingLogins = await userManager.GetLoginsAsync(user);
+    var hasGoogleLogin = existingLogins.Any(x => x.LoginProvider == info.LoginProvider && x.ProviderKey == info.ProviderKey);
+    if (!hasGoogleLogin)
+    {
+        var addLoginResult = await userManager.AddLoginAsync(user, info);
+        if (!addLoginResult.Succeeded)
+        {
+            var firstError = addLoginResult.Errors.FirstOrDefault()?.Description ?? "Failed to link Google account.";
+            return Results.Redirect($"/Account/Login?error={Uri.EscapeDataString(firstError)}");
+        }
+    }
+
+    await signInManager.SignInAsync(user, isPersistent: true);
+    return Results.Redirect("/");
+});
 
 // Logout: sign out of Identity application cookie and redirect to home
 app.MapGet("/Account/Logout", async (HttpContext context) =>

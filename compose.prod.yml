@@ -51,6 +51,13 @@ services:
       - DatabasePassword=${DATABASE_PASSWORD}
       - Authentication__Google__ClientId=${GOOGLE_CLIENT_ID}
       - Authentication__Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
+      - Email__Smtp__Host=${EMAIL__SMTP__HOST}
+      - Email__Smtp__Port=${EMAIL__SMTP__PORT}
+      - Email__Smtp__Username=${EMAIL__SMTP__USERNAME}
+      - Email__Smtp__Password=${EMAIL__SMTP__PASSWORD}
+      - Email__Smtp__UseSsl=${EMAIL__SMTP__USESSL}
+      - Email__Smtp__FromAddress=${EMAIL__SMTP__FROMADDRESS}
+      - Email__Smtp__FromName=${EMAIL__SMTP__FROMNAME}
 
 networks:
   default:

@@ -98,6 +98,13 @@ jobs:
             DATABASE_PORT=5432
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            EMAIL__SMTP__HOST=${{ secrets.BREVO_SMTP_HOST }}
+            EMAIL__SMTP__PORT=${{ secrets.BREVO_SMTP_PORT }}
+            EMAIL__SMTP__USERNAME=${{ secrets.BREVO_SMTP_USERNAME }}
+            EMAIL__SMTP__PASSWORD=${{ secrets.BREVO_SMTP_PASSWORD }}
+            EMAIL__SMTP__USESSL=${{ secrets.BREVO_SMTP_USESSL }}
+            EMAIL__SMTP__FROMADDRESS=${{ secrets.BREVO_FROM_ADDRESS }}
+            EMAIL__SMTP__FROMNAME=${{ secrets.BREVO_FROM_NAME }}
             EOF
 
             # Login to GHCR on the VM (required for private packages)

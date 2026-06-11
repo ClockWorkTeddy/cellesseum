@@ -1,12 +1,17 @@
 using Celleseum.Data;
 using Celleseum.Web;
 using Celleseum.Web.Components;
+using Celleseum.Web.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +24,31 @@ builder.Services.AddRazorComponents()
 builder.Services.AddRazorPages();
 
 builder.Services.AddOutputCache();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("auth-login", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 12;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueLimit = 0;
+    });
+
+    options.AddFixedWindowLimiter("auth-register", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.Window = TimeSpan.FromMinutes(5);
+        limiterOptions.QueueLimit = 0;
+    });
+
+    options.AddFixedWindowLimiter("auth-external", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 20;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueLimit = 0;
+    });
+});
 
 var host = builder.Configuration["DatabaseHost"] ?? "localhost";
 var port = builder.Configuration["DatabasePort"] ?? "5432";
@@ -39,6 +69,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     options.Password.RequireLowercase = true;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequiredLength = 6;
+    options.SignIn.RequireConfirmedEmail = true;
 })
     .AddEntityFrameworkStores<CellesseumDbContext>()
     .AddSignInManager()
@@ -63,6 +94,8 @@ authenticationBuilder.AddGoogle(options =>
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection(SmtpSettings.SectionName));
+builder.Services.AddScoped<IAccountEmailSender, SmtpAccountEmailSender>();
 
 // Forward client IP from incoming request to outgoing API calls
 builder.Services.AddHttpContextAccessor();
@@ -98,6 +131,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.UseAntiforgery();
 
@@ -125,6 +159,11 @@ app.MapPost("/Account/Login/Local", async (HttpContext context, SignInManager<Ap
     }
 
     var result = await signInManager.PasswordSignInAsync(email, password, isPersistent: true, lockoutOnFailure: false);
+    if (result.IsNotAllowed)
+    {
+        return Results.Redirect("/Account/Login?error=Please%20confirm%20your%20email%20before%20signing%20in.");
+    }
+
     if (!result.Succeeded)
     {
         return Results.Redirect("/Account/Login?error=Invalid%20email%20or%20password.");
@@ -132,9 +171,10 @@ app.MapPost("/Account/Login/Local", async (HttpContext context, SignInManager<Ap
 
     return Results.Redirect("/");
 })
-.DisableAntiforgery();
+.DisableAntiforgery()
+.RequireRateLimiting("auth-login");
 
-app.MapPost("/Account/Register/Local", async (HttpContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager) =>
+app.MapPost("/Account/Register/Local", async (HttpContext context, UserManager<ApplicationUser> userManager, IAccountEmailSender emailSender, ILogger<Program> logger) =>
 {
     var form = await context.Request.ReadFormAsync();
     var email = form["email"].ToString().Trim();
@@ -155,7 +195,7 @@ app.MapPost("/Account/Register/Local", async (HttpContext context, UserManager<A
     {
         UserName = email,
         Email = email,
-        EmailConfirmed = true
+        EmailConfirmed = false
     };
 
     var createResult = await userManager.CreateAsync(user, password);
@@ -165,10 +205,61 @@ app.MapPost("/Account/Register/Local", async (HttpContext context, UserManager<A
         return Results.Redirect($"/Account/Register?error={Uri.EscapeDataString(firstError)}");
     }
 
-    await signInManager.SignInAsync(user, isPersistent: true);
-    return Results.Redirect("/");
+    // Send confirmation email after user is created
+    try
+    {
+        var rawToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+        var confirmUrl = $"{context.Request.Scheme}://{context.Request.Host}/Account/ConfirmEmail?userId={Uri.EscapeDataString(user.Id)}&token={Uri.EscapeDataString(encodedToken)}";
+
+        await emailSender.SendEmailConfirmationAsync(email, confirmUrl);
+    }
+    catch (Exception ex)
+    {
+        // Email sending failed, rollback by deleting the user
+        logger.LogError(ex, "Failed to send confirmation email for {Email}. Deleting user account.", email);
+        await userManager.DeleteAsync(user);
+        return Results.Redirect($"/Account/Register?error={Uri.EscapeDataString("Failed to send confirmation email. Please try again later.")}");
+    }
+
+    return Results.Redirect("/Account/Login?message=Registration%20successful.%20Please%20confirm%20your%20email%20before%20signing%20in.");
 })
-.DisableAntiforgery();
+.DisableAntiforgery()
+.RequireRateLimiting("auth-register");
+
+app.MapGet("/Account/ConfirmEmail", async (string? userId, string? token, UserManager<ApplicationUser> userManager) =>
+{
+    if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
+    {
+        return Results.Redirect("/Account/Login?error=Invalid%20email%20confirmation%20link.");
+    }
+
+    var user = await userManager.FindByIdAsync(userId);
+    if (user is null)
+    {
+        return Results.Redirect("/Account/Login?error=Invalid%20email%20confirmation%20link.");
+    }
+
+    string decodedToken;
+    try
+    {
+        decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+    }
+    catch (FormatException)
+    {
+        return Results.Redirect("/Account/Login?error=Invalid%20email%20confirmation%20token.");
+    }
+
+    var confirmResult = await userManager.ConfirmEmailAsync(user, decodedToken);
+    if (!confirmResult.Succeeded)
+    {
+        var firstError = confirmResult.Errors.FirstOrDefault()?.Description ?? "Email confirmation failed.";
+        return Results.Redirect($"/Account/Login?error={Uri.EscapeDataString(firstError)}");
+    }
+
+    return Results.Redirect("/Account/Login?message=Email%20confirmed.%20You%20can%20sign%20in%20now.");
+})
+.RequireRateLimiting("auth-external");
 
 // Google sign-in challenge endpoint
 app.MapGet("/Account/Login/Google", (SignInManager<ApplicationUser> signInManager) =>
@@ -178,7 +269,8 @@ app.MapGet("/Account/Login/Google", (SignInManager<ApplicationUser> signInManage
         "/signin-google-complete");
 
     return Results.Challenge(properties, [GoogleDefaults.AuthenticationScheme]);
-});
+})
+.RequireRateLimiting("auth-external");
 
 // Google OAuth post-auth processing endpoint
 app.MapGet("/signin-google-complete", async (SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager) =>
@@ -238,7 +330,8 @@ app.MapGet("/signin-google-complete", async (SignInManager<ApplicationUser> sign
 
     await signInManager.SignInAsync(user, isPersistent: true);
     return Results.Redirect("/");
-});
+})
+.RequireRateLimiting("auth-external");
 
 // Logout: sign out of Identity application cookie and redirect to home
 app.MapGet("/Account/Logout", async (HttpContext context) =>

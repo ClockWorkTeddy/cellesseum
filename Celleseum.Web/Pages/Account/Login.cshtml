@@ -17,6 +17,11 @@
     <main class="card auth-card">
         <h1 class="title">Sign in</h1>
 
+        @if (!string.IsNullOrWhiteSpace(Model.Message))
+        {
+            <div class="alert alert-success" role="alert">@Model.Message</div>
+        }
+
         @if (!string.IsNullOrWhiteSpace(Model.Error))
         {
             <div class="auth-error">@Model.Error</div>

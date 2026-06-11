@@ -8,6 +8,9 @@ public class LoginModel : PageModel
     [FromQuery(Name = "error")]
     public string? Error { get; set; }
 
+    [FromQuery(Name = "message")]
+    public string? Message { get; set; }
+
     public void OnGet()
     {
     }

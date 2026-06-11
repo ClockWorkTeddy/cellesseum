@@ -32,10 +32,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -45,16 +48,24 @@ jobs:
         run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
       - name: Build and push ApiService
-        run: |
-          docker build -f Celleseum.ApiService/Dockerfile -t ghcr.io/$OWNER_LC/celleseum-apiservice:latest -t ghcr.io/$OWNER_LC/celleseum-apiservice:${{ github.sha }} .
-          docker push ghcr.io/$OWNER_LC/celleseum-apiservice:latest
-          docker push ghcr.io/$OWNER_LC/celleseum-apiservice:${{ github.sha }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Celleseum.ApiService/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_LC }}/celleseum-apiservice:latest
+            ghcr.io/${{ env.OWNER_LC }}/celleseum-apiservice:${{ github.sha }}
 
       - name: Build and push Web
-        run: |
-          docker build -f Celleseum.Web/Dockerfile -t ghcr.io/$OWNER_LC/celleseum-web:latest -t ghcr.io/$OWNER_LC/celleseum-web:${{ github.sha }} .
-          docker push ghcr.io/$OWNER_LC/celleseum-web:latest
-          docker push ghcr.io/$OWNER_LC/celleseum-web:${{ github.sha }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Celleseum.Web/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_LC }}/celleseum-web:latest
+            ghcr.io/${{ env.OWNER_LC }}/celleseum-web:${{ github.sha }}
 
       - name: Upload compose file to VM
         uses: appleboy/scp-action@v1.0.0

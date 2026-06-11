@@ -15,6 +15,7 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddRazorPages();
 
 builder.Services.AddOutputCache();
 
@@ -96,6 +97,8 @@ app.UseOutputCache();
 
 app.UseStaticFiles();
 app.MapStaticAssets();
+
+app.MapRazorPages();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

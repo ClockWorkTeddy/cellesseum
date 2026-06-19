@@ -10,7 +10,7 @@ const grids = new Map();
 
 export function initCanvas(canvasId, gridSize, cellSize, gap, lineEvery) {
     const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+    if (!canvas) return false;
 
     const step = cellSize + gap;
     const totalSize = gridSize * step + gap;
@@ -22,6 +22,7 @@ export function initCanvas(canvasId, gridSize, cellSize, gap, lineEvery) {
     grids.set(canvasId, config);
 
     drawEmpty(config);
+    return true;
 }
 
 export function drawFrame(canvasId, frameData, saturationData) {

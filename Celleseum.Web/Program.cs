@@ -21,7 +21,10 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    options.RootDirectory = "/Components/Pages";
+});
 
 builder.Services.AddOutputCache();
 builder.Services.AddRateLimiter(options =>

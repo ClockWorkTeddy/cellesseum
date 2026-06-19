@@ -1,0 +1,17 @@
+<main class="entry-card">
+    <canvas id="demoCanvas" class="demo-bg-canvas"></canvas>
+    <div class="login-title">Cellesseum</div>
+    <div class="login-controls">
+        <div class="login-form">
+            <button class="login-signin-btn" type="button" @onclick="OnPlay">Play</button>
+            <button class="secondary-button" type="button" @onclick='() => Navigation.NavigateTo("/Account/Login")'>Log In</button>
+        </div>
+    </div>
+</main>
+
+@inject NavigationManager Navigation
+
+@code {
+    [Parameter]
+    public EventCallback OnPlay { get; set; }
+}

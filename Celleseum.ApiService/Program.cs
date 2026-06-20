@@ -40,12 +40,12 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/turn/{size}", (int size) =>
+app.MapGet("/turn/{width}/{height}", (int width, int height) =>
 {
     var processor = new Proccessor();
-    var map = new Map(size);
+    var map = new Map(width, height);
 
-    return processor.ProcessMapFrames(map, size * 15);
+    return processor.ProcessMapFrames(map, Math.Max(width, height) * 15);
 })
 .WithName("NextTurn");
 

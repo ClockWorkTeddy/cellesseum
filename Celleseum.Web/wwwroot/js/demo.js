@@ -42,7 +42,7 @@ function draw(ctx, img, w, h, mx, my) {
     offCtx.globalCompositeOperation = 'destination-in';
     const grad = offCtx.createRadialGradient(mx, my, 0, mx, my, RADIUS);
     grad.addColorStop(0, 'rgba(0,0,0,1)');
-    grad.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+    grad.addColorStop(0.25, 'rgba(0,0,0,0.75)');
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     offCtx.fillStyle = grad;
     offCtx.fillRect(0, 0, w, h);
@@ -60,16 +60,16 @@ function resizeCanvasToElement(canvas) {
     return { width: rect.width, height: rect.height };
 }
 
-const FRAME_DURATION = 50; // ms — ~10 fps
+const FRAME_DURATION = 100; // ms — ~10 fps
 
 export function initDemo(canvasId) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return false;
     if (demos.has(canvasId)) return true;
 
-    // Preload up to 10 frames; skip any that 404
-    const frameSlots = new Array(10).fill(null);
-    let pending = 10;
+    // Preload up to 31 frames; skip any that 404
+    const frameSlots = new Array(31).fill(null);
+    let pending = 31;
 
     const tryStart = () => {
         if (--pending > 0) return;
@@ -119,7 +119,7 @@ export function initDemo(canvasId) {
         demos.set(canvasId, { onMouseMove, onMouseLeave, state });
     };
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 31; i++) {
         const img = new Image();
         const idx = i;
         img.onload = () => { frameSlots[idx] = img; tryStart(); };

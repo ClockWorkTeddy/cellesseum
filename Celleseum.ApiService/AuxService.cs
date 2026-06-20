@@ -5,7 +5,8 @@ namespace Celleseum.ApiService
 {
     public class AuxService
     {
-        public int Size;
+        public int Width;
+        public int Height;
 
         public void PrintData(List<Dictionary<int, int>> data)
         {
@@ -28,11 +29,11 @@ namespace Celleseum.ApiService
         public string CombineArea(Dictionary<int, int> area)
         {
             var sb = new StringBuilder();
-            for (var y = 0; y < Size; y++)
+            for (var y = 0; y < Height; y++)
             {
-                for (var x = 0; x < Size; x++)
+                for (var x = 0; x < Width; x++)
                 {
-                    var key = y * Size + x;
+                    var key = y * Width + x;
                     if (area.ContainsKey(key))
                     {
                         sb.Append(area[key].ToString());

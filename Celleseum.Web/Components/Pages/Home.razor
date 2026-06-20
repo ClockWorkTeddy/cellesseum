@@ -43,8 +43,8 @@
     </NotAuthorized>
 </AuthorizeView>
 @code {
-    private const int CellSize = 4;
-    private const int Gap = 2;
+    private const int CellSize = 2;
+    private const int Gap = 1;
     private const int LineEvery = 1;
     private const int AnimationDelayMilliseconds = 20;
     private const int InitialBufferSize = 100;
@@ -68,7 +68,8 @@
     private readonly List<AreaData> data = new();
     private int currentFrame;
     private int nextFrameStart;
-    private int size;
+    private int gridWidth;
+    private int gridHeight;
 
     private AreaData? CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
@@ -77,7 +78,8 @@
 
     protected override void OnInitialized()
     {
-        size = Configuration.GetValue("Grid:Size", 50);
+        gridWidth  = Configuration.GetValue("Grid:Width",  50);
+        gridHeight = Configuration.GetValue("Grid:Height", 50);
     }
 
     protected override void OnParametersSet()
@@ -109,7 +111,7 @@
 
         if (!gridInitialized && jsModule is not null)
         {
-            gridInitialized = await jsModule.InvokeAsync<bool>("initCanvas", "cellCanvas", size, CellSize, Gap, LineEvery);
+            gridInitialized = await jsModule.InvokeAsync<bool>("initCanvas", "cellCanvas", gridWidth, gridHeight, CellSize, Gap, LineEvery);
         }
 
         if (!isGuestMode && !demoInitialized && demoModule is not null)
@@ -133,7 +135,7 @@
 
         try
         {
-            await using var stream = MapApi.GetMapStream(size).GetAsyncEnumerator();
+            await using var stream = MapApi.GetMapStream(gridWidth, gridHeight).GetAsyncEnumerator();
 
             var startupBatch = await ReadBatchAsync(stream, InitialBufferSize);
             if (startupBatch.Count == 0)
@@ -214,7 +216,7 @@
         }
 
         var startFrame = nextFrameStart;
-        var cellCount = size * size;
+        var cellCount = gridWidth * gridHeight;
         var allTypes = new byte[batch.Count * cellCount];
         var allSaturation = new byte[batch.Count * cellCount];
         var plantCounts = new int[batch.Count];

@@ -6,7 +6,8 @@ namespace MapProcessing
 {
     public class Map
     {
-        public int Size { get; init; }
+        public int Width { get; init; }
+        public int Height { get; init; }
         private readonly List<Creature> deadCreatures = new List<Creature>();
         private readonly List<Creature> eatenCreatures = new List<Creature>();
         private readonly Dictionary<int, Plant> plantHash = new Dictionary<int, Plant>();
@@ -24,10 +25,11 @@ namespace MapProcessing
         private int _profileSampleCount;
         private int _score;
 
-        public Map(int size)
+        public Map(int width, int height)
         {
-            Size = size;
-            var cellCount = size * size;
+            Width = width;
+            Height = height;
+            var cellCount = width * height;
             _types = new byte[cellCount];
             _saturations = new byte[cellCount];
         }
@@ -131,7 +133,7 @@ namespace MapProcessing
         private void CreatePlants()
         {
             var amplifier = 0.025;
-            var fertility = (int)(amplifier * (Math.Pow(Size, 2) - grazerHash.Count * Math.Pow(Grazer.DefaultSize, 2) - plantHash.Count * Math.Pow(Plant.DefaultSize, 2)));
+            var fertility = (int)(amplifier * (Width * Height - grazerHash.Count * Math.Pow(Grazer.DefaultSize, 2) - plantHash.Count * Math.Pow(Plant.DefaultSize, 2)));
 
             for (int i = 0; i < fertility; i++)
             {
@@ -139,14 +141,14 @@ namespace MapProcessing
                 var y = 0;
                 do
                 {
-                    x = _random.Next(0, Size);
-                    y = _random.Next(0, Size);
+                    x = _random.Next(0, Width);
+                    y = _random.Next(0, Height);
 
-                } while (!IsCellFreeFor(y * Size + x, Plant.DefaultSize, CellType.Plant));
+                } while (!IsCellFreeFor(y * Width + x, Plant.DefaultSize, CellType.Plant));
 
                 var guid = Guid.NewGuid();
                 var plant = new Plant(new Point(x, y), guid);
-                plantHash[y * Size + x] = plant;
+                plantHash[y * Width + x] = plant;
                 FillArea(plant);
                 _score++;
             }
@@ -154,7 +156,8 @@ namespace MapProcessing
 
         private Point GetNewPositionNearParent(Creature creature)
         {
-            var maxCoordinate = Size - creature.Size;
+            var maxX = Width - creature.Size;
+            var maxY = Height - creature.Size;
             var chosen = creature.Location;
             var freeCount = 0;
 
@@ -170,12 +173,12 @@ namespace MapProcessing
                     var newX = creature.Location.X + directionX * creature.Speed;
                     var newY = creature.Location.Y + directionY * creature.Speed;
 
-                    if ((uint)newX > (uint)maxCoordinate || (uint)newY > (uint)maxCoordinate)
+                    if ((uint)newX > (uint)maxX || (uint)newY > (uint)maxY)
                     {
                         continue;
                     }
 
-                    if (!IsCellFreeFor(newY * Size + newX, Grazer.DefaultSize, CellType.Grazer))
+                    if (!IsCellFreeFor(newY * Width + newX, Grazer.DefaultSize, CellType.Grazer))
                     {
                         continue;
                     }
@@ -197,11 +200,11 @@ namespace MapProcessing
             var y = 0;
             do
             {
-                x = _random.Next(0, Size);
-                y = _random.Next(0, Size);
-                y = Math.Clamp(y % 2 == 0 ? y : y - 1, 0, Size - 1);
-                x = Math.Clamp(x % 2 == 0 ? x : x - 1, 0, Size - 1);
-            } while (!IsCellFreeFor(y * Size + x, Grazer.DefaultSize, CellType.Grazer));
+                x = _random.Next(0, Width);
+                y = _random.Next(0, Height);
+                y = Math.Clamp(y % 2 == 0 ? y : y - 1, 0, Height - 1);
+                x = Math.Clamp(x % 2 == 0 ? x : x - 1, 0, Width - 1);
+            } while (!IsCellFreeFor(y * Width + x, Grazer.DefaultSize, CellType.Grazer));
 
             return new Point(x, y);
         }
@@ -230,7 +233,7 @@ namespace MapProcessing
             {
                 for (int x = 0; x < grazer.Size; x++)
                 {
-                    var cellIndex = (grazer.Location.Y + y) * Size + grazer.Location.X + x;
+                    var cellIndex = (grazer.Location.Y + y) * Width + grazer.Location.X + x;
                     if ((uint)cellIndex < (uint)cellCount && _types[cellIndex] == (byte)CellType.Plant)
                     {
                         var eatenPlant = plantHash[cellIndex];
@@ -245,10 +248,10 @@ namespace MapProcessing
         {
             var saturation = (byte)Math.Clamp(creature.NutritionValue, 2, 10);
             var type = (byte)creature.Type;
-            var baseIndex = creature.Location.Y * Size + creature.Location.X;
+            var baseIndex = creature.Location.Y * Width + creature.Location.X;
             for (int y = 0; y < creature.Size; y++)
             {
-                var rowBase = baseIndex + y * Size;
+                var rowBase = baseIndex + y * Width;
                 for (int x = 0; x < creature.Size; x++)
                 {
                     _types[rowBase + x] = type;
@@ -259,10 +262,10 @@ namespace MapProcessing
 
         private void ClearArea(Creature creature)
         {
-            var baseIndex = creature.Location.Y * Size + creature.Location.X;
+            var baseIndex = creature.Location.Y * Width + creature.Location.X;
             for (int y = 0; y < creature.Size; y++)
             {
-                var rowBase = baseIndex + y * Size;
+                var rowBase = baseIndex + y * Width;
                 for (int x = 0; x < creature.Size; x++)
                 {
                     _types[rowBase + x] = 0;
@@ -277,7 +280,7 @@ namespace MapProcessing
             {
                 if (dc is Plant plant)
                 {
-                    plantHash.Remove(plant.Location.Y * Size + plant.Location.X);
+                    plantHash.Remove(plant.Location.Y * Width + plant.Location.X);
                 }
                 else if (dc is Grazer)
                 {
@@ -290,7 +293,7 @@ namespace MapProcessing
 
             eatenCreatures.ForEach(ec =>
             {
-                plantHash.Remove(ec.Location.Y * Size + ec.Location.X);
+                plantHash.Remove(ec.Location.Y * Width + ec.Location.X);
             });
             eatenCreatures.Clear();
         }
@@ -299,7 +302,7 @@ namespace MapProcessing
         {
             creature.Age++;
 
-            var baseIndex = creature.Location.Y * Size + creature.Location.X;
+            var baseIndex = creature.Location.Y * Width + creature.Location.X;
             _saturations[baseIndex] = (byte)creature.NutritionValue;
             if (creature.Dead)
             {

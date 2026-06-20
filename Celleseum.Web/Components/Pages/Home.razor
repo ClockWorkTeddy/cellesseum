@@ -15,6 +15,7 @@
               CurrentStep="@currentFrame"
               PlantCount="@CurrentFrame?.PlantCount"
               GrazerCount="@CurrentFrame?.GrazerCount"
+              Score="@CurrentFrame?.Score"
               IsAnimating="@isAnimating"
               OnStart="GetData" />
     </Authorized>
@@ -25,6 +26,7 @@
                   CurrentStep="@currentFrame"
                   PlantCount="@CurrentFrame?.PlantCount"
                   GrazerCount="@CurrentFrame?.GrazerCount"
+                  Score="@CurrentFrame?.Score"
                   IsAnimating="@isAnimating"
                   OnStart="GetData" />
         }
@@ -188,12 +190,14 @@
         var allSaturation = new byte[batch.Count * cellCount];
         var plantCounts = new int[batch.Count];
         var grazerCounts = new int[batch.Count];
+        var score = new int[batch.Count];
 
         for (var i = 0; i < batch.Count; i++)
         {
             var frame = batch[i];
             plantCounts[i] = frame.PlantCount;
             grazerCounts[i] = frame.GrazerCount;
+            score[i] = frame.Score;
             var offset = i * cellCount;
             Buffer.BlockCopy(frame.Types, 0, allTypes, offset, cellCount);
             Buffer.BlockCopy(frame.Saturations, 0, allSaturation, offset, cellCount);
@@ -204,7 +208,7 @@
 
         await jsModule.InvokeVoidAsync("enqueueFrames",
             "cellCanvas", allTypes, allSaturation,
-            plantCounts, grazerCounts, startFrame);
+            plantCounts, grazerCounts, score, startFrame);
     }
 
     private async Task EnableGuestMode()

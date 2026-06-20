@@ -123,7 +123,7 @@ export function startPlayback(canvasId, delay, dotNetRef) {
     });
 }
 
-export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, grazerCounts, startFrame) {
+export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, grazerCounts, score, startFrame) {
     const config = grids.get(canvasId);
     const player = players.get(canvasId);
     if (!config || !player) return;
@@ -133,6 +133,7 @@ export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, gr
         allSaturation,
         plantCounts,
         grazerCounts,
+        score,
         startFrame,
         frameCount: plantCounts.length,
         cellCount: config.gridSize * config.gridSize
@@ -162,6 +163,7 @@ function tickPlayer(canvasId) {
     const stepEl = document.getElementById("stat-step");
     const plantEl = document.getElementById("stat-plants");
     const grazerEl = document.getElementById("stat-grazers");
+    const scoreEl = document.getElementById("stat-score");
 
     if (!player.currentBatch) {
         player.currentBatch = player.queue.shift() || null;
@@ -187,6 +189,7 @@ function tickPlayer(canvasId) {
     if (stepEl) stepEl.textContent = batch.startFrame + frame;
     if (plantEl) plantEl.textContent = batch.plantCounts[frame];
     if (grazerEl) grazerEl.textContent = batch.grazerCounts[frame];
+    if (scoreEl) scoreEl.textContent = batch.score[frame];
 
     player.frameInBatch++;
     if (player.frameInBatch >= batch.frameCount) {

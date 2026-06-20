@@ -22,6 +22,7 @@ namespace MapProcessing
         private long _profileSnapshotTicks;
         private long _profileTotalTicks;
         private int _profileSampleCount;
+        private int _score;
 
         public Map(int size)
         {
@@ -124,6 +125,7 @@ namespace MapProcessing
             grazerHash[guid] = grazer;
             Grazing(grazer);
             FillArea(grazer);
+            _score += 10;
         }
 
         private void CreatePlants()
@@ -146,6 +148,7 @@ namespace MapProcessing
                 var plant = new Plant(new Point(x, y), guid);
                 plantHash[y * Size + x] = plant;
                 FillArea(plant);
+                _score++;
             }
         }
 
@@ -350,6 +353,7 @@ namespace MapProcessing
             {
                 PlantCount = plantHash.Count,
                 GrazerCount = grazerHash.Count,
+                Score = _score,
                 Types = types,
                 Saturations = saturations
             };

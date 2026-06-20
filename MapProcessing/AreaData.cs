@@ -4,6 +4,7 @@
     {
         public int PlantCount { get; set; } = 0;
         public int GrazerCount { get; set; } = 0;
+        public int Score { get; set; } = 0;
         public byte[] Types { get; set; } = Array.Empty<byte>();
         public byte[] Saturations { get; set; } = Array.Empty<byte>();
     }

@@ -9,6 +9,7 @@
         <span>Step: <span id="stat-step">@CurrentStep</span></span>
         <span>Plants: <strong class="lbl-green" id="stat-plants">@PlantCount</strong></span>
         <span>Grazers: <strong class="lbl-yellow" id="stat-grazers">@GrazerCount</strong></span>
+        <span>Score: <strong class="lbl-orange" id="stat-score">@Score</strong></span>
     </div>
     <button class="btn" id="btn" type="button" @onclick="OnStart" disabled="@IsAnimating">
         @(IsAnimating ? "Loading..." : "Start")
@@ -28,6 +29,9 @@
 
     [Parameter]
     public int? GrazerCount { get; set; }
+
+    [Parameter]
+    public int? Score { get; set; }
 
     [Parameter]
     public bool IsAnimating { get; set; }

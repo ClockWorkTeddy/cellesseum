@@ -17,7 +17,10 @@
               GrazerCount="@CurrentFrame?.GrazerCount"
               Score="@CurrentFrame?.Score"
               IsAnimating="@isAnimating"
-              OnStart="GetData" />
+              IsPaused="@isPaused"
+              OnStart="GetData"
+              OnPause="TogglePause"
+              OnStep="StepPlayback" />
     </Authorized>
     <NotAuthorized>
         @if (isGuestMode)
@@ -28,7 +31,10 @@
                   GrazerCount="@CurrentFrame?.GrazerCount"
                   Score="@CurrentFrame?.Score"
                   IsAnimating="@isAnimating"
-                  OnStart="GetData" />
+                  IsPaused="@isPaused"
+                  OnStart="GetData"
+                  OnPause="TogglePause"
+                  OnStep="StepPlayback" />
         }
         else
         {
@@ -37,8 +43,8 @@
     </NotAuthorized>
 </AuthorizeView>
 @code {
-    private const int CellSize = 2;
-    private const int Gap = 1;
+    private const int CellSize = 4;
+    private const int Gap = 2;
     private const int LineEvery = 1;
     private const int AnimationDelayMilliseconds = 20;
     private const int InitialBufferSize = 100;
@@ -58,6 +64,7 @@
     private DotNetObjectReference<Home>? dotNetRef;
     private TaskCompletionSource<bool>? playbackCompletion;
     private bool isAnimating;
+    private bool isPaused;
     private readonly List<AreaData> data = new();
     private int currentFrame;
     private int nextFrameStart;
@@ -162,6 +169,28 @@
             currentFrame = Math.Max(data.Count - 1, 0);
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task TogglePause()
+    {
+        if (jsModule is null) return;
+
+        if (isPaused)
+        {
+            await jsModule.InvokeVoidAsync("resumePlayback", "cellCanvas");
+        }
+        else
+        {
+            await jsModule.InvokeVoidAsync("pausePlayback", "cellCanvas");
+        }
+
+        isPaused = !isPaused;
+    }
+
+    private async Task StepPlayback()
+    {
+        if (jsModule is null || !isPaused) return;
+        await jsModule.InvokeVoidAsync("stepPlayback", "cellCanvas");
     }
 
     private async Task<List<AreaData>> ReadBatchAsync(IAsyncEnumerator<AreaData> stream, int maxCount)

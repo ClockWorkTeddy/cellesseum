@@ -1,4 +1,4 @@
-const RADIUS = 75;
+const RADIUS = 150;
 const demos = new Map();
 
 function drawBase(ctx, w, h) {
@@ -42,7 +42,7 @@ function draw(ctx, img, w, h, mx, my) {
     offCtx.globalCompositeOperation = 'destination-in';
     const grad = offCtx.createRadialGradient(mx, my, 0, mx, my, RADIUS);
     grad.addColorStop(0, 'rgba(0,0,0,1)');
-    grad.addColorStop(0.5, 'rgba(0,0,0,1)');
+    grad.addColorStop(0.5, 'rgba(0,0,0,0.5)');
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     offCtx.fillStyle = grad;
     offCtx.fillRect(0, 0, w, h);
@@ -60,23 +60,37 @@ function resizeCanvasToElement(canvas) {
     return { width: rect.width, height: rect.height };
 }
 
+const FRAME_DURATION = 50; // ms — ~10 fps
+
 export function initDemo(canvasId) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return false;
     if (demos.has(canvasId)) return true;
 
-    const img = new Image();
-    img.src = '/images/demo.png';
-    img.onerror = (e) => console.error('[demo.js] Failed to load /images/demo.png', e);
+    // Preload up to 10 frames; skip any that 404
+    const frameSlots = new Array(10).fill(null);
+    let pending = 10;
 
-    img.onload = () => {
-        const render = (mx = null, my = null) => {
+    const tryStart = () => {
+        if (--pending > 0) return;
+
+        const frames = frameSlots.filter(Boolean);
+        if (frames.length === 0) return;
+
+        const state = { mx: null, my: null, rafId: null, frameIndex: 0, lastFrameTime: 0 };
+
+        const tick = (timestamp) => {
+            if (timestamp - state.lastFrameTime >= FRAME_DURATION) {
+                state.frameIndex = (state.frameIndex + 1) % frames.length;
+                state.lastFrameTime = timestamp;
+            }
+
+            const img = frames[state.frameIndex];
             const { width, height } = resizeCanvasToElement(canvas);
             const ctx = canvas.getContext('2d');
-            draw(ctx, img, width, height, mx, my);
+            draw(ctx, img, width, height, state.mx, state.my);
+            state.rafId = requestAnimationFrame(tick);
         };
-
-        render();
 
         const onMouseMove = (e) => {
             const rect = canvas.getBoundingClientRect();
@@ -89,34 +103,41 @@ export function initDemo(canvasId) {
                 y >= -RADIUS &&
                 y <= rect.height + RADIUS;
 
-            if (!withinGlowReach) {
-                render();
-                return;
-            }
-
-            render(x, y);
+            state.mx = withinGlowReach ? x : null;
+            state.my = withinGlowReach ? y : null;
         };
 
-        const onMouseLeave = () => render();
-        const onResize = () => render();
+        const onMouseLeave = () => {
+            state.mx = null;
+            state.my = null;
+        };
 
         window.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseleave', onMouseLeave);
-        window.addEventListener('resize', onResize);
 
-        demos.set(canvasId, { onMouseMove, onMouseLeave, onResize });
+        state.rafId = requestAnimationFrame(tick);
+        demos.set(canvasId, { onMouseMove, onMouseLeave, state });
     };
+
+    for (let i = 0; i < 10; i++) {
+        const img = new Image();
+        const idx = i;
+        img.onload = () => { frameSlots[idx] = img; tryStart(); };
+        img.onerror = () => tryStart(); // missing frame — just skip it
+        img.src = `/images/wp${i + 1}.png`;
+    }
 
     return true;
 }
 
 export function disposeDemo(canvasId) {
-    const canvas = document.getElementById(canvasId);
     const demo = demos.get(canvasId);
-    if (canvas && demo) {
+    if (demo) {
         window.removeEventListener('mousemove', demo.onMouseMove);
         document.removeEventListener('mouseleave', demo.onMouseLeave);
-        window.removeEventListener('resize', demo.onResize);
+        if (demo.state.rafId !== null) {
+            cancelAnimationFrame(demo.state.rafId);
+        }
     }
 
     demos.delete(canvasId);

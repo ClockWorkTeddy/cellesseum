@@ -11,6 +11,17 @@
         <span>Grazers: <strong class="lbl-yellow" id="stat-grazers">@GrazerCount</strong></span>
         <span>Score: <strong class="lbl-orange" id="stat-score">@Score</strong></span>
     </div>
+    @if (IsAnimating)
+    {
+        <div class="playback-controls">
+            <button class="btn" type="button" @onclick="OnPause">
+                @(IsPaused ? "▶ Resume" : "⏸ Pause")
+            </button>
+            <button class="btn" type="button" @onclick="OnStep" disabled="@(!IsPaused)">
+                ▶| Step
+            </button>
+        </div>
+    }
     <button class="btn" id="btn" type="button" @onclick="OnStart" disabled="@IsAnimating">
         @(IsAnimating ? "Loading..." : "Start")
     </button>
@@ -37,5 +48,14 @@
     public bool IsAnimating { get; set; }
 
     [Parameter]
+    public bool IsPaused { get; set; }
+
+    [Parameter]
     public EventCallback OnStart { get; set; }
+
+    [Parameter]
+    public EventCallback OnPause { get; set; }
+
+    [Parameter]
+    public EventCallback OnStep { get; set; }
 }

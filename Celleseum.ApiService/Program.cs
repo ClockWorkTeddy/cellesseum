@@ -45,7 +45,7 @@ app.MapGet("/turn/{size}", (int size) =>
     var processor = new Proccessor();
     var map = new Map(size);
 
-    return processor.ProcessMapFrames(map, size * 10);
+    return processor.ProcessMapFrames(map, size * 15);
 })
 .WithName("NextTurn");
 

@@ -146,24 +146,36 @@ body {
     color: #bbbb33;
 }
 
+.playback-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 auto 12px;
+}
+
+.playback-controls .btn {
+    max-width: 120px;
+    padding: 8px 14px;
+    font-size: 12px;
+}
+
 /* Cell canvas: single <canvas> element replaces thousands of divs */
 .cell-canvas {
     display: block;
-    margin: 0 auto 18px;
+    margin: 100px auto 18px;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
 }
 
 /* ── Entry Screen ── */
 .demo-bg-canvas {
-    position: absolute;
+    position: fixed;
     inset: 0;
     width: 100%;
     height: 100%;
     display: block;
     z-index: 0;
     pointer-events: none;
-    border-radius: inherit;
 }
 
 .entry-card {

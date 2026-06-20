@@ -118,6 +118,7 @@ export function startPlayback(canvasId, delay, dotNetRef) {
         currentBatch: null,
         frameInBatch: 0,
         isPlaying: false,
+        isPaused: false,
         isCompleted: false,
         timerId: null
     });
@@ -139,7 +140,7 @@ export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, gr
         cellCount: config.gridSize * config.gridSize
     });
 
-    if (!player.isPlaying) {
+    if (!player.isPaused && !player.isPlaying) {
         player.isPlaying = true;
         tickPlayer(canvasId);
     }
@@ -198,6 +199,36 @@ function tickPlayer(canvasId) {
     }
 
     player.timerId = setTimeout(() => tickPlayer(canvasId), player.delay);
+}
+
+export function pausePlayback(canvasId) {
+    const player = players.get(canvasId);
+    if (!player) return;
+    if (player.timerId) {
+        clearTimeout(player.timerId);
+        player.timerId = null;
+    }
+    player.isPaused = true;
+    player.isPlaying = false;
+}
+
+export function resumePlayback(canvasId) {
+    const player = players.get(canvasId);
+    if (!player || !player.isPaused) return;
+    player.isPaused = false;
+    player.isPlaying = true;
+    tickPlayer(canvasId);
+}
+
+export function stepPlayback(canvasId) {
+    const player = players.get(canvasId);
+    if (!player || !player.isPaused) return;
+    tickPlayer(canvasId);
+    // tickPlayer scheduled the next tick — cancel it so only one frame advances
+    if (player.timerId) {
+        clearTimeout(player.timerId);
+        player.timerId = null;
+    }
 }
 
 export function dispose(canvasId) {

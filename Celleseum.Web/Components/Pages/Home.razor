@@ -15,7 +15,7 @@
               CurrentStep="@currentFrame"
               PlantCount="@CurrentFrame?.PlantCount"
               GrazerCount="@CurrentFrame?.GrazerCount"
-              Score="@CurrentFrame?.Score"
+              NormalizedScore="@CurrentFrame?.NormalizedScore"
               IsAnimating="@isAnimating"
               IsPaused="@isPaused"
               OnStart="GetData"
@@ -29,7 +29,7 @@
                   CurrentStep="@currentFrame"
                   PlantCount="@CurrentFrame?.PlantCount"
                   GrazerCount="@CurrentFrame?.GrazerCount"
-                  Score="@CurrentFrame?.Score"
+                  NormalizedScore="@CurrentFrame?.NormalizedScore"
                   IsAnimating="@isAnimating"
                   IsPaused="@isPaused"
                   OnStart="GetData"
@@ -228,7 +228,7 @@
             var frame = batch[i];
             plantCounts[i] = frame.PlantCount;
             grazerCounts[i] = frame.GrazerCount;
-            score[i] = frame.Score;
+            score[i] = frame.NormalizedScore;
             var offset = i * cellCount;
             Buffer.BlockCopy(frame.Types, 0, allTypes, offset, cellCount);
             Buffer.BlockCopy(frame.Saturations, 0, allSaturation, offset, cellCount);

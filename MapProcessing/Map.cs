@@ -24,6 +24,7 @@ namespace MapProcessing
         private long _profileTotalTicks;
         private int _profileSampleCount;
         private int _score;
+        private int _term;
 
         public Map(int width, int height)
         {
@@ -39,6 +40,7 @@ namespace MapProcessing
 
         public IEnumerable<AreaData> GenerateFrames(int term)
         {
+            _term = term;
             const int initialGrazerCount = 1;
             CreateGrazer(initialGrazerCount);
 
@@ -356,7 +358,7 @@ namespace MapProcessing
             {
                 PlantCount = plantHash.Count,
                 GrazerCount = grazerHash.Count,
-                Score = _score,
+                NormalizedScore = (int)(_score / Math.Pow(_term, 2) * 10000),
                 Types = types,
                 Saturations = saturations
             };

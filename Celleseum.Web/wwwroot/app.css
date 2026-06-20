@@ -94,6 +94,18 @@ body {
     margin-bottom: 8px;
 }
 
+.lbl-green {
+    color: #00bb33;
+}
+
+.lbl-orange {
+    color: #ff9900;
+}
+
+.lbl-yellow {
+    color: #bbbb33;
+}
+
 .title{
   font-size: 34px;
   letter-spacing: .4px;
@@ -134,14 +146,6 @@ body {
     font-size: 12px;
     font-weight: 650;
     margin: 0 auto 18px;
-}
-
-.lbl-green {
-    color: #00bb33;
-}
-
-.lbl-yellow {
-    color: #bbbb33;
 }
 
 .playback-controls {

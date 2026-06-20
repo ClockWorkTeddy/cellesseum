@@ -1,7 +1,10 @@
 @page "/Account/Login"
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
+<canvas id="demoCanvas" class="demo-bg-canvas"></canvas>
 <main class="login-card">
-    <canvas id="demoCanvas" class="demo-bg-canvas"></canvas>
     <div class="login-title">Cellesseum</div>
     <div class="login-controls">
         <form method="post" action="/Account/Login/Local" data-enhance="false" class="login-form">
@@ -26,3 +29,34 @@
         </form>
     </div>
 </main>
+
+@code {
+    private IJSObjectReference? demoModule;
+    private bool demoInitialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            demoModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/demo.js");
+        }
+
+        if (!demoInitialized && demoModule is not null)
+        {
+            demoInitialized = await demoModule.InvokeAsync<bool>("initDemo", "demoCanvas");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (demoModule is not null)
+            {
+                await demoModule.InvokeVoidAsync("disposeDemo", "demoCanvas");
+                await demoModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException) { }
+    }
+}

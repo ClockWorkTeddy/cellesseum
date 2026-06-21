@@ -56,8 +56,10 @@
 
     private IJSObjectReference? jsModule;
     private IJSObjectReference? demoModule;
+    private IJSObjectReference? plotModule;
     private bool gridInitialized;
     private bool demoInitialized;
+    private bool plotInitialized;
     private bool isGuestMode;
     private bool previousGuestMode;
     private bool shouldDisposeGrid;
@@ -100,6 +102,14 @@
         {
             jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/cellgrid.js");
             demoModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/demo.js");
+            plotModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/plot.js");
+        }
+
+        if (!plotInitialized && plotModule is not null)
+        {
+            var p = await plotModule.InvokeAsync<bool>("initPlot", "plotPlants",  "#00bb33", "Plants",  2000);
+            var g = await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "#bbbb33", "Grazers", 2000);
+            plotInitialized = p && g;
         }
 
         if (shouldDisposeGrid && jsModule is not null)
@@ -131,6 +141,11 @@
         data.Clear();
         currentFrame = 0;
         nextFrameStart = 0;
+        if (plotModule is not null)
+        {
+            await plotModule.InvokeVoidAsync("resetPlot", "plotPlants");
+            await plotModule.InvokeVoidAsync("resetPlot", "plotGrazers");
+        }
         await InvokeAsync(StateHasChanged);
 
         try
@@ -240,6 +255,12 @@
         await jsModule.InvokeVoidAsync("enqueueFrames",
             "cellCanvas", allTypes, allSaturation,
             plantCounts, grazerCounts, score, startFrame);
+
+        if (plotModule is not null)
+        {
+            await plotModule.InvokeVoidAsync("pushFrames", "plotPlants",  plantCounts);
+            await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", grazerCounts);
+        }
     }
 
     private async Task EnableGuestMode()
@@ -278,6 +299,12 @@
             {
                 await demoModule.InvokeVoidAsync("disposeDemo", "demoCanvas");
                 await demoModule.DisposeAsync();
+            }
+            if (plotModule is not null)
+            {
+                await plotModule.InvokeVoidAsync("disposePlot", "plotPlants");
+                await plotModule.InvokeVoidAsync("disposePlot", "plotGrazers");
+                await plotModule.DisposeAsync();
             }
         }
         catch (JSDisconnectedException)

@@ -183,7 +183,10 @@ function tickPlayer(canvasId) {
 
     drawFrame(canvasId, types, saturation);
 
-    if (stepEl) stepEl.textContent = batch.startFrame + frame;
+    const absoluteFrame = batch.startFrame + frame;
+    window.dispatchEvent(new CustomEvent('celleseum:frame', { detail: { frame: absoluteFrame } }));
+
+    if (stepEl) stepEl.textContent = absoluteFrame;
     if (plantEl) plantEl.textContent = batch.plantCounts[frame];
     if (grazerEl) grazerEl.textContent = batch.grazerCounts[frame];
     if (scoreEl) scoreEl.textContent = batch.score[frame];

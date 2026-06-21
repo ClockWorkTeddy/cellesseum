@@ -169,6 +169,19 @@ body {
     image-rendering: crisp-edges;
 }
 
+.plot-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.plot-canvas {
+    display: block;
+    flex: 1;
+    height: 80px;
+}
+
 /* ── Entry Screen ── */
 .demo-bg-canvas {
     position: fixed;

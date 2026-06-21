@@ -17,6 +17,7 @@
               GrazerCount="@CurrentFrame?.GrazerCount"
               NormalizedScore="@CurrentFrame?.NormalizedScore"
               IsAnimating="@isAnimating"
+              IsCompleted="@isCompleted"
               IsPaused="@isPaused"
               OnStart="GetData"
               OnPause="TogglePause"
@@ -31,6 +32,7 @@
                   GrazerCount="@CurrentFrame?.GrazerCount"
                   NormalizedScore="@CurrentFrame?.NormalizedScore"
                   IsAnimating="@isAnimating"
+                  IsCompleted="@isCompleted"
                   IsPaused="@isPaused"
                   OnStart="GetData"
                   OnPause="TogglePause"
@@ -67,6 +69,7 @@
     private TaskCompletionSource<bool>? playbackCompletion;
     private bool isAnimating;
     private bool isPaused;
+    private bool isCompleted;
     private readonly List<AreaData> data = new();
     private int currentFrame;
     private int nextFrameStart;
@@ -138,6 +141,8 @@
         }
 
         isAnimating = true;
+        isCompleted = false;
+
         data.Clear();
         currentFrame = 0;
         nextFrameStart = 0;
@@ -156,6 +161,7 @@
             if (startupBatch.Count == 0)
             {
                 isAnimating = false;
+                isCompleted = false;
                 await InvokeAsync(StateHasChanged);
                 return;
             }
@@ -183,6 +189,7 @@
         finally
         {
             isAnimating = false;
+            isCompleted = data.Count > 0;
             currentFrame = Math.Max(data.Count - 1, 0);
             await InvokeAsync(StateHasChanged);
         }

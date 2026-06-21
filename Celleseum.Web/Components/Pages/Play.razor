@@ -6,17 +6,37 @@
     }
     <canvas id="cellCanvas" class="cell-canvas"></canvas>
     <div class="stats-bar">
-        <span>Step: <span id="stat-step">@CurrentStep</span></span>
-        <span>Plants: <strong class="lbl-green" id="stat-plants">@PlantCount</strong></span>
-        <span>Grazers: <strong class="lbl-yellow" id="stat-grazers">@GrazerCount</strong></span>
-        <span>Score: <strong class="lbl-orange" id="stat-score">@NormalizedScore</strong></span>
+        <span class="stats-item">
+            <span class="stats-label">Step:</span>
+            <span class="stats-value" id="stat-step">@CurrentStep</span>
+        </span>
+        <span class="stats-item">
+            <span class="stats-label">Plants:</span>
+            <strong class="stats-value lbl-green" id="stat-plants">@PlantCount</strong>
+        </span>
+        <span class="stats-item">
+            <span class="stats-label">Grazers:</span>
+            <strong class="stats-value lbl-yellow" id="stat-grazers">@GrazerCount</strong>
+        </span>
+        <span class="stats-item">
+            <span class="stats-label">Score:</span>
+            <strong class="stats-value lbl-orange" id="stat-score">@NormalizedScore</strong>
+        </span>
     </div>
-    <div class="divider"></div>
-    <div class="plot-row">
-        <canvas id="plotPlants"  class="plot-canvas"></canvas>
-        <canvas id="plotGrazers" class="plot-canvas"></canvas>
+    <div class="@(IsCompleted || IsAnimating ? "plot-section" : "plot-section plot-section-hidden")">
+        <div class="divider"></div>
+        <div class="plot-row">
+            <div class="plot-card">
+                <div class="plot-label plot-label-plants">Plants</div>
+                <canvas id="plotPlants" class="plot-canvas-plants"></canvas>
+            </div>
+            <div class="plot-card">
+                <div class="plot-label plot-label-grazers">Grazers</div>
+                <canvas id="plotGrazers" class="plot-canvas-grazers"></canvas>
+            </div>
+        </div>
+        <div class="divider"></div>
     </div>
-    <div class="divider"></div>
     @if (IsAnimating)
     {
         <div class="playback-controls">
@@ -29,7 +49,7 @@
         </div>
     }
     <button class="btn" id="btn" type="button" @onclick="OnStart" disabled="@IsAnimating">
-        @(IsAnimating ? "Loading..." : "Start")
+        @(IsAnimating ? "Running..." : "Start")
     </button>
 </main>
 
@@ -51,6 +71,9 @@
 
     [Parameter]
     public bool IsAnimating { get; set; }
+
+    [Parameter]
+    public bool IsCompleted { get; set; }
 
     [Parameter]
     public bool IsPaused { get; set; }

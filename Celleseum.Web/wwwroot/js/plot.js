@@ -66,30 +66,66 @@ function redraw(canvasId) {
 
     const { data, color, label, totalSteps, displayUpTo } = state;
     const n = Math.min(displayUpTo + 1, data.length);
-    if (n < 2) return;
 
-    const pad = { top: 16, bottom: 8, left: 6, right: 6 };
+    const pad = { top: 8, bottom: 8, left: 6, right: 6 };
     const pW = cssW - pad.left - pad.right;
     const pH = cssH - pad.top - pad.bottom;
+
+    const axisX = pad.left + 0.5;
+    const axisY = pad.top + pH + 0.5;
+    const seriesTopInset = 10;
+    const seriesHeight = pH - seriesTopInset;
+
+    const gridStep = 100;
+    ctx.beginPath();
+    ctx.strokeStyle = '#FFFFFF22';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 1;
+    for (let tick = gridStep; tick < totalSteps; tick += gridStep) {
+        const x = pad.left + (tick / (totalSteps - 1)) * pW + 0.5;
+        ctx.moveTo(x, pad.top + 0.5);
+        ctx.lineTo(x, axisY);
+    }
+    ctx.stroke();
+
     const max = maxOf(data, data.length);
+    if (max > 0) {
+        const horizontalGridStep = label === 'Plants' ? 5000 : label === 'Grazers' ? 250 : 0;
+        if (horizontalGridStep > 0) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#FFFFFF1F';
+            ctx.lineWidth = 1;
+            for (let value = horizontalGridStep; value < max; value += horizontalGridStep) {
+                const y = pad.top + seriesTopInset + seriesHeight - (value / max) * seriesHeight + 0.5;
+                ctx.moveTo(axisX, y);
+                ctx.lineTo(pad.left + pW + 0.5, y);
+            }
+            ctx.stroke();
+        }
+    }
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#FFFFFF88';
+    ctx.lineWidth = 1;
+    ctx.moveTo(axisX, pad.top + 0.5);
+    ctx.lineTo(axisX, axisY);
+    ctx.lineTo(pad.left + pW + 0.5, axisY);
+    ctx.lineTo(pad.left + pW + 0.5, pad.top + 0.5);
+    ctx.stroke();
+
+    if (n < 2) return;
     if (max === 0) return;
 
     ctx.beginPath();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
     ctx.globalAlpha = 0.85;
     for (let i = 0; i < n; i++) {
         const x = pad.left + (i / (totalSteps - 1)) * pW;
-        const y = pad.top + pH - (data[i] / max) * pH;
+        const y = pad.top + seriesTopInset + seriesHeight - (data[i] / max) * seriesHeight;
         i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.stroke();
-
-    ctx.globalAlpha = 0.9;
-    ctx.font = '10px sans-serif';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = color;
-    ctx.fillText(label, 8, 3);
     ctx.globalAlpha = 1;
 }

@@ -2,12 +2,12 @@
 {
     public class Proccessor
     {
-        public List<AreaData> ProcessMap(Map map, int term = 10000)
+        public List<AreaData> ProcessMap(Map map, int term = 2000)
         {
             return ProcessMapFrames(map, term).ToList();
         }
 
-        public IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 2500)
+        public IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 2000)
         {
             return map.GenerateFrames(term);
         }

@@ -358,7 +358,7 @@ namespace MapProcessing
             {
                 PlantCount = plantHash.Count,
                 GrazerCount = grazerHash.Count,
-                NormalizedScore = (int)(_score / Math.Pow(_term, 2) * 10000),
+                NormalizedScore = (int)(_score / (Width * Height * 0.0265)),
                 Types = types,
                 Saturations = saturations
             };

@@ -11,18 +11,23 @@ namespace Celleseum.Data
         {
         }
 
-        public DbSet<NumberSetDbRecord> NumberSets { get; set; } = null!;
+        public DbSet<Result> NumberSets { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<NumberSetDbRecord>(n =>
+            modelBuilder.Entity<Result>(n =>
             {
                 n.HasKey(e => e.Id);
+                n.HasOne<ApplicationUser>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.SetNull);
                 n.Property(e => e.DateTime).IsRequired();
-                n.Property(e => e.Average).IsRequired();
-                n.Property(e => e.IpAddress).HasMaxLength(45);
+                n.Property(e => e.Score).IsRequired();
+                n.Property(e => e.PlantsCreated).IsRequired();
+                n.Property(e => e.GrazersCreated).IsRequired();
             });
         }
     }

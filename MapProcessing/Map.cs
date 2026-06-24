@@ -25,6 +25,8 @@ namespace MapProcessing
         private int _profileSampleCount;
         private int _score;
         private int _term;
+        private int _overallPlantsCount;
+        private int _overallGrazersCount;
 
         public Map(int width, int height)
         {
@@ -129,6 +131,7 @@ namespace MapProcessing
             grazerHash[guid] = grazer;
             Grazing(grazer);
             FillArea(grazer);
+            _overallGrazersCount++;
             _score += 10;
         }
 
@@ -152,6 +155,7 @@ namespace MapProcessing
                 var plant = new Plant(new Point(x, y), guid);
                 plantHash[y * Width + x] = plant;
                 FillArea(plant);
+                _overallPlantsCount++;
                 _score++;
             }
         }
@@ -359,6 +363,8 @@ namespace MapProcessing
                 PlantCount = plantHash.Count,
                 GrazerCount = grazerHash.Count,
                 NormalizedScore = (int)(_score / (Width * Height * 0.0265)),
+                OverallPlantsCount = _overallPlantsCount,
+                OverallGrazersCount = _overallGrazersCount,
                 Types = types,
                 Saturations = saturations
             };

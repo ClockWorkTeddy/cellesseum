@@ -47,6 +47,86 @@ function maxOf(arr, n) {
     return m;
 }
 
+function getPlotPoint(i, totalSteps, pW, padLeft, seriesTop, seriesHeight, value, max) {
+    const x = padLeft + (i / (totalSteps - 1)) * pW;
+    const y = seriesTop + seriesHeight - (value / max) * seriesHeight;
+    return { x, y };
+}
+
+function drawVerticalGrid(ctx, label, totalSteps, pad, pW, axisY) {
+    const gridStep = 125;
+    ctx.beginPath();
+    if (label == 'Plants') {
+        ctx.strokeStyle = '#00bb3322';
+    } else {
+        ctx.strokeStyle = '#bbbb3322';
+    }
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 1;
+    for (let tick = gridStep; tick < totalSteps; tick += gridStep) {
+        const x = pad.left + (tick / (totalSteps - 1)) * pW + 0.5;
+        ctx.moveTo(x, pad.top + 0.5);
+        ctx.lineTo(x, axisY);
+    }
+    ctx.stroke();
+}
+
+function drawHorizontalGrid(ctx, axisX, pad, pW, pH) {
+    const horizontalGridSegmentCount = 5;
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    for (let segment = 1; segment < horizontalGridSegmentCount; segment++) {
+        const y = pad.top + (segment / horizontalGridSegmentCount) * pH + 0.5;
+        ctx.moveTo(axisX, y);
+        ctx.lineTo(pad.left + pW + 0.5, y);
+    }
+    ctx.stroke();
+}
+
+function drawPlotBorder(ctx, axisX, axisY, pad, pW, color) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.25;
+    ctx.moveTo(axisX, pad.top + 0.5);
+    ctx.lineTo(axisX, axisY);
+    ctx.lineTo(pad.left + pW + 0.5, axisY);
+    ctx.lineTo(pad.left + pW + 0.5, pad.top + 0.5);
+    ctx.stroke();
+}
+
+function drawAreaFill(ctx, points, baselineY, color) {
+    if (points.length < 2) return;
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.lineTo(points[points.length - 1].x, baselineY);
+    ctx.lineTo(points[0].x, baselineY);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.1;
+    ctx.fill();
+}
+
+function drawSeriesLine(ctx, points, color) {
+    if (points.length < 2) return;
+
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.85;
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+}
+
 function redraw(canvasId) {
     const canvas = document.getElementById(canvasId);
     const state = plots.get(canvasId);
@@ -74,58 +154,29 @@ function redraw(canvasId) {
     const axisX = pad.left + 0.5;
     const axisY = pad.top + pH + 0.5;
     const seriesTopInset = 10;
+    const seriesTop = pad.top + seriesTopInset;
     const seriesHeight = pH - seriesTopInset;
 
-    const gridStep = 100;
-    ctx.beginPath();
-    ctx.strokeStyle = '#FFFFFF22';
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 1;
-    for (let tick = gridStep; tick < totalSteps; tick += gridStep) {
-        const x = pad.left + (tick / (totalSteps - 1)) * pW + 0.5;
-        ctx.moveTo(x, pad.top + 0.5);
-        ctx.lineTo(x, axisY);
+    drawVerticalGrid(ctx, label, totalSteps, pad, pW, axisY);
+    drawHorizontalGrid(ctx, axisX, pad, pW, pH);
+    if (label === 'Plants') {
+        drawPlotBorder(ctx, axisX, axisY, pad, pW, "#00bb33");
+    } else {
+        drawPlotBorder(ctx, axisX, axisY, pad, pW, "#bbbb33");
     }
-    ctx.stroke();
-
-    const max = maxOf(data, data.length);
-    if (max > 0) {
-        const horizontalGridStep = label === 'Plants' ? 5000 : label === 'Grazers' ? 250 : 0;
-        if (horizontalGridStep > 0) {
-            ctx.beginPath();
-            ctx.strokeStyle = '#FFFFFF1F';
-            ctx.lineWidth = 1;
-            for (let value = horizontalGridStep; value < max; value += horizontalGridStep) {
-                const y = pad.top + seriesTopInset + seriesHeight - (value / max) * seriesHeight + 0.5;
-                ctx.moveTo(axisX, y);
-                ctx.lineTo(pad.left + pW + 0.5, y);
-            }
-            ctx.stroke();
-        }
-    }
-
-    ctx.beginPath();
-    ctx.strokeStyle = '#FFFFFF88';
-    ctx.lineWidth = 1;
-    ctx.moveTo(axisX, pad.top + 0.5);
-    ctx.lineTo(axisX, axisY);
-    ctx.lineTo(pad.left + pW + 0.5, axisY);
-    ctx.lineTo(pad.left + pW + 0.5, pad.top + 0.5);
-    ctx.stroke();
+    
 
     if (n < 2) return;
+
+    const max = maxOf(data, data.length);
     if (max === 0) return;
 
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineJoin = 'round';
-    ctx.globalAlpha = 0.85;
+    const points = [];
     for (let i = 0; i < n; i++) {
-        const x = pad.left + (i / (totalSteps - 1)) * pW;
-        const y = pad.top + seriesTopInset + seriesHeight - (data[i] / max) * seriesHeight;
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        points.push(getPlotPoint(i, totalSteps, pW, pad.left, seriesTop, seriesHeight, data[i], max));
     }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+
+    const baselineY = seriesTop + seriesHeight;
+    drawAreaFill(ctx, points, baselineY, color);
+    drawSeriesLine(ctx, points, color);
 }

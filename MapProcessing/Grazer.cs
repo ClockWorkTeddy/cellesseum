@@ -4,7 +4,7 @@ namespace MapProcessing
 {
     internal class Grazer : Creature
     {
-        public Grazer(Point location, Guid guid) : base(location, CellType.Grazer, guid)
+        public Grazer(Point location, Guid guid, byte saturation, sbyte saturationDirection = 1) : base(location, CellType.Grazer, guid)
         {
             Size = DefaultSize;
             LifeSpan = DefaultLifeSpan;
@@ -12,7 +12,11 @@ namespace MapProcessing
             NutritionValue = DefaultNutritionValue;
             CounsumptionRate = DefaultCounsumptionRate;
             Satiety = DefaultSatiety;
+            Saturation = saturation;
+            SaturationDirection = saturationDirection;
         }
+
+        public sbyte SaturationDirection { get; set; } = 1;
 
         public static int DefaultCounsumptionRate => 2;
         public static int DefaultNutritionValue => 2;

@@ -7,6 +7,43 @@
  */
 
 const grids = new Map();
+const grazerColorPalette = (() => {
+    const anchors = [
+        [0x77, 0xFF, 0x00],
+        [0xFF, 0xFF, 0x00],
+        [0xFF, 0x00, 0x00],
+        [0xFF, 0x00, 0xFF],
+        [0x00, 0x00, 0xFF],
+        [0x00, 0xFF, 0x77]
+    ];
+
+    const palette = new Array(16);
+    const segmentCount = anchors.length - 1;
+
+    for (let i = 0; i < 16; i++) {
+        const t = i / 15;
+        const segmentFloat = t * segmentCount;
+        const segment = Math.min(segmentCount - 1, Math.floor(segmentFloat));
+        const localT = segmentFloat - segment;
+
+        const from = anchors[segment];
+        const to = anchors[segment + 1];
+
+        const r = Math.round(from[0] + (to[0] - from[0]) * localT);
+        const g = Math.round(from[1] + (to[1] - from[1]) * localT);
+        const b = Math.round(from[2] + (to[2] - from[2]) * localT);
+
+        palette[i] = `rgb(${r}, ${g}, ${b})`;
+    }
+
+    return palette;
+})();
+
+function grazerColorFromVariant(variant) {
+    const value = variant & 0xFF;
+    const index = Math.min(15, value);
+    return grazerColorPalette[index];
+}
 
 export function initCanvas(canvasId, gridWidth, gridHeight, cellSize, gap, lineEvery) {
     const canvas = document.getElementById(canvasId);
@@ -79,7 +116,7 @@ export function drawFrame(canvasId, frameData, saturationData) {
                 (frameData[b] || 0) === 2 &&
                 (frameData[d] || 0) === 2) {
                 
-                ctx.fillStyle = `rgba(255,255,51)`;
+                ctx.fillStyle = grazerColorFromVariant(saturationData[i] || 0);
                 ctx.fillRect(gap + col * step, gap + row * step, bigSize, bigSize);
                 drawn[i] = drawn[r] = drawn[b] = drawn[d] = 1;
             }
@@ -90,8 +127,7 @@ export function drawFrame(canvasId, frameData, saturationData) {
         if (drawn[i] || (frameData[i] || 0) !== 2) continue;
         const col = i % gridWidth;
         const row = (i - col) / gridWidth;
-        const alpha = (saturationData[i] || 0) / 10;
-        ctx.fillStyle = `rgba(255,255,51,${alpha})`;
+        ctx.fillStyle = grazerColorFromVariant(saturationData[i] || 0);
         ctx.fillRect(gap + col * step, gap + row * step, cellSize, cellSize);
     }
 }

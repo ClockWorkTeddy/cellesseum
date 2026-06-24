@@ -22,6 +22,7 @@ namespace MapProcessing
         protected int CounsumptionRate { get; set; }
         public CellType Type { get; }
         public int Satiety { get; set; }
+        public byte Saturation { get; set; }
 
         public void Starve()
         {

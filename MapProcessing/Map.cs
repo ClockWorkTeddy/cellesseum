@@ -90,7 +90,7 @@ namespace MapProcessing
                 {
                     grazer.Satiety = Grazer.DefaultSatiety;
                     var newLocation = GetNewPositionNearParent(grazer);
-                    PlaceGrazer(newLocation);
+                    PlaceGrazer(newLocation, grazer);
                 }
             }
             _profileMoveAndBreedTicks += Stopwatch.GetTimestamp() - phaseStart;
@@ -120,14 +120,34 @@ namespace MapProcessing
             for (int i = 0; i < quantity; i++)
             {
                 var position = GetNewPositionRandomly();
-                PlaceGrazer(position);
+                PlaceGrazer(position, null);
             }
         }
 
-        private void PlaceGrazer(Point position)
+        private void PlaceGrazer(Point position, Grazer? parent)
         {
             var guid = Guid.NewGuid();
-            var grazer = new Grazer(position, guid);
+            byte saturation = parent?.Saturation ?? 0;
+            var saturationDirection = parent?.SaturationDirection ?? (sbyte)1;
+            if (parent != null)
+            {
+                var randomValue = _random.Next(0, 100);
+                if (randomValue > 75)
+                {
+                    if (saturation == 15)
+                    {
+                        saturationDirection = -1;
+                    }
+                    else if (saturation == byte.MinValue)
+                    {
+                        saturationDirection = 1;
+                    }
+
+                    saturation = (byte)(saturation + saturationDirection);
+                    Debug.WriteLine(saturation);
+                }
+            }
+            var grazer = new Grazer(position, guid, saturation, saturationDirection);
             grazerHash[guid] = grazer;
             Grazing(grazer);
             FillArea(grazer);
@@ -252,7 +272,7 @@ namespace MapProcessing
 
         private void FillArea(Creature creature)
         {
-            var saturation = (byte)Math.Clamp(creature.NutritionValue, 2, 10);
+            var saturation = creature is Grazer grazer ? grazer.Saturation : (byte)Math.Clamp(creature.NutritionValue, 2, 10);
             var type = (byte)creature.Type;
             var baseIndex = creature.Location.Y * Width + creature.Location.X;
             for (int y = 0; y < creature.Size; y++)

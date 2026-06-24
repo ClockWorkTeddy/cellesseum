@@ -11,7 +11,7 @@ namespace Celleseum.Data
         {
         }
 
-        public DbSet<Result> NumberSets { get; set; } = null!;
+        public DbSet<Result> Results { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,17 +1,40 @@
+@using Celleseum.Data
+
 <canvas id="demoCanvas" class="demo-bg-canvas"></canvas>
-<main class="entry-card">
-    <div class="login-title">Cellesseum</div>
-    <div class="login-controls">
-        <div class="login-form">
-            <button class="login-signin-btn" type="button" @onclick="OnPlay">Play</button>
-            <button class="secondary-button" type="button" @onclick='() => Navigation.NavigateTo("/Account/Login")'>Log In</button>
+<div class="entry-stack">
+    <main class="entry-card">
+        <div class="login-title">Cellesseum</div>
+        <div class="login-controls">
+            <div class="login-form">
+                <button class="login-signin-btn" type="button" @onclick="OnPlay">Play</button>
+                <button class="secondary-button" type="button" @onclick='() => Navigation.NavigateTo("/Account/Login")'>Log In</button>
+            </div>
         </div>
-    </div>
-</main>
+    </main>
+
+    @if (RecentResults.Count > 0)
+    {
+        <section class="entry-card results-card">
+            <div class="login-title">Last Results</div>
+            <ul class="results-list">
+                @foreach (var result in RecentResults)
+                {
+                    <li>
+                        <span>@result.DateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</span>
+                        <span>Score: @result.Score</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</div>
 
 @inject NavigationManager Navigation
 
 @code {
     [Parameter]
     public EventCallback OnPlay { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<Result> RecentResults { get; set; } = Array.Empty<Result>();
 }

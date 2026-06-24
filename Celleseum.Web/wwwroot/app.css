@@ -255,6 +255,15 @@ body {
     pointer-events: none;
 }
 
+.entry-stack {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
 .entry-card {
     position: relative;
     z-index: 1;
@@ -271,6 +280,30 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 20px;
     backdrop-filter: blur(5px);
+}
+
+.results-card {
+    min-height: auto;
+    justify-content: flex-start;
+}
+
+.results-list {
+    width: 100%;
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.results-list li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: rgba(229, 231, 235, 0.85);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 4px;
 }
 
 .entry-title {

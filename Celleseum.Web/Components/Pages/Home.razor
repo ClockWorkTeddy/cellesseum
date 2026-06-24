@@ -2,6 +2,7 @@
 @using Celleseum.Data
 @using MapProcessing
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
 @using System.Security.Claims
 @rendermode InteractiveServer
 @attribute [StreamRendering(true)]
@@ -46,7 +47,7 @@
         }
         else
         {
-            <Main OnPlay="EnableGuestMode" />
+            <Main OnPlay="EnableGuestMode" RecentResults="recentResults" />
         }
     </NotAuthorized>
 </AuthorizeView>
@@ -81,16 +82,18 @@
     private int nextFrameStart;
     private int gridWidth;
     private int gridHeight;
+    private List<Result> recentResults = new();
 
     private AreaData? CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
             ? data[currentFrame]
             : null;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         gridWidth  = Configuration.GetValue("Grid:Width",  50);
         gridHeight = Configuration.GetValue("Grid:Height", 50);
+        await LoadRecentResultsAsync();
     }
 
     protected override void OnParametersSet()
@@ -305,11 +308,20 @@
 
             DbContext.Results.Add(result);
             await DbContext.SaveChangesAsync();
+            await LoadRecentResultsAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to persist simulation result.");
         }
+    }
+
+    private async Task LoadRecentResultsAsync()
+    {
+        recentResults = await DbContext.Results
+            .OrderByDescending(r => r.DateTime)
+            .Take(5)
+            .ToListAsync();
     }
 
     private async Task EnableGuestMode()

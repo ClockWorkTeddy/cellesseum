@@ -1,5 +1,8 @@
 ﻿@page "/"
+@using Celleseum.Data
 @using MapProcessing
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 @rendermode InteractiveServer
 @attribute [StreamRendering(true)]
 @implements IAsyncDisposable
@@ -8,6 +11,9 @@
 @inject IConfiguration Configuration
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject CellesseumDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<Home> Logger
 
 <AuthorizeView>
     <Authorized>
@@ -183,6 +189,8 @@
                 await QueueBatchAsync(nextBatch);
             }
 
+            await SaveResultAsync();
+
             await jsModule.InvokeVoidAsync("completePlayback", "cellCanvas");
             await playbackCompletion.Task;
         }
@@ -267,6 +275,40 @@
         {
             await plotModule.InvokeVoidAsync("pushFrames", "plotPlants",  plantCounts);
             await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", grazerCounts);
+        }
+    }
+
+    private async Task SaveResultAsync()
+    {
+        if (data.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var lastFrame = data[^1];
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var userId = user.Identity?.IsAuthenticated == true
+                ? user.FindFirstValue(ClaimTypes.NameIdentifier)
+                : null;
+
+            var result = new Result
+            {
+                UserId = userId,
+                DateTime = DateTime.UtcNow,
+                Score = lastFrame.NormalizedScore,
+                PlantsCreated = lastFrame.OverallPlantsCount,
+                GrazersCreated = lastFrame.OverallGrazersCount
+            };
+
+            DbContext.Results.Add(result);
+            await DbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to persist simulation result.");
         }
     }
 

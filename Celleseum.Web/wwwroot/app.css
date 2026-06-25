@@ -101,7 +101,7 @@ body {
 }
 
 .lbl-green {
-    color: #00bb33;
+    color: #00bb00;
 }
 
 .lbl-orange {
@@ -109,7 +109,7 @@ body {
 }
 
 .lbl-yellow {
-    color: #bbbb33;
+    color: #80bb00;
 }
 
 .stats-bar {
@@ -213,11 +213,11 @@ body {
 }
 
 .plot-label-plants {
-    color: #00bb00ff;
+    color: var(--plot-series-color, #00bb00);
 }
 
 .plot-label-grazers {
-    color: #77bb00ff;
+    color: var(--plot-series-color, #80bb00);
 }
 
 .plot-canvas {
@@ -230,10 +230,14 @@ body {
 }
 
 .plot-canvas-grazers {
+    --plot-series-color: #80bb00;
+    --plot-grid-color: #80bb0022;
     border: 1px solid #ffffff22;
 }
 
 .plot-canvas-plants {
+    --plot-series-color: #00bb00;
+    --plot-grid-color: #00bb0022;
     border: 1px solid #ffffff22;
 }
 

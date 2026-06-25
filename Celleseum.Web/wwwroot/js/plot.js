@@ -1,8 +1,10 @@
 const plots = new Map();
 
-export function initPlot(canvasId, color, label, totalSteps) {
+export function initPlot(canvasId, label, totalSteps) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return false;
+
+    const { color, gridColor } = resolvePlotColors(canvas);
 
     const onFrame = (e) => {
         const state = plots.get(canvasId);
@@ -12,7 +14,7 @@ export function initPlot(canvasId, color, label, totalSteps) {
     };
 
     window.addEventListener('celleseum:frame', onFrame);
-    plots.set(canvasId, { data: [], color, label, totalSteps, displayUpTo: -1, onFrame });
+    plots.set(canvasId, { data: [], color, gridColor, label, totalSteps, displayUpTo: -1, onFrame });
     return true;
 }
 
@@ -47,20 +49,23 @@ function maxOf(arr, n) {
     return m;
 }
 
+function resolvePlotColors(canvas) {
+    const styles = getComputedStyle(canvas);
+    const color = styles.getPropertyValue('--plot-series-color').trim() || '#00bb00';
+    const gridColor = styles.getPropertyValue('--plot-grid-color').trim() || `${color}22`;
+    return { color, gridColor };
+}
+
 function getPlotPoint(i, totalSteps, pW, padLeft, seriesTop, seriesHeight, value, max) {
     const x = padLeft + (i / (totalSteps - 1)) * pW;
     const y = seriesTop + seriesHeight - (value / max) * seriesHeight;
     return { x, y };
 }
 
-function drawVerticalGrid(ctx, label, totalSteps, pad, pW, axisY) {
+function drawVerticalGrid(ctx, gridColor, totalSteps, pad, pW, axisY) {
     const gridStep = 125;
     ctx.beginPath();
-    if (label == 'Plants') {
-        ctx.strokeStyle = '#00bb0022';
-    } else {
-        ctx.strokeStyle = '#77bb0022';
-    }
+    ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     ctx.globalAlpha = 1;
     for (let tick = gridStep; tick < totalSteps; tick += gridStep) {
@@ -144,7 +149,7 @@ function redraw(canvasId) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
-    const { data, color, label, totalSteps, displayUpTo } = state;
+    const { data, color, gridColor, totalSteps, displayUpTo } = state;
     const n = Math.min(displayUpTo + 1, data.length);
 
     const pad = { top: 8, bottom: 8, left: 6, right: 6 };
@@ -157,14 +162,10 @@ function redraw(canvasId) {
     const seriesTop = pad.top + seriesTopInset;
     const seriesHeight = pH - seriesTopInset;
 
-    drawVerticalGrid(ctx, label, totalSteps, pad, pW, axisY);
+    drawVerticalGrid(ctx, gridColor, totalSteps, pad, pW, axisY);
     drawHorizontalGrid(ctx, axisX, pad, pW, pH);
-    if (label === 'Plants') {
-        drawPlotBorder(ctx, axisX, axisY, pad, pW, "#00bb00");
-    } else {
-        drawPlotBorder(ctx, axisX, axisY, pad, pW, "#77bb00");
-    }
-    
+    drawPlotBorder(ctx, axisX, axisY, pad, pW, color);
+
 
     if (n < 2) return;
 

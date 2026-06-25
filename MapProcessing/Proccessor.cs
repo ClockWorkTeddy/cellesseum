@@ -17,7 +17,7 @@ namespace MapProcessing
         /// <summary>
         /// Process the map simulation as a lazy enumerable (yields frames as generated).
         /// </summary>
-        public static IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 500, GameMode mode = GameMode.Simple)
+        public static IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 3000, GameMode mode = GameMode.Simple)
         {
             var simulation = CreateSimulation(mode);
             return simulation.GenerateFrames(map, term);

@@ -2,7 +2,7 @@
 
 namespace MapProcessing
 {
-    internal class Plant : Creature
+    public class Plant : Creature
     {
         public Plant(Point location, Guid guid) : base(location, CellType.Plant, guid)
         {

@@ -1,15 +1,39 @@
-﻿namespace MapProcessing
+﻿using MapProcessing.Simulations;
+
+namespace MapProcessing
 {
+    /// <summary>
+    /// Main processor that orchestrates the simulation.
+    /// Supports different game modes through different simulation strategies.
+    /// </summary>
     public class Proccessor
     {
-        public List<AreaData> ProcessMap(Map map, int term = 5000)
+        public enum GameMode
         {
-            return ProcessMapFrames(map, term).ToList();
+            Simple,
+            Mutation
         }
 
-        public IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 5000)
+        /// <summary>
+        /// Process the map simulation as a lazy enumerable (yields frames as generated).
+        /// </summary>
+        public static IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 500, GameMode mode = GameMode.Simple)
         {
-            return map.GenerateFrames(term);
+            var simulation = CreateSimulation(mode);
+            return simulation.GenerateFrames(map, term);
+        }
+
+        /// <summary>
+        /// Create the appropriate simulation strategy for the given game mode.
+        /// </summary>
+        private static GameSimulation CreateSimulation(GameMode mode)
+        {
+            return mode switch
+            {
+                GameMode.Simple => new SimpleGameSimulation(),
+                GameMode.Mutation => new MutationGameSimulation(),
+                _ => new SimpleGameSimulation()
+            };
         }
     }
 }

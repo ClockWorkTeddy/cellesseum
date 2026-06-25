@@ -32,13 +32,6 @@ body {
     background: linear-gradient(90deg, #06102a 0%, #020a1b 50%, #06102a 100%), linear-gradient(180deg, #0c1422 0%, #0e192a 100%);
 }
 
-.avg {
-    font-size: 44px;
-    font-weight: 750;
-    color: rgb(var(--dynamic-text-color, var(--good-rgb, 255,216,77)));
-    min-height: 66px;
-}
-
 .btn {
     display: inline-flex;
     align-items: center;
@@ -129,6 +122,13 @@ body {
     margin: 0 auto 18px;
 }
 
+.stats-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 110px;
+}
+
 .title{
   font-size: 34px;
   letter-spacing: .4px;
@@ -146,13 +146,6 @@ body {
     color: rgb(var(--dynamic-text-color, var(--good-rgb, 255,216,77)));
     text-shadow: 0 10px 30px rgba(255,216,77,.10);
     min-height: 92px;
-}
-
-.stats-item {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    min-width: 110px;
 }
 
 .stats-label {
@@ -220,11 +213,11 @@ body {
 }
 
 .plot-label-plants {
-    color: #33bb33ff;
+    color: #00bb00ff;
 }
 
 .plot-label-grazers {
-    color: #bbbb33ff;
+    color: #77bb00ff;
 }
 
 .plot-canvas {

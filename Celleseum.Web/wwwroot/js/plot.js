@@ -57,9 +57,9 @@ function drawVerticalGrid(ctx, label, totalSteps, pad, pW, axisY) {
     const gridStep = 125;
     ctx.beginPath();
     if (label == 'Plants') {
-        ctx.strokeStyle = '#00bb3322';
+        ctx.strokeStyle = '#00bb0022';
     } else {
-        ctx.strokeStyle = '#bbbb3322';
+        ctx.strokeStyle = '#77bb0022';
     }
     ctx.lineWidth = 1;
     ctx.globalAlpha = 1;
@@ -160,9 +160,9 @@ function redraw(canvasId) {
     drawVerticalGrid(ctx, label, totalSteps, pad, pW, axisY);
     drawHorizontalGrid(ctx, axisX, pad, pW, pH);
     if (label === 'Plants') {
-        drawPlotBorder(ctx, axisX, axisY, pad, pW, "#00bb33");
+        drawPlotBorder(ctx, axisX, axisY, pad, pW, "#00bb00");
     } else {
-        drawPlotBorder(ctx, axisX, axisY, pad, pW, "#bbbb33");
+        drawPlotBorder(ctx, axisX, axisY, pad, pW, "#77bb00");
     }
     
 

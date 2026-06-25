@@ -2,7 +2,7 @@
 
 namespace MapProcessing
 {
-    internal class Grazer : Creature
+    public class Grazer : Creature
     {
         public Grazer(Point location, Guid guid, byte saturation, sbyte saturationDirection = 1) : base(location, CellType.Grazer, guid)
         {

@@ -16,15 +16,7 @@ namespace MapProcessing
         private readonly byte[] _types;
         private readonly byte[] _saturations;
 
-        private long _profileCreatePlantsTicks;
-        private long _profileMoveAndBreedTicks;
-        private long _profileClearDeadTicks;
-        private long _profileAgingTicks;
-        private long _profileSnapshotTicks;
-        private long _profileTotalTicks;
-        private int _profileSampleCount;
         private int _score;
-        private int _term;
         private int _overallPlantsCount;
         private int _overallGrazersCount;
 
@@ -37,354 +29,111 @@ namespace MapProcessing
             _saturations = new byte[cellCount];
         }
 
-        public List<AreaData> AreaSnapShot { get; private set; } = new List<AreaData>();
         public int Epoche { get; private set; } = 0;
 
-        public IEnumerable<AreaData> GenerateFrames(int term)
+        public bool HasGrazers() => grazerHash.Count > 0;
+
+        /// <summary>
+        /// Get the Random instance used for all randomization in the simulation.
+        /// </summary>
+        public Random GetRandom() => _random;
+
+        /// <summary>
+        /// Get the list of current dead creatures (for inspection/cleanup).
+        /// </summary>
+        public List<Creature> GetDeadCreatures() => deadCreatures;
+
+        /// <summary>
+        /// Get the list of current eaten creatures (for inspection/cleanup).
+        /// </summary>
+        public List<Creature> GetEatenCreatures() => eatenCreatures;
+
+        /// <summary>
+        /// Get all plants currently on the map.
+        /// </summary>
+        public IReadOnlyDictionary<int, Plant> GetPlants() => new ReadOnlyDictionary<int, Plant>(plantHash);
+
+        /// <summary>
+        /// Get all grazers currently on the map.
+        /// </summary>
+        public IReadOnlyDictionary<Guid, Grazer> GetGrazers() => new ReadOnlyDictionary<Guid, Grazer>(grazerHash);
+
+        /// <summary>
+        /// Get the cell type (Empty, Plant, or Grazer) at the given index.
+        /// </summary>
+        public CellType GetCellType(int index) => (CellType)_types[index];
+
+        /// <summary>
+        /// Set the cell type at the given index.
+        /// </summary>
+        public void SetCellType(int index, CellType cellType) => _types[index] = (byte)cellType;
+
+        /// <summary>
+        /// Set the saturation value at the given index.
+        /// </summary>
+        public void SetSaturation(int index, byte saturation) => _saturations[index] = saturation;
+
+        /// <summary>
+        /// Add a plant to the map.
+        /// </summary>
+        public void AddPlant(int index, Plant plant)
         {
-            _term = term;
-            const int initialGrazerCount = 1;
-            CreateGrazer(initialGrazerCount);
-
-            for (int i = 0; i < term && grazerHash.Count > 0; i++)
-            {
-                var totalStart = Stopwatch.GetTimestamp();
-
-                Next();
-
-                var snapshotStart = Stopwatch.GetTimestamp();
-                var frame = SnapShotArea();
-                _profileSnapshotTicks += Stopwatch.GetTimestamp() - snapshotStart;
-
-                Epoche++;
-
-                var totalTicks = Stopwatch.GetTimestamp() - totalStart;
-                _profileTotalTicks += totalTicks;
-                RecordProfileSample();
-
-                yield return frame;
-            }
-
-            Debug.WriteLine("");
+            plantHash[index] = plant;
+            _overallPlantsCount++;
+            _score++;
         }
 
-        public void Start(int term)
+        /// <summary>
+        /// Remove a plant from the map.
+        /// </summary>
+        public void RemovePlant(int index)
         {
-            AreaSnapShot = GenerateFrames(term).ToList();
+            plantHash.Remove(index);
         }
 
-        private void Next()
+        /// <summary>
+        /// Get a plant at the given index, or null if none exists.
+        /// </summary>
+        public Plant? GetPlantAt(int index)
         {
-            var phaseStart = Stopwatch.GetTimestamp();
-            CreatePlants();
-            _profileCreatePlantsTicks += Stopwatch.GetTimestamp() - phaseStart;
-
-            phaseStart = Stopwatch.GetTimestamp();
-            var currentGrazers = grazerHash.Values.ToList();
-            foreach (var grazer in currentGrazers)
-            {
-                grazer.Starve();
-                MoveCreature(grazer);
-
-                if (grazer.Satiety > grazer.BreedingThreshold)
-                {
-                    grazer.Satiety = Grazer.DefaultSatiety;
-                    var newLocation = GetNewPositionNearParent(grazer);
-                    PlaceGrazer(newLocation, grazer);
-                }
-            }
-            _profileMoveAndBreedTicks += Stopwatch.GetTimestamp() - phaseStart;
-
-            phaseStart = Stopwatch.GetTimestamp();
-            ClearDead();
-            _profileClearDeadTicks += Stopwatch.GetTimestamp() - phaseStart;
-
-            phaseStart = Stopwatch.GetTimestamp();
-            foreach (var plant in plantHash)
-            {
-                OldCreature(plant.Value);
-            }
-            foreach(var grazer in grazerHash)
-            {
-                OldCreatureWithoutSaturation(grazer.Value);
-            }
-            _profileAgingTicks += Stopwatch.GetTimestamp() - phaseStart;
-
-            phaseStart = Stopwatch.GetTimestamp();
-            ClearDead();
-            _profileClearDeadTicks += Stopwatch.GetTimestamp() - phaseStart;
+            return plantHash.TryGetValue(index, out var plant) ? plant : null;
         }
 
-        private void CreateGrazer(int quantity)
+        /// <summary>
+        /// Add a grazer to the map.
+        /// </summary>
+        public void AddGrazer(Guid id, Grazer grazer)
         {
-            for (int i = 0; i < quantity; i++)
-            {
-                var position = GetNewPositionRandomly();
-                PlaceGrazer(position, null);
-            }
-        }
-
-        private void PlaceGrazer(Point position, Grazer? parent)
-        {
-            var guid = Guid.NewGuid();
-            byte saturation = parent?.Saturation ?? 0;
-            var saturationDirection = parent?.SaturationDirection ?? (sbyte)1;
-            if (parent != null)
-            {
-                var randomValue = _random.Next(0, 100);
-                if (randomValue > 98)
-                {
-                    if (saturation == 7)
-                    {
-                        saturationDirection = -1;
-                    }
-                    else if (saturation == byte.MinValue)
-                    {
-                        saturationDirection = 1;
-                    }
-
-                    saturation = (byte)(saturation + saturationDirection);
-                    Debug.WriteLine(saturation);
-                }
-            }
-            var grazer = new Grazer(position, guid, saturation, saturationDirection);
-            grazerHash[guid] = grazer;
-            Grazing(grazer);
-            FillArea(grazer);
+            grazerHash[id] = grazer;
             _overallGrazersCount++;
-            _score += 10 * (saturation + 1);
+            _score += 10 * (grazer.Saturation + 1);
         }
 
-        private void CreatePlants()
+        /// <summary>
+        /// Remove a grazer from the map.
+        /// </summary>
+        public void RemoveGrazer(Guid id)
         {
-            var amplifier = 0.025;
-            var fertility = (int)(amplifier * (Width * Height - grazerHash.Count * Math.Pow(Grazer.DefaultSize, 2) - plantHash.Count * Math.Pow(Plant.DefaultSize, 2)));
-
-            for (int i = 0; i < fertility; i++)
-            {
-                var x = 0;
-                var y = 0;
-                do
-                {
-                    x = _random.Next(0, Width);
-                    y = _random.Next(0, Height);
-
-                } while (!IsCellFreeFor(y * Width + x, Plant.DefaultSize, CellType.Plant));
-
-                var guid = Guid.NewGuid();
-                var plant = new Plant(new Point(x, y), guid);
-                plantHash[y * Width + x] = plant;
-                FillArea(plant);
-                _overallPlantsCount++;
-                _score++;
-            }
+            grazerHash.Remove(id);
         }
 
-        private Point GetNewPositionNearParent(Creature creature)
+        /// <summary>
+        /// Increment the epoch counter (called after each frame is generated).
+        /// </summary>
+        public void IncrementEpoch()
         {
-            var maxX = Width - creature.Size;
-            var maxY = Height - creature.Size;
-            var chosen = creature.Location;
-            var freeCount = 0;
-
-            for (int directionY = -1; directionY <= 1; directionY++)
-            {
-                for (int directionX = -1; directionX <= 1; directionX++)
-                {
-                    if (directionX == 0 && directionY == 0)
-                    {
-                        continue;
-                    }
-
-                    var newX = creature.Location.X + directionX * creature.Speed;
-                    var newY = creature.Location.Y + directionY * creature.Speed;
-
-                    if ((uint)newX > (uint)maxX || (uint)newY > (uint)maxY)
-                    {
-                        continue;
-                    }
-
-                    if (!IsCellFreeFor(newY * Width + newX, Grazer.DefaultSize, CellType.Grazer))
-                    {
-                        continue;
-                    }
-
-                    freeCount++;
-                    if (_random.Next(freeCount) == 0)
-                    {
-                        chosen = new Point(newX, newY);
-                    }
-                }
-            }
-
-            return chosen;
+            Epoche++;
         }
 
-        private Point GetNewPositionRandomly()
+        /// <summary>
+        /// Get snapshot of current map state.
+        /// </summary>
+        public AreaData SnapShotArea()
         {
-            var x = 0;
-            var y = 0;
-            do
-            {
-                x = _random.Next(0, Width);
-                y = _random.Next(0, Height);
-                y = Math.Clamp(y % 2 == 0 ? y : y - 1, 0, Height - 1);
-                x = Math.Clamp(x % 2 == 0 ? x : x - 1, 0, Width - 1);
-            } while (!IsCellFreeFor(y * Width + x, Grazer.DefaultSize, CellType.Grazer));
-
-            return new Point(x, y);
+            return SnapShotAreaInternal();
         }
 
-        private bool IsCellFreeFor(int index, int size, CellType cellType)
-        {
-            return !((uint)index < (uint)_types.Length && _types[index] == (byte)cellType);
-        }
-
-        private void MoveCreature(Creature creature)
-        {
-            ClearArea(creature);
-
-            creature.Location = GetNewPositionNearParent(creature);
-            if (creature is Grazer grazer)
-            {
-                Grazing(grazer);
-            }
-            FillArea(creature);
-        }
-
-        private void Grazing(Grazer grazer)
-        {
-            var cellCount = _types.Length;
-            for (int y = 0; y < grazer.Size; y++)
-            {
-                for (int x = 0; x < grazer.Size; x++)
-                {
-                    var cellIndex = (grazer.Location.Y + y) * Width + grazer.Location.X + x;
-                    if ((uint)cellIndex < (uint)cellCount && _types[cellIndex] == (byte)CellType.Plant)
-                    {
-                        var eatenPlant = plantHash[cellIndex];
-                        eatenCreatures.Add(eatenPlant);
-                        grazer.Eat(eatenPlant);
-                    }
-                }
-            }
-        }
-
-        private void FillArea(Creature creature)
-        {
-            var saturation = creature is Grazer grazer ? grazer.Saturation : (byte)Math.Clamp(creature.NutritionValue, 2, 10);
-            var type = (byte)creature.Type;
-            var baseIndex = creature.Location.Y * Width + creature.Location.X;
-            for (int y = 0; y < creature.Size; y++)
-            {
-                var rowBase = baseIndex + y * Width;
-                for (int x = 0; x < creature.Size; x++)
-                {
-                    _types[rowBase + x] = type;
-                    _saturations[rowBase + x] = saturation;
-                }
-            }
-        }
-
-        private void ClearArea(Creature creature)
-        {
-            var baseIndex = creature.Location.Y * Width + creature.Location.X;
-            for (int y = 0; y < creature.Size; y++)
-            {
-                var rowBase = baseIndex + y * Width;
-                for (int x = 0; x < creature.Size; x++)
-                {
-                    _types[rowBase + x] = 0;
-                    _saturations[rowBase + x] = 0;
-                }
-            }
-        }
-
-        private void ClearDead()
-        {
-            deadCreatures.ForEach(dc =>
-            {
-                if (dc is Plant plant)
-                {
-                    plantHash.Remove(plant.Location.Y * Width + plant.Location.X);
-                }
-                else if (dc is Grazer)
-                {
-                    grazerHash.Remove(dc.Id);
-                }
-                ClearArea(dc);
-            });
-
-            deadCreatures.Clear();
-
-            eatenCreatures.ForEach(ec =>
-            {
-                plantHash.Remove(ec.Location.Y * Width + ec.Location.X);
-            });
-            eatenCreatures.Clear();
-        }
-
-        private void OldCreature(Creature creature)
-        {
-            creature.Age++;
-
-            var baseIndex = creature.Location.Y * Width + creature.Location.X;
-            _saturations[baseIndex] = (byte)creature.NutritionValue;
-            if (creature.Dead)
-            {
-                this.deadCreatures.Add(creature);
-            }
-        }
-
-        private void OldCreatureWithoutSaturation(Creature creature)
-        {
-            creature.Age++;
-
-            var baseIndex = creature.Location.Y * Width + creature.Location.X;
-            if (creature is Grazer grazer)
-            {
-                for (int y = 0; y < creature.Size; y++)
-                {
-                    var rowBase = baseIndex + y * Width;
-                    for (int x = 0; x < creature.Size; x++)
-                    {
-                        _saturations[rowBase + x] = grazer.Saturation;
-                    }
-                }
-            }
-
-            if (creature.Dead)
-            {
-                this.deadCreatures.Add(creature);
-            }
-        }
-
-
-        private void RecordProfileSample()
-        {
-            _profileSampleCount++;
-            if (_profileSampleCount % 100 != 0)
-            {
-                return;
-            }
-
-            var windowSize = 100d;
-            Debug.WriteLine($"Epoch {Epoche}: avg total {TicksToMilliseconds(_profileTotalTicks / windowSize):F3} ms | plants {TicksToMilliseconds(_profileCreatePlantsTicks / windowSize):F3} ms | move+breed {TicksToMilliseconds(_profileMoveAndBreedTicks / windowSize):F3} ms | clearDead {TicksToMilliseconds(_profileClearDeadTicks / windowSize):F3} ms | aging {TicksToMilliseconds(_profileAgingTicks / windowSize):F3} ms | snapshot {TicksToMilliseconds(_profileSnapshotTicks / windowSize):F3} ms");
-
-            _profileCreatePlantsTicks = 0;
-            _profileMoveAndBreedTicks = 0;
-            _profileClearDeadTicks = 0;
-            _profileAgingTicks = 0;
-            _profileSnapshotTicks = 0;
-            _profileTotalTicks = 0;
-        }
-
-        private static double TicksToMilliseconds(double ticks)
-        {
-            return ticks * 1000d / Stopwatch.Frequency;
-        }
-
-        private AreaData SnapShotArea()
+        private AreaData SnapShotAreaInternal()
         {
             var cellCount = _types.Length;
             var types = new byte[cellCount];

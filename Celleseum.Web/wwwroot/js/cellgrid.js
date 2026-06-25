@@ -17,11 +17,11 @@ const grazerColorPalette = (() => {
         [0x00, 0xFF, 0x77]
     ];
 
-    const palette = new Array(16);
+    const palette = new Array(8);
     const segmentCount = anchors.length - 1;
 
-    for (let i = 0; i < 16; i++) {
-        const t = i / 15;
+    for (let i = 0; i < 8; i++) {
+        const t = i / 7;
         const segmentFloat = t * segmentCount;
         const segment = Math.min(segmentCount - 1, Math.floor(segmentFloat));
         const localT = segmentFloat - segment;
@@ -41,7 +41,7 @@ const grazerColorPalette = (() => {
 
 function grazerColorFromVariant(variant) {
     const value = variant & 0xFF;
-    const index = Math.min(15, value);
+    const index = Math.min(7, value);
     return grazerColorPalette[index];
 }
 

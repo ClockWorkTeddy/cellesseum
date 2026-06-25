@@ -14,6 +14,7 @@ namespace MapProcessing
             Satiety = DefaultSatiety;
             Saturation = saturation;
             SaturationDirection = saturationDirection;
+            BreedingThreshold = (DefaultLifeSpan) * 2;
         }
 
         public sbyte SaturationDirection { get; set; } = 1;
@@ -25,11 +26,11 @@ namespace MapProcessing
         public static int DefaultSatiety => DefaultLifeSpan / 4;
         public static int DefaultSpeed => 2;
 
-        public static int BreedingThreshold => DefaultLifeSpan * 2;
+        public int BreedingThreshold;
 
         public void Eat(Creature plant)
         {
-            Satiety += plant.NutritionValue;
+            Satiety += (plant.NutritionValue);
         }
     }
 }

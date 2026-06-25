@@ -86,7 +86,7 @@ namespace MapProcessing
                 grazer.Starve();
                 MoveCreature(grazer);
 
-                if (grazer.Satiety > Grazer.BreedingThreshold)
+                if (grazer.Satiety > grazer.BreedingThreshold)
                 {
                     grazer.Satiety = Grazer.DefaultSatiety;
                     var newLocation = GetNewPositionNearParent(grazer);
@@ -132,9 +132,9 @@ namespace MapProcessing
             if (parent != null)
             {
                 var randomValue = _random.Next(0, 100);
-                if (randomValue > 75)
+                if (randomValue > 98)
                 {
-                    if (saturation == 15)
+                    if (saturation == 7)
                     {
                         saturationDirection = -1;
                     }
@@ -152,7 +152,7 @@ namespace MapProcessing
             Grazing(grazer);
             FillArea(grazer);
             _overallGrazersCount++;
-            _score += 10;
+            _score += 10 * (saturation + 1);
         }
 
         private void CreatePlants()
@@ -339,6 +339,19 @@ namespace MapProcessing
         private void OldCreatureWithoutSaturation(Creature creature)
         {
             creature.Age++;
+
+            var baseIndex = creature.Location.Y * Width + creature.Location.X;
+            if (creature is Grazer grazer)
+            {
+                for (int y = 0; y < creature.Size; y++)
+                {
+                    var rowBase = baseIndex + y * Width;
+                    for (int x = 0; x < creature.Size; x++)
+                    {
+                        _saturations[rowBase + x] = grazer.Saturation;
+                    }
+                }
+            }
 
             if (creature.Dead)
             {

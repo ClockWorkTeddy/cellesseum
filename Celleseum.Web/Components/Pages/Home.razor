@@ -55,7 +55,7 @@
     private const int CellSize = 2;
     private const int Gap = 1;
     private const int LineEvery = 1;
-    private const int AnimationDelayMilliseconds = 20;
+    private const int AnimationDelayMilliseconds = 25;
     private const int InitialBufferSize = 100;
     private const int BatchSize = 150;
 
@@ -119,8 +119,8 @@
 
         if (!plotInitialized && plotModule is not null)
         {
-            var p = await plotModule.InvokeAsync<bool>("initPlot", "plotPlants",  "#00bb33", "Plants",  2000);
-            var g = await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "#bbbb33", "Grazers", 2000);
+            var p = await plotModule.InvokeAsync<bool>("initPlot", "plotPlants",  "#00bb33", "Plants",  5000);
+            var g = await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "#bbbb33", "Grazers", 5000);
             plotInitialized = p && g;
         }
 

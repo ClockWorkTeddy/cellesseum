@@ -292,7 +292,7 @@ app.MapGet("/signin-google-complete", async (SignInManager<ApplicationUser> sign
 
     if (signInResult.Succeeded)
     {
-        return Results.Redirect("/");
+        return Results.Redirect("/menu");
     }
 
     var email = info.Principal.FindFirstValue(ClaimTypes.Email);
@@ -332,14 +332,14 @@ app.MapGet("/signin-google-complete", async (SignInManager<ApplicationUser> sign
     }
 
     await signInManager.SignInAsync(user, isPersistent: true);
-    return Results.Redirect("/");
+    return Results.Redirect("/menu");
 })
 .RequireRateLimiting("auth-external");
 
-// Logout: sign out of Identity application cookie and redirect to home
-app.MapGet("/Account/Logout", async (HttpContext context) =>
+// Logout: sign out and redirect to main page
+app.MapGet("/Account/Logout", async (SignInManager<ApplicationUser> signInManager) =>
 {
-    await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+    await signInManager.SignOutAsync();
     return Results.Redirect("/");
 });
 

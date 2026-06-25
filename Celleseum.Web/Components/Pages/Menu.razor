@@ -1,0 +1,25 @@
+@page "/menu"
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+<canvas id="demoCanvas" class="demo-bg-canvas"></canvas>
+<div class="entry-stack">
+    <main class="entry-card">
+        <div class="login-title">Cellesseum</div>
+        <AuthorizeView>
+            <Authorized>
+                <div class="login-text">Welcome, @context.User.Identity?.Name!</div>
+            </Authorized>
+        </AuthorizeView>
+        <div class="login-controls">
+            <div class="login-form">
+                <button class="login-signin-btn" type="button" @onclick='() => Navigation.NavigateTo("/?guest=true&mode=simple")'>SimpleMode</button>
+                <button class="secondary-button" type="button" @onclick='() => Navigation.NavigateTo("/?guest=true&mode=mutation")'>MutationMode</button>
+                <a class="secondary-button" href="/Account/Logout">Sign out</a>
+            </div>
+        </div>
+    </main>
+</div>
+
+@inject NavigationManager Navigation

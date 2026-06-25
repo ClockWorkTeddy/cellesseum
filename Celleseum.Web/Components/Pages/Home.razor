@@ -63,6 +63,10 @@
     [SupplyParameterFromQuery(Name = "guest")]
     public bool GuestMode { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "mode")]
+    public string? Mode { get; set; }
+
     private IJSObjectReference? jsModule;
     private IJSObjectReference? demoModule;
     private IJSObjectReference? plotModule;
@@ -72,6 +76,7 @@
     private bool isGuestMode;
     private bool previousGuestMode;
     private bool shouldDisposeGrid;
+    private bool shouldNavigateToMenu;
     private DotNetObjectReference<Home>? dotNetRef;
     private TaskCompletionSource<bool>? playbackCompletion;
     private bool isAnimating;
@@ -91,6 +96,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+
+        shouldNavigateToMenu = isAuthenticated && !GuestMode;
+        if (shouldNavigateToMenu)
+        {
+            return;
+        }
+
         gridWidth  = Configuration.GetValue("Grid:Width",  50);
         gridHeight = Configuration.GetValue("Grid:Height", 50);
         await LoadRecentResultsAsync();
@@ -110,6 +124,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender && shouldNavigateToMenu)
+        {
+            Navigation.NavigateTo("/menu", replace: true);
+            return;
+        }
+
         if (firstRender)
         {
             jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/cellgrid.js");
@@ -164,7 +184,10 @@
 
         try
         {
-            await using var stream = MapApi.GetMapStream(gridWidth, gridHeight).GetAsyncEnumerator();
+            var simulationMode = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
+                ? "mutation"
+                : "simple";
+            await using var stream = MapApi.GetMapStream(gridWidth, gridHeight, simulationMode).GetAsyncEnumerator();
 
             var startupBatch = await ReadBatchAsync(stream, InitialBufferSize);
             if (startupBatch.Count == 0)

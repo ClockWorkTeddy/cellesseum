@@ -40,11 +40,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/turn/{width}/{height}", (int width, int height) =>
+app.MapGet("/turn/{width}/{height}", (int width, int height, string? mode) =>
 {
     var map = new Map(width, height);
 
-    return Proccessor.ProcessMapFrames(map);
+    var selectedMode = string.Equals(mode, "mutation", StringComparison.OrdinalIgnoreCase)
+        ? Proccessor.GameMode.Mutation
+        : Proccessor.GameMode.Simple;
+
+    return Proccessor.ProcessMapFrames(map, mode: selectedMode);
 })
 .WithName("NextTurn");
 

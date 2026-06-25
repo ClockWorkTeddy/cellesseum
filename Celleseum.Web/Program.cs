@@ -337,10 +337,21 @@ app.MapGet("/signin-google-complete", async (SignInManager<ApplicationUser> sign
 .RequireRateLimiting("auth-external");
 
 // Logout: sign out and redirect to main page
-app.MapGet("/Account/Logout", async (SignInManager<ApplicationUser> signInManager) =>
+app.MapGet("/Account/Logout", async (HttpContext context, SignInManager<ApplicationUser> signInManager, string? returnUrl) =>
 {
     await signInManager.SignOutAsync();
-    return Results.Redirect("/");
+    await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+    await context.SignOutAsync(IdentityConstants.ExternalScheme);
+
+    var target = "/?loggedOut=true";
+    if (!string.IsNullOrWhiteSpace(returnUrl) && Uri.IsWellFormedUriString(returnUrl, UriKind.Relative) && returnUrl.StartsWith('/'))
+    {
+        target = returnUrl.Contains('?')
+            ? $"{returnUrl}&loggedOut=true"
+            : $"{returnUrl}?loggedOut=true";
+    }
+
+    return Results.Redirect(target);
 });
 
 await app.RunAsync();

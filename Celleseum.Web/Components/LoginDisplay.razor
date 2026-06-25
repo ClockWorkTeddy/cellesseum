@@ -4,7 +4,7 @@
     <Authorized>
         <div class="wrap-10">
             <span class="login-text">Hello, @context.User.Identity?.Name</span>
-            <button class="login-btn" @onclick='() => Nav.NavigateTo("/Account/Logout", forceLoad: true)'>Sign out</button>
+            <button class="login-btn" @onclick='() => Nav.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)'>Sign out</button>
         </div>
     </Authorized>
     <NotAuthorized>

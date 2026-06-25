@@ -67,6 +67,10 @@
     [SupplyParameterFromQuery(Name = "mode")]
     public string? Mode { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "loggedOut")]
+    public bool LoggedOut { get; set; }
+
     private IJSObjectReference? jsModule;
     private IJSObjectReference? demoModule;
     private IJSObjectReference? plotModule;
@@ -98,8 +102,9 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+        var isLoggedOutRequest = LoggedOut || Navigation.Uri.Contains("loggedOut=true", StringComparison.OrdinalIgnoreCase);
 
-        shouldNavigateToMenu = isAuthenticated && !GuestMode;
+        shouldNavigateToMenu = isAuthenticated && !GuestMode && !isLoggedOutRequest;
         if (shouldNavigateToMenu)
         {
             return;

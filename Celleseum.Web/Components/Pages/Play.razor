@@ -8,30 +8,40 @@
     <div class="stats-bar">
         <span class="stats-item">
             <span class="stats-label">Step:</span>
-            <span class="stats-value" id="stat-step">@CurrentStep</span>
+            <span class="saturation-badge" id="stat-step">@CurrentStep</span>
         </span>
         <span class="stats-item">
             <span class="stats-label">Plants:</span>
-            <strong class="stats-value lbl-green" id="stat-plants">@PlantCount</strong>
+            <strong class="saturation-badge lbl-green" id="stat-plants">@PlantCount</strong>
         </span>
         <span class="stats-item">
             <span class="stats-label">Grazers:</span>
-            <strong class="stats-value lbl-yellow" id="stat-grazers">@GrazerCount</strong>
+            <strong class="saturation-badge lbl-yellow" id="stat-grazers">@GrazerCount</strong>
         </span>
         <span class="stats-item">
             <span class="stats-label">Score:</span>
-            <strong class="stats-value lbl-orange" id="stat-score">@NormalizedScore</strong>
+            <strong class="saturation-badge lbl-orange" id="stat-score">@NormalizedScore</strong>
         </span>
     </div>
     <div class="@(IsCompleted || IsAnimating ? "plot-section" : "plot-section plot-section-hidden")">
         <div class="divider"></div>
         <div class="plot-row">
             <div class="plot-card">
-                <div class="plot-label plot-label-plants">Plants</div>
+                <strong class="saturation-badge lbl-green" id="stat-plants">Plants</strong>
                 <canvas id="plotPlants" class="plot-canvas plot-canvas-plants"></canvas>
             </div>
             <div class="plot-card">
-                <div class="plot-label plot-label-grazers">Grazers</div>
+                        <span class="stats-item">
+
+                <span class="saturation-badges">
+                    @for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
+                    {
+                        <strong class="saturation-badge saturation-badge-@saturation"
+                                id="@($"stat-grazer-{saturation}")"
+                                title="@($"Saturation {saturation}")">@GetGrazerCountBySaturation(saturation)</strong>
+                    }
+                </span>
+                </span>
                 <canvas id="plotGrazers" class="plot-canvas plot-canvas-grazers"></canvas>
             </div>
         </div>
@@ -48,12 +58,14 @@
             </button>
         </div>
     }
-    <button class="btn" id="btn" type="button" @onclick="OnStart" disabled="@IsAnimating">
+    <button class="btn start-btn" id="btn" type="button" @onclick="OnStart" disabled="@IsAnimating">
         @(IsAnimating ? "Running..." : "Start")
     </button>
 </main>
 
 @code {
+    private const int GrazerSaturationLevelCount = 8;
+
     [Parameter]
     public bool ShowLoginDisplay { get; set; }
 
@@ -68,6 +80,9 @@
 
     [Parameter]
     public int? NormalizedScore{ get; set; }
+
+    [Parameter]
+    public int[]? GrazerCountsBySaturation { get; set; }
 
     [Parameter]
     public bool IsAnimating { get; set; }
@@ -86,4 +101,14 @@
 
     [Parameter]
     public EventCallback OnStep { get; set; }
+
+    private int GetGrazerCountBySaturation(int saturation)
+    {
+        if (GrazerCountsBySaturation is null || (uint)saturation >= (uint)GrazerCountsBySaturation.Length)
+        {
+            return 0;
+        }
+
+        return GrazerCountsBySaturation[saturation];
+    }
 }

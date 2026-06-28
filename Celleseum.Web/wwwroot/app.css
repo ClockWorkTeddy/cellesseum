@@ -76,7 +76,7 @@ body {
 .divider {
     height: 1px;
     background: rgba(255,255,255,.10);
-    margin: 22px 0;
+    margin: 8px 0px 0px 0px;
 }
 
 .hint {
@@ -112,21 +112,72 @@ body {
     color: #80bb00;
 }
 
-.stats-bar {
+.playback-controls {
     display: flex;
     justify-content: center;
-    gap: 16px;
+    gap: 8px;
+    margin: 10px auto 12px;
+}
+
+.playback-controls .btn {
+    max-width: 120px;
+    padding: 8px 14px;
+    font-size: 12px;
+}
+
+.saturation-badge {
+    min-width: 1ch;
+    text-align: center;
+    border: 1px solid #ffffff1f;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    background: #0000002e;
+    font-variant-numeric: tabular-nums;
+}
+
+.saturation-badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+}
+
+.start-btn {
+    margin: 12px 0px 0px 0px;
+}
+
+.stats-bar {
+    gap: 8px;
+    display: flex;
+    justify-content: center;
     color: white;
     font-size: 12px;
     font-weight: 650;
-    margin: 0 auto 18px;
 }
 
 .stats-item {
-    display: inline-flex;
     align-items: baseline;
+    display: inline-flex;
     gap: 4px;
-    min-width: 110px;
+}
+
+.stats-item-grazers {
+    align-items: center;
+    gap: 6px;
+}
+
+.stats-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.stats-value {
+    display: inline-block;
+    min-width: 6ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .title{
@@ -148,29 +199,7 @@ body {
     min-height: 92px;
 }
 
-.stats-label {
-    color: rgba(255, 255, 255, 0.95);
-}
-
-.stats-value {
-    display: inline-block;
-    min-width: 6ch;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-
-.playback-controls {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin: 0 auto 12px;
-}
-
-.playback-controls .btn {
-    max-width: 120px;
-    padding: 8px 14px;
-    font-size: 12px;
-}
+/*Nice*/
 
 /* Cell canvas: single <canvas> element replaces thousands of divs */
 .cell-canvas {
@@ -190,14 +219,19 @@ body {
 .plot-row {
     display: flex;
     gap: 8px;
-    width: 100%;
     margin: 0 auto;
 }
 
 .plot-card {
     position: relative;
-    flex: 1;
-    padding-top: 14px;
+    flex: 1 1 0;
+    max-width: 300px;
+}
+
+@media (max-width: 680px) {
+    .plot-row {
+        width: 100%;
+    }
 }
 
 .plot-label {
@@ -224,6 +258,7 @@ body {
     border-radius: 2px;
     box-sizing: border-box;
     display: block;
+    margin: 4px;
     flex: 1;
     height: 100px;
     width: 100%;
@@ -232,6 +267,7 @@ body {
 .plot-canvas-grazers {
     --plot-series-color: #80bb00;
     --plot-grid-color: #80bb0022;
+    --plot-series-colors: rgb(128, 255, 0)|rgb(219, 255, 0)|rgb(255, 146, 0)|rgb(255, 0, 36)|rgb(255, 0, 219)|rgb(109, 0, 255)|rgb(0, 73, 219)|rgb(0, 255, 128);
     border: 1px solid #ffffff22;
 }
 
@@ -239,6 +275,38 @@ body {
     --plot-series-color: #00bb00;
     --plot-grid-color: #00bb0022;
     border: 1px solid #ffffff22;
+}
+
+.saturation-badge-0 {
+    color: rgb(128, 255, 0);
+}
+
+.saturation-badge-1 {
+    color: rgb(219, 255, 0);
+}
+
+.saturation-badge-2 {
+    color: rgb(255, 146, 0);
+}
+
+.saturation-badge-3 {
+    color: rgb(255, 0, 36);
+}
+
+.saturation-badge-4 {
+    color: rgb(255, 0, 219);
+}
+
+.saturation-badge-5 {
+    color: rgb(109, 0, 255);
+}
+
+.saturation-badge-6 {
+    color: rgb(0, 73, 219);
+}
+
+.saturation-badge-7 {
+    color: rgb(0, 255, 128);
 }
 
 /* ── Entry Screen ── */

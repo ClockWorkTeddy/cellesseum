@@ -23,6 +23,7 @@
               PlantCount="@CurrentFrame?.PlantCount"
               GrazerCount="@CurrentFrame?.GrazerCount"
               NormalizedScore="@CurrentFrame?.NormalizedScore"
+              GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
               IsAnimating="@isAnimating"
               IsCompleted="@isCompleted"
               IsPaused="@isPaused"
@@ -38,6 +39,7 @@
                   PlantCount="@CurrentFrame?.PlantCount"
                   GrazerCount="@CurrentFrame?.GrazerCount"
                   NormalizedScore="@CurrentFrame?.NormalizedScore"
+                  GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
                   IsAnimating="@isAnimating"
                   IsCompleted="@isCompleted"
                   IsPaused="@isPaused"
@@ -58,6 +60,7 @@
     private const int AnimationDelayMilliseconds = 25;
     private const int InitialBufferSize = 50;
     private const int BatchSize = 150;
+    private const int GrazerSaturationLevelCount = 8;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "guest")]
@@ -144,9 +147,10 @@
 
         if (!plotInitialized && plotModule is not null)
         {
-            var p = await plotModule.InvokeAsync<bool>("initPlot", "plotPlants", "Plants", 3000);
-            var g = await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "Grazers", 3000);
-            plotInitialized = p && g;
+            var plotsReady = true;
+            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotPlants", "Plants", 3000);
+            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "Grazers", 3000);
+            plotInitialized = plotsReady;
         }
 
         if (shouldDisposeGrid && jsModule is not null)
@@ -283,6 +287,12 @@
         var plantCounts = new int[batch.Count];
         var grazerCounts = new int[batch.Count];
         var score = new int[batch.Count];
+        var grazerSaturationCounts = new int[GrazerSaturationLevelCount][];
+
+        for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
+        {
+            grazerSaturationCounts[saturation] = new int[batch.Count];
+        }
 
         for (var i = 0; i < batch.Count; i++)
         {
@@ -290,6 +300,16 @@
             plantCounts[i] = frame.PlantCount;
             grazerCounts[i] = frame.GrazerCount;
             score[i] = frame.NormalizedScore;
+
+            if (frame.GrazerCountsBySaturation is not null)
+            {
+                var saturationCount = Math.Min(frame.GrazerCountsBySaturation.Length, GrazerSaturationLevelCount);
+                for (var saturation = 0; saturation < saturationCount; saturation++)
+                {
+                    grazerSaturationCounts[saturation][i] = frame.GrazerCountsBySaturation[saturation];
+                }
+            }
+
             var offset = i * cellCount;
             Buffer.BlockCopy(frame.Types, 0, allTypes, offset, cellCount);
             Buffer.BlockCopy(frame.Saturations, 0, allSaturation, offset, cellCount);
@@ -300,12 +320,13 @@
 
         await jsModule.InvokeVoidAsync("enqueueFrames",
             "cellCanvas", allTypes, allSaturation,
-            plantCounts, grazerCounts, score, startFrame);
+            plantCounts, grazerCounts, score, grazerSaturationCounts, startFrame);
 
         if (plotModule is not null)
         {
             await plotModule.InvokeVoidAsync("pushFrames", "plotPlants",  plantCounts);
-            await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", grazerCounts);
+            //await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", grazerCounts);
+            await plotModule.InvokeVoidAsync("pushSeriesFrames", "plotGrazers", grazerSaturationCounts);
         }
     }
 

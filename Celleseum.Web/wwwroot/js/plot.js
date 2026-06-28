@@ -4,7 +4,7 @@ export function initPlot(canvasId, label, totalSteps) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return false;
 
-    const { color, gridColor } = resolvePlotColors(canvas);
+    const { color, gridColor, seriesColors } = resolvePlotColors(canvas);
 
     const onFrame = (e) => {
         const state = plots.get(canvasId);
@@ -14,23 +14,45 @@ export function initPlot(canvasId, label, totalSteps) {
     };
 
     window.addEventListener('celleseum:frame', onFrame);
-    plots.set(canvasId, { data: [], color, gridColor, label, totalSteps, displayUpTo: -1, onFrame });
+    plots.set(canvasId, { data: [], seriesData: [], color, gridColor, seriesColors, label, totalSteps, displayUpTo: -1, onFrame });
     return true;
 }
 
 export function pushFrames(canvasId, counts) {
     const state = plots.get(canvasId);
     if (!state) return;
-    for (let i = 0; i < counts.length; i++) {
+    for (let i = 1; i < counts.length; i++) {
         state.data.push(counts[i]);
     }
-    // No immediate redraw — driven by celleseum:frame events
+}
+
+export function pushSeriesFrames(canvasId, seriesCounts) {
+    const state = plots.get(canvasId);
+    if (!state || !Array.isArray(seriesCounts)) return;
+
+    if (!Array.isArray(state.seriesData) || state.seriesData.length !== seriesCounts.length) {
+        state.seriesData = new Array(seriesCounts.length);
+        for (let s = 0; s < seriesCounts.length; s++) {
+            state.seriesData[s] = [];
+        }
+    }
+
+    for (let s = 0; s < seriesCounts.length; s++) {
+        const source = seriesCounts[s];
+        if (!Array.isArray(source)) continue;
+
+        const target = state.seriesData[s];
+        for (let i = 0; i < source.length; i++) {
+            target.push(source[i]);
+        }
+    }
 }
 
 export function resetPlot(canvasId) {
     const state = plots.get(canvasId);
     if (!state) return;
     state.data = [];
+    state.seriesData = [];
     state.displayUpTo = -1;
     redraw(canvasId);
 }
@@ -49,11 +71,31 @@ function maxOf(arr, n) {
     return m;
 }
 
+function maxOfSeries(seriesList, n) {
+    let m = 0;
+    for (let s = 0; s < seriesList.length; s++) {
+        const series = seriesList[s];
+        if (!Array.isArray(series)) continue;
+
+        const limit = Math.min(n, series.length);
+        for (let i = 0; i < limit; i++) {
+            if (series[i] > m) m = series[i];
+        }
+    }
+
+    return m;
+}
+
 function resolvePlotColors(canvas) {
     const styles = getComputedStyle(canvas);
     const color = styles.getPropertyValue('--plot-series-color').trim() || '#00bb00';
     const gridColor = styles.getPropertyValue('--plot-grid-color').trim() || `${color}22`;
-    return { color, gridColor };
+    const rawSeriesColors = styles.getPropertyValue('--plot-series-colors').trim();
+    const seriesColors = rawSeriesColors
+        ? rawSeriesColors.split('|').map((c) => c.trim()).filter((c) => c.length > 0)
+        : [];
+
+    return { color, gridColor, seriesColors };
 }
 
 function getPlotPoint(i, totalSteps, pW, padLeft, seriesTop, seriesHeight, value, max) {
@@ -121,7 +163,7 @@ function drawSeriesLine(ctx, points, color) {
 
     ctx.beginPath();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1;
     ctx.lineJoin = 'round';
     ctx.globalAlpha = 0.85;
     ctx.moveTo(points[0].x, points[0].y);
@@ -149,8 +191,21 @@ function redraw(canvasId) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
-    const { data, color, gridColor, totalSteps, displayUpTo } = state;
-    const n = Math.min(displayUpTo + 1, data.length);
+    const { data, seriesData, color, gridColor, seriesColors, totalSteps, displayUpTo } = state;
+    const hasPrimarySeries = Array.isArray(data) && data.length > 0;
+    const hasExtraSeries = Array.isArray(seriesData) && seriesData.length > 0;
+    const allSeries = hasExtraSeries
+        ? (hasPrimarySeries ? [data, ...seriesData] : [...seriesData])
+        : (hasPrimarySeries ? [data] : []);
+
+    let availablePointCount = 0;
+    for (let i = 0; i < allSeries.length; i++) {
+        const series = allSeries[i];
+        if (Array.isArray(series) && series.length > availablePointCount) {
+            availablePointCount = series.length;
+        }
+    }
+    const n = Math.min(displayUpTo + 1, availablePointCount);
 
     const pad = { top: 8, bottom: 8, left: 6, right: 6 };
     const pW = cssW - pad.left - pad.right;
@@ -166,18 +221,38 @@ function redraw(canvasId) {
     drawHorizontalGrid(ctx, axisX, pad, pW, pH);
     drawPlotBorder(ctx, axisX, axisY, pad, pW, color);
 
-
     if (n < 2) return;
 
-    const max = maxOf(data, data.length);
+    const max = maxOfSeries(allSeries, n);
     if (max === 0) return;
 
-    const points = [];
-    for (let i = 0; i < n; i++) {
-        points.push(getPlotPoint(i, totalSteps, pW, pad.left, seriesTop, seriesHeight, data[i], max));
+    if (!hasExtraSeries) {
+        const points = [];
+        for (let i = 0; i < n; i++) {
+            points.push(getPlotPoint(i, totalSteps, pW, pad.left, seriesTop, seriesHeight, data[i], max));
+        }
+
+        const baselineY = seriesTop + seriesHeight;
+        drawAreaFill(ctx, points, baselineY, color);
+        drawSeriesLine(ctx, points, color);
+        return;
     }
 
-    const baselineY = seriesTop + seriesHeight;
-    drawAreaFill(ctx, points, baselineY, color);
-    drawSeriesLine(ctx, points, color);
+    for (let seriesIndex = 0; seriesIndex < allSeries.length; seriesIndex++) {
+        const series = allSeries[seriesIndex];
+        if (!Array.isArray(series)) continue;
+
+        const seriesLength = Math.min(n, series.length);
+        if (seriesLength < 2) continue;
+
+        const points = [];
+        for (let i = 0; i < seriesLength; i++) {
+            points.push(getPlotPoint(i, totalSteps, pW, pad.left, seriesTop, seriesHeight, series[i], max));
+        }
+
+        const seriesColor = hasPrimarySeries
+            ? (seriesIndex === 0 ? color : (seriesColors[seriesIndex - 1] || color))
+            : (seriesColors[seriesIndex] || color);
+        drawSeriesLine(ctx, points, seriesColor);
+    }
 }

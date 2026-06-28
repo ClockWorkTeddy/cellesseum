@@ -13,7 +13,7 @@ namespace MapProcessing
             sbyte direction = parent.SaturationDirection;
 
             var randomValue = _random.Next(0, 100);
-            if (randomValue > 96)  // 3% mutation chance
+            if (randomValue > 94)  // 3% mutation chance
             {
                 if (saturation == 7)
                 {

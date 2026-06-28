@@ -138,6 +138,16 @@ namespace MapProcessing
             var cellCount = _types.Length;
             var types = new byte[cellCount];
             var saturations = new byte[cellCount];
+            var grazerCountsBySaturation = new int[8];
+
+            foreach (var grazer in grazerHash.Values)
+            {
+                if ((uint)grazer.Saturation < (uint)grazerCountsBySaturation.Length)
+                {
+                    grazerCountsBySaturation[grazer.Saturation]++;
+                }
+            }
+
             Array.Copy(_types, types, cellCount);
             Array.Copy(_saturations, saturations, cellCount);
             return new AreaData
@@ -147,6 +157,7 @@ namespace MapProcessing
                 NormalizedScore = (int)(_score / (Width * Height * 0.0265)),
                 OverallPlantsCount = _overallPlantsCount,
                 OverallGrazersCount = _overallGrazersCount,
+                GrazerCountsBySaturation = grazerCountsBySaturation,
                 Types = types,
                 Saturations = saturations
             };

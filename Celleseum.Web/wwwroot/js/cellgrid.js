@@ -156,7 +156,7 @@ export function startPlayback(canvasId, delay, dotNetRef) {
     });
 }
 
-export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, grazerCounts, score, startFrame) {
+export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, grazerCounts, score, grazerSaturationCounts, startFrame) {
     const config = grids.get(canvasId);
     const player = players.get(canvasId);
     if (!config || !player) return;
@@ -167,6 +167,7 @@ export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, gr
         plantCounts,
         grazerCounts,
         score,
+        grazerSaturationCounts,
         startFrame,
         frameCount: plantCounts.length,
         cellCount: config.gridWidth * config.gridHeight
@@ -197,6 +198,10 @@ function tickPlayer(canvasId) {
     const plantEl = document.getElementById("stat-plants");
     const grazerEl = document.getElementById("stat-grazers");
     const scoreEl = document.getElementById("stat-score");
+    const saturationEls = new Array(8);
+    for (let saturation = 0; saturation < saturationEls.length; saturation++) {
+        saturationEls[saturation] = document.getElementById(`stat-grazer-${saturation}`);
+    }
 
     if (!player.currentBatch) {
         player.currentBatch = player.queue.shift() || null;
@@ -226,6 +231,17 @@ function tickPlayer(canvasId) {
     if (plantEl) plantEl.textContent = batch.plantCounts[frame];
     if (grazerEl) grazerEl.textContent = batch.grazerCounts[frame];
     if (scoreEl) scoreEl.textContent = batch.score[frame];
+
+    for (let saturation = 0; saturation < saturationEls.length; saturation++) {
+        const saturationEl = saturationEls[saturation];
+        if (!saturationEl) continue;
+
+        const saturationSeries = batch.grazerSaturationCounts?.[saturation];
+        const saturationCount = Array.isArray(saturationSeries) && frame < saturationSeries.length
+            ? saturationSeries[frame]
+            : 0;
+        saturationEl.textContent = saturationCount;
+    }
 
     player.frameInBatch++;
     if (player.frameInBatch >= batch.frameCount) {

@@ -7,7 +7,7 @@
         public int NormalizedScore { get; set; } = 0;
         public int OverallPlantsCount { get; set; } = 0;
         public int OverallGrazersCount { get; set; } = 0;
-        public int[] GrazerCountsBySaturation { get; set; } = new int[8];
+        public int[]? GrazerCountsBySaturation { get; set; }
         public byte[] Types { get; set; } = Array.Empty<byte>();
         public byte[] Saturations { get; set; } = Array.Empty<byte>();
     }

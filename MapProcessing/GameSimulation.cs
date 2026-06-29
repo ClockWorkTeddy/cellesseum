@@ -18,6 +18,8 @@ namespace MapProcessing
             this.breedProcessor = breedProcessor;
         }
 
+        protected virtual bool IncludeGrazerCountsBySaturation => true;
+
         /// <summary>
         /// Generate simulation frames over the specified number of epochs.
         /// </summary>
@@ -28,7 +30,7 @@ namespace MapProcessing
             for (int i = 0; i < term && map.HasGrazers(); i++)
             {
                 ExecuteEpoch(map);
-                yield return map.SnapShotArea();
+                yield return map.SnapShotArea(IncludeGrazerCountsBySaturation);
                 map.IncrementEpoch();
             }
         }

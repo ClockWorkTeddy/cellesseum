@@ -1,71 +1,21 @@
-﻿@page "/"
+@page "/"
 @using Celleseum.Data
-@using MapProcessing
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
-@using System.Security.Claims
 @rendermode InteractiveServer
 @attribute [StreamRendering(true)]
 @implements IAsyncDisposable
 
-@inject MapClient MapApi
-@inject IConfiguration Configuration
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject CellesseumDbContext DbContext
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ILogger<Home> Logger
 
-<AuthorizeView>
-    <Authorized>
-        <Play ShowLoginDisplay="true"
-              CurrentStep="@currentFrame"
-              PlantCount="@CurrentFrame?.PlantCount"
-              GrazerCount="@CurrentFrame?.GrazerCount"
-              NormalizedScore="@CurrentFrame?.NormalizedScore"
-              GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
-              IsAnimating="@isAnimating"
-              IsCompleted="@isCompleted"
-              IsPaused="@isPaused"
-              OnStart="GetData"
-              OnPause="TogglePause"
-              OnStep="StepPlayback" />
-    </Authorized>
-    <NotAuthorized>
-        @if (isGuestMode)
-        {
-            <Play ShowLoginDisplay="false"
-                  CurrentStep="@currentFrame"
-                  PlantCount="@CurrentFrame?.PlantCount"
-                  GrazerCount="@CurrentFrame?.GrazerCount"
-                  NormalizedScore="@CurrentFrame?.NormalizedScore"
-                  GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
-                  IsAnimating="@isAnimating"
-                  IsCompleted="@isCompleted"
-                  IsPaused="@isPaused"
-                  OnStart="GetData"
-                  OnPause="TogglePause"
-                  OnStep="StepPlayback" />
-        }
-        else
-        {
-            <Main OnPlay="EnableGuestMode" RecentResults="recentResults" />
-        }
-    </NotAuthorized>
-</AuthorizeView>
+<Main
+    OnPlay="LaunchPlay"
+    RecentResults="recentResults" />
+
 @code {
-    private const int CellSize = 2;
-    private const int Gap = 1;
-    private const int LineEvery = 1;
-    private const int AnimationDelayMilliseconds = 25;
-    private const int InitialBufferSize = 50;
-    private const int BatchSize = 150;
-    private const int GrazerSaturationLevelCount = 8;
-
-    [Parameter]
-    [SupplyParameterFromQuery(Name = "guest")]
-    public bool GuestMode { get; set; }
-
     [Parameter]
     [SupplyParameterFromQuery(Name = "mode")]
     public string? Mode { get; set; }
@@ -74,32 +24,10 @@
     [SupplyParameterFromQuery(Name = "loggedOut")]
     public bool LoggedOut { get; set; }
 
-    private IJSObjectReference? jsModule;
     private IJSObjectReference? demoModule;
-    private IJSObjectReference? plotModule;
-    private bool gridInitialized;
     private bool demoInitialized;
-    private bool plotInitialized;
-    private bool isGuestMode;
-    private bool previousGuestMode;
-    private bool shouldDisposeGrid;
     private bool shouldNavigateToMenu;
-    private DotNetObjectReference<Home>? dotNetRef;
-    private TaskCompletionSource<bool>? playbackCompletion;
-    private bool isAnimating;
-    private bool isPaused;
-    private bool isCompleted;
-    private readonly List<AreaData> data = new();
-    private int currentFrame;
-    private int nextFrameStart;
-    private int gridWidth;
-    private int gridHeight;
     private List<Result> recentResults = new();
-
-    private AreaData? CurrentFrame =>
-        data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
-            ? data[currentFrame]
-            : null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -107,27 +35,12 @@
         var isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
         var isLoggedOutRequest = LoggedOut || Navigation.Uri.Contains("loggedOut=true", StringComparison.OrdinalIgnoreCase);
 
-        shouldNavigateToMenu = isAuthenticated && !GuestMode && !isLoggedOutRequest;
-        if (shouldNavigateToMenu)
+        shouldNavigateToMenu = isAuthenticated && !isLoggedOutRequest;
+
+        if (!shouldNavigateToMenu)
         {
-            return;
+            await LoadRecentResultsAsync();
         }
-
-        gridWidth  = Configuration.GetValue("Grid:Width",  50);
-        gridHeight = Configuration.GetValue("Grid:Height", 50);
-        await LoadRecentResultsAsync();
-    }
-
-    protected override void OnParametersSet()
-    {
-        isGuestMode = GuestMode;
-
-        if (previousGuestMode && !isGuestMode)
-        {
-            shouldDisposeGrid = true;
-        }
-
-        previousGuestMode = isGuestMode;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -140,229 +53,22 @@
 
         if (firstRender)
         {
-            jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/cellgrid.js");
             demoModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/demo.js");
-            plotModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/plot.js");
         }
 
-        if (!plotInitialized && plotModule is not null)
-        {
-            var plotsReady = true;
-            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotPlants", "Plants", 3000);
-            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "Grazers", 3000);
-            plotInitialized = plotsReady;
-        }
-
-        if (shouldDisposeGrid && jsModule is not null)
-        {
-            await jsModule.InvokeVoidAsync("dispose", "cellCanvas");
-            gridInitialized = false;
-            shouldDisposeGrid = false;
-        }
-
-        if (!gridInitialized && jsModule is not null)
-        {
-            gridInitialized = await jsModule.InvokeAsync<bool>("initCanvas", "cellCanvas", gridWidth, gridHeight, CellSize, Gap, LineEvery);
-        }
-
-        if (!isGuestMode && !demoInitialized && demoModule is not null)
+        if (!shouldNavigateToMenu && !demoInitialized && demoModule is not null)
         {
             demoInitialized = await demoModule.InvokeAsync<bool>("initDemo", "demoCanvas");
         }
     }
 
-    private async Task GetData()
+    private void LaunchPlay()
     {
-        if (isAnimating || jsModule is null || !gridInitialized)
-        {
-            return;
-        }
+        var mode = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
+            ? "mutation"
+            : "simple";
 
-        isAnimating = true;
-        isCompleted = false;
-
-        data.Clear();
-        currentFrame = 0;
-        nextFrameStart = 0;
-        if (plotModule is not null)
-        {
-            await plotModule.InvokeVoidAsync("resetPlot", "plotPlants");
-            await plotModule.InvokeVoidAsync("resetPlot", "plotGrazers");
-        }
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            var simulationMode = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
-                ? "mutation"
-                : "simple";
-            await using var stream = MapApi.GetMapStream(gridWidth, gridHeight, simulationMode).GetAsyncEnumerator();
-
-            var startupBatch = await ReadBatchAsync(stream, InitialBufferSize);
-            if (startupBatch.Count == 0)
-            {
-                isAnimating = false;
-                isCompleted = false;
-                await InvokeAsync(StateHasChanged);
-                return;
-            }
-
-            playbackCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            dotNetRef ??= DotNetObjectReference.Create(this);
-
-            await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", AnimationDelayMilliseconds, dotNetRef);
-            await QueueBatchAsync(startupBatch);
-
-            while (true)
-            {
-                var nextBatch = await ReadBatchAsync(stream, BatchSize);
-                if (nextBatch.Count == 0)
-                {
-                    break;
-                }
-
-                await QueueBatchAsync(nextBatch);
-            }
-
-            await SaveResultAsync();
-
-            await jsModule.InvokeVoidAsync("completePlayback", "cellCanvas");
-            await playbackCompletion.Task;
-        }
-        finally
-        {
-            isAnimating = false;
-            isCompleted = data.Count > 0;
-            currentFrame = Math.Max(data.Count - 1, 0);
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    private async Task TogglePause()
-    {
-        if (jsModule is null) return;
-
-        if (isPaused)
-        {
-            await jsModule.InvokeVoidAsync("resumePlayback", "cellCanvas");
-        }
-        else
-        {
-            await jsModule.InvokeVoidAsync("pausePlayback", "cellCanvas");
-        }
-
-        isPaused = !isPaused;
-    }
-
-    private async Task StepPlayback()
-    {
-        if (jsModule is null || !isPaused) return;
-        await jsModule.InvokeVoidAsync("stepPlayback", "cellCanvas");
-    }
-
-    private async Task<List<AreaData>> ReadBatchAsync(IAsyncEnumerator<AreaData> stream, int maxCount)
-    {
-        var batch = new List<AreaData>(maxCount);
-        while (batch.Count < maxCount && await stream.MoveNextAsync())
-        {
-            var frame = stream.Current;
-            data.Add(frame);
-            batch.Add(frame);
-        }
-
-        return batch;
-    }
-
-    private async Task QueueBatchAsync(List<AreaData> batch)
-    {
-        if (jsModule is null || batch.Count == 0)
-        {
-            return;
-        }
-
-        var startFrame = nextFrameStart;
-        var cellCount = gridWidth * gridHeight;
-        var allTypes = new byte[batch.Count * cellCount];
-        var allSaturation = new byte[batch.Count * cellCount];
-        var plantCounts = new int[batch.Count];
-        var grazerCounts = new int[batch.Count];
-        var score = new int[batch.Count];
-        var grazerSaturationCounts = new int[GrazerSaturationLevelCount][];
-
-        for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
-        {
-            grazerSaturationCounts[saturation] = new int[batch.Count];
-        }
-
-        for (var i = 0; i < batch.Count; i++)
-        {
-            var frame = batch[i];
-            plantCounts[i] = frame.PlantCount;
-            grazerCounts[i] = frame.GrazerCount;
-            score[i] = frame.NormalizedScore;
-
-            if (frame.GrazerCountsBySaturation is not null)
-            {
-                var saturationCount = Math.Min(frame.GrazerCountsBySaturation.Length, GrazerSaturationLevelCount);
-                for (var saturation = 0; saturation < saturationCount; saturation++)
-                {
-                    grazerSaturationCounts[saturation][i] = frame.GrazerCountsBySaturation[saturation];
-                }
-            }
-
-            var offset = i * cellCount;
-            Buffer.BlockCopy(frame.Types, 0, allTypes, offset, cellCount);
-            Buffer.BlockCopy(frame.Saturations, 0, allSaturation, offset, cellCount);
-        }
-
-        nextFrameStart += batch.Count;
-        currentFrame = nextFrameStart - 1;
-
-        await jsModule.InvokeVoidAsync("enqueueFrames",
-            "cellCanvas", allTypes, allSaturation,
-            plantCounts, grazerCounts, score, grazerSaturationCounts, startFrame);
-
-        if (plotModule is not null)
-        {
-            await plotModule.InvokeVoidAsync("pushFrames", "plotPlants",  plantCounts);
-            //await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", grazerCounts);
-            await plotModule.InvokeVoidAsync("pushSeriesFrames", "plotGrazers", grazerSaturationCounts);
-        }
-    }
-
-    private async Task SaveResultAsync()
-    {
-        if (data.Count == 0)
-        {
-            return;
-        }
-
-        try
-        {
-            var lastFrame = data[^1];
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            var userId = user.Identity?.IsAuthenticated == true
-                ? user.FindFirstValue(ClaimTypes.NameIdentifier)
-                : null;
-
-            var result = new Result
-            {
-                UserId = userId,
-                DateTime = DateTime.UtcNow,
-                Score = lastFrame.NormalizedScore,
-                PlantsCreated = lastFrame.OverallPlantsCount,
-                GrazersCreated = lastFrame.OverallGrazersCount
-            };
-
-            DbContext.Results.Add(result);
-            await DbContext.SaveChangesAsync();
-            await LoadRecentResultsAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to persist simulation result.");
-        }
+        Navigation.NavigateTo($"/play?mode={mode}&backUrl=%2F");
     }
 
     private async Task LoadRecentResultsAsync()
@@ -373,53 +79,22 @@
             .ToListAsync();
     }
 
-    private async Task EnableGuestMode()
-    {
-        if (isGuestMode)
-        {
-            return;
-        }
-
-        if (demoInitialized && demoModule is not null)
-        {
-            await demoModule.InvokeVoidAsync("disposeDemo", "demoCanvas");
-            demoInitialized = false;
-        }
-
-        Navigation.NavigateTo("/?guest=true");
-    }
-
-    [JSInvokable]
-    public void OnPlaybackComplete()
-    {
-        playbackCompletion?.TrySetResult(true);
-    }
-
     public async ValueTask DisposeAsync()
     {
-        dotNetRef?.Dispose();
         try
         {
-            if (jsModule is not null)
-            {
-                await jsModule.InvokeVoidAsync("dispose", "cellCanvas");
-                await jsModule.DisposeAsync();
-            }
-            if (demoModule is not null)
+            if (demoInitialized && demoModule is not null)
             {
                 await demoModule.InvokeVoidAsync("disposeDemo", "demoCanvas");
-                await demoModule.DisposeAsync();
             }
-            if (plotModule is not null)
+
+            if (demoModule is not null)
             {
-                await plotModule.InvokeVoidAsync("disposePlot", "plotPlants");
-                await plotModule.InvokeVoidAsync("disposePlot", "plotGrazers");
-                await plotModule.DisposeAsync();
+                await demoModule.DisposeAsync();
             }
         }
         catch (JSDisconnectedException)
         {
-            // Browser navigated away, circuit is gone — JS cleanup is not needed
         }
     }
 }

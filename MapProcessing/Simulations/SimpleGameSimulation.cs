@@ -5,6 +5,8 @@ namespace MapProcessing.Simulations
     /// </summary>
     public class SimpleGameSimulation : GameSimulation
     {
+        protected override bool IncludeGrazerCountsBySaturation => false;
+
         public SimpleGameSimulation() : base(new SimpleBreedProcessor())
         {
         }

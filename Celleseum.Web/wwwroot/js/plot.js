@@ -158,12 +158,12 @@ function drawAreaFill(ctx, points, baselineY, color) {
     ctx.fill();
 }
 
-function drawSeriesLine(ctx, points, color) {
+function drawSeriesLine(ctx, points, color, lineWeight) {
     if (points.length < 2) return;
 
     ctx.beginPath();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = lineWeight;
     ctx.lineJoin = 'round';
     ctx.globalAlpha = 0.85;
     ctx.moveTo(points[0].x, points[0].y);
@@ -216,7 +216,7 @@ function redraw(canvasId) {
     const seriesTopInset = 10;
     const seriesTop = pad.top + seriesTopInset;
     const seriesHeight = pH - seriesTopInset;
-
+    let  lineWeight = 1;
     drawVerticalGrid(ctx, gridColor, totalSteps, pad, pW, axisY);
     drawHorizontalGrid(ctx, axisX, pad, pW, pH);
     drawPlotBorder(ctx, axisX, axisY, pad, pW, color);
@@ -233,8 +233,9 @@ function redraw(canvasId) {
         }
 
         const baselineY = seriesTop + seriesHeight;
+        lineWeight = 2;
         drawAreaFill(ctx, points, baselineY, color);
-        drawSeriesLine(ctx, points, color);
+        drawSeriesLine(ctx, points, color, lineWeight);
         return;
     }
 
@@ -253,6 +254,6 @@ function redraw(canvasId) {
         const seriesColor = hasPrimarySeries
             ? (seriesIndex === 0 ? color : (seriesColors[seriesIndex - 1] || color))
             : (seriesColors[seriesIndex] || color);
-        drawSeriesLine(ctx, points, seriesColor);
+        drawSeriesLine(ctx, points, seriesColor, lineWeight);
     }
 }

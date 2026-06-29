@@ -1,0 +1,209 @@
+@using Celleseum.Web.Components.Buttons
+@using Celleseum.Web.Components.Enums
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div>
+    <canvas id="cellCanvas" class="cell-canvas"></canvas>
+    <div class="stats-bar">
+        <span class="stats-item">
+            <span class="stats-label">Step:</span>
+            <span class="saturation-badge" id="stat-step">@CurrentStep</span>
+        </span>
+        <span class="stats-item">
+            <span class="stats-label">Plants:</span>
+            <strong class="saturation-badge lbl-green" id="stat-plants">@(PlantCount ?? 0)</strong>
+        </span>
+        <span class="stats-item">
+            <span class="stats-label">Grazers:</span>
+            <strong class="saturation-badge lbl-yellow" id="stat-grazers">@(GrazerCount ?? 0)</strong>
+        </span>
+        <span class="stats-item">
+            <span class="stats-label">Score:</span>
+            <strong class="saturation-badge lbl-orange" id="stat-score">@(NormalizedScore ?? 0)</strong>
+        </span>
+    </div>
+    <div class="divider"></div>
+    <div class="@(IsCompleted || IsAnimating ? "plot-section" : "plot-section plot-section-hidden")">
+        <div class="plot-row">
+            <div class="plot-card">
+                <strong class="saturation-badge lbl-green" id="stat-plants">Plants</strong>
+                <canvas id="plotPlants" class="plot-canvas plot-canvas-plants"></canvas>
+            </div>
+            <div class="plot-card">
+                @if (GameMode == GameMode.Simple)
+                {
+                    <strong class="saturation-badge lbl-yellow" id="stat-plants">Grazers</strong>
+                    <canvas id="plotGrazers" class="plot-canvas plot-canvas-grazers"></canvas>
+                }
+                else
+                {
+                    <span class="stats-item">
+                        <span class="saturation-badges">
+                        @for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
+                        {
+                            <strong class="saturation-badge saturation-badge-@saturation"
+                                    id="@($"stat-grazer-{saturation}")"
+                                    title="@($"Saturation {saturation}")">@GetGrazerCountBySaturation(saturation)</strong>
+                        }
+                        </span>
+                        <canvas id="plotGrazers" class="plot-canvas plot-canvas-grazers"></canvas>
+                    </span>
+                }
+            </div>
+        </div>
+        <div class="divider"></div>
+    </div>
+    @if (IsAnimating)
+    {
+        <div class="playback-controls">
+            <button class="btn" type="button" @onclick="OnPause">
+                @(IsPaused ? "Resume" : "Pause")
+            </button>
+            <button class="btn" type="button" @onclick="OnStep" disabled="@(!IsPaused)">
+                Step
+            </button>
+        </div>
+    }
+    <StartButton IsAnimating="@IsAnimating" OnStart="@OnStart" />
+</div>
+
+@code {
+    private const int GrazerSaturationLevelCount = 8;
+
+    private IJSObjectReference? plotModule;
+    private bool plotInitialized;
+    private long handledPlotBatchVersion = -1;
+    private long handledPlotResetVersion = -1;
+
+    [Parameter]
+    public int CurrentStep { get; set; }
+
+    [Parameter]
+    public int? PlantCount { get; set; }
+
+    [Parameter]
+    public int? GrazerCount { get; set; }
+
+    [Parameter]
+    public int? NormalizedScore { get; set; }
+
+    [Parameter]
+    public int[]? GrazerCountsBySaturation { get; set; }
+
+    [Parameter]
+    public bool IsAnimating { get; set; }
+
+    [Parameter]
+    public bool IsCompleted { get; set; }
+
+    [Parameter]
+    public bool IsPaused { get; set; }
+
+    [Parameter]
+    public GameMode GameMode { get; set; }
+
+    [Parameter]
+    public int[]? PlantPlotBatch { get; set; }
+
+    [Parameter]
+    public int[]? GrazerPlotBatch { get; set; }
+
+    [Parameter]
+    public int[][]? GrazerSaturationPlotBatch { get; set; }
+
+    [Parameter]
+    public bool IncludeGrazerTotalSeries { get; set; }
+
+    [Parameter]
+    public long PlotBatchVersion { get; set; }
+
+    [Parameter]
+    public long PlotResetVersion { get; set; }
+
+    [Parameter]
+    public EventCallback OnStart { get; set; }
+
+    [Parameter]
+    public EventCallback OnPause { get; set; }
+
+    [Parameter]
+    public EventCallback OnStep { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            plotModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/plot.js");
+        }
+
+        if (!plotInitialized && plotModule is not null)
+        {
+            var plotsReady = true;
+            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotPlants", "Plants", 3000);
+            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "Grazers", 3000);
+            plotInitialized = plotsReady;
+        }
+
+        if (!plotInitialized || plotModule is null)
+        {
+            return;
+        }
+
+        if (PlotResetVersion != handledPlotResetVersion)
+        {
+            await plotModule.InvokeVoidAsync("resetPlot", "plotPlants");
+            await plotModule.InvokeVoidAsync("resetPlot", "plotGrazers");
+            handledPlotResetVersion = PlotResetVersion;
+        }
+
+        if (PlotBatchVersion == handledPlotBatchVersion)
+        {
+            return;
+        }
+
+        if (PlantPlotBatch is { Length: > 0 })
+        {
+            await plotModule.InvokeVoidAsync("pushFrames", "plotPlants", PlantPlotBatch);
+        }
+
+        if (GrazerPlotBatch is { Length: > 0 })
+        {
+            await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", GrazerPlotBatch);
+        }
+
+        if (IncludeGrazerTotalSeries && GrazerSaturationPlotBatch is { Length: > 0 })
+        {
+            await plotModule.InvokeVoidAsync("pushSeriesFrames", "plotGrazers", GrazerSaturationPlotBatch);
+        }
+
+        handledPlotBatchVersion = PlotBatchVersion;
+    }
+
+    private int GetGrazerCountBySaturation(int saturation)
+    {
+        if (GrazerCountsBySaturation is null || (uint)saturation >= (uint)GrazerCountsBySaturation.Length)
+        {
+            return 0;
+        }
+
+        return GrazerCountsBySaturation[saturation];
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (plotModule is not null)
+            {
+                await plotModule.InvokeVoidAsync("disposePlot", "plotPlants");
+                await plotModule.InvokeVoidAsync("disposePlot", "plotGrazers");
+                await plotModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

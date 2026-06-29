@@ -1,114 +1,336 @@
-<main class="card">
-    <div class="title">Cellesseum</div>
-    @if (ShowLoginDisplay)
+@page "/play"
+@using Celleseum.Data
+@using Celleseum.Web.Components.Buttons
+@using MapProcessing
+@using Celleseum.Web.Components.Enums
+@using System.Security.Claims
+@rendermode InteractiveServer
+@attribute [StreamRendering(true)]
+@implements IAsyncDisposable
+
+@inject MapClient MapApi
+@inject IConfiguration Configuration
+@inject IJSRuntime JS
+@inject CellesseumDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<Play> Logger
+
+    <main class="card">
+    <div class="row">
+        <div class="col-2 d-flex justify-content-start align-items-center">
+            <BackButton BackUrl="@BackUrl" />
+        </div>
+        <div class="col-8">
+            <div class="login-title">Cellesseum</div>
+        </div>
+        <div class="col-2"></div>
+    </div>
+    @if (isAuthenticated)
     {
         <LoginDisplay />
     }
-    <canvas id="cellCanvas" class="cell-canvas"></canvas>
-    <div class="stats-bar">
-        <span class="stats-item">
-            <span class="stats-label">Step:</span>
-            <span class="saturation-badge" id="stat-step">@CurrentStep</span>
-        </span>
-        <span class="stats-item">
-            <span class="stats-label">Plants:</span>
-            <strong class="saturation-badge lbl-green" id="stat-plants">@PlantCount</strong>
-        </span>
-        <span class="stats-item">
-            <span class="stats-label">Grazers:</span>
-            <strong class="saturation-badge lbl-yellow" id="stat-grazers">@GrazerCount</strong>
-        </span>
-        <span class="stats-item">
-            <span class="stats-label">Score:</span>
-            <strong class="saturation-badge lbl-orange" id="stat-score">@NormalizedScore</strong>
-        </span>
-    </div>
-    <div class="@(IsCompleted || IsAnimating ? "plot-section" : "plot-section plot-section-hidden")">
-        <div class="divider"></div>
-        <div class="plot-row">
-            <div class="plot-card">
-                <strong class="saturation-badge lbl-green" id="stat-plants">Plants</strong>
-                <canvas id="plotPlants" class="plot-canvas plot-canvas-plants"></canvas>
-            </div>
-            <div class="plot-card">
-                        <span class="stats-item">
 
-                <span class="saturation-badges">
-                    @for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
-                    {
-                        <strong class="saturation-badge saturation-badge-@saturation"
-                                id="@($"stat-grazer-{saturation}")"
-                                title="@($"Saturation {saturation}")">@GetGrazerCountBySaturation(saturation)</strong>
-                    }
-                </span>
-                </span>
-                <canvas id="plotGrazers" class="plot-canvas plot-canvas-grazers"></canvas>
-            </div>
-        </div>
-        <div class="divider"></div>
-    </div>
-    @if (IsAnimating)
-    {
-        <div class="playback-controls">
-            <button class="btn" type="button" @onclick="OnPause">
-                @(IsPaused ? "▶ Resume" : "⏸ Pause")
-            </button>
-            <button class="btn" type="button" @onclick="OnStep" disabled="@(!IsPaused)">
-                ▶Step
-            </button>
-        </div>
-    }
-    <button class="btn start-btn" id="btn" type="button" @onclick="OnStart" disabled="@IsAnimating">
-        @(IsAnimating ? "Running..." : "Start")
-    </button>
+<GameField
+      CurrentStep="@currentFrame"
+      PlantCount="@CurrentFrame?.PlantCount"
+      GrazerCount="@CurrentFrame?.GrazerCount"
+      NormalizedScore="@CurrentFrame?.NormalizedScore"
+      GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
+      IsAnimating="@isAnimating"
+      IsCompleted="@isCompleted"
+      IsPaused="@isPaused"
+      GameMode="@CurrentGameMode"
+      PlantPlotBatch="@plantPlotBatch"
+      GrazerPlotBatch="@grazerPlotBatch"
+      GrazerSaturationPlotBatch="@grazerSaturationPlotBatch"
+      IncludeGrazerTotalSeries="@includeGrazerTotalSeries"
+      PlotBatchVersion="@plotBatchVersion"
+      PlotResetVersion="@plotResetVersion"
+      OnStart="GetData"
+      OnPause="TogglePause"
+      OnStep="StepPlayback" />
 </main>
 
+
 @code {
+    private const int CellSize = 2;
+    private const int Gap = 1;
+    private const int LineEvery = 1;
+    private const int AnimationDelayMilliseconds = 25;
+    private const int InitialBufferSize = 50;
+    private const int BatchSize = 150;
     private const int GrazerSaturationLevelCount = 8;
 
     [Parameter]
-    public bool ShowLoginDisplay { get; set; }
+    [SupplyParameterFromQuery(Name = "mode")]
+    public string? Mode { get; set; }
 
-    [Parameter]
-    public int CurrentStep { get; set; }
+    [SupplyParameterFromQuery(Name = "backUrl")]
+    public string? BackUrl { get; set; }
 
-    [Parameter]
-    public int? PlantCount { get; set; }
+    private IJSObjectReference? jsModule;
+    private bool gridInitialized;
+    private DotNetObjectReference<Play>? dotNetRef;
+    private TaskCompletionSource<bool>? playbackCompletion;
+    private bool isAuthenticated;
+    private bool isAnimating;
+    private bool isPaused;
+    private bool isCompleted;
+    private readonly List<AreaData> data = new();
+    private int currentFrame;
+    private int nextFrameStart;
+    private int gridWidth;
+    private int gridHeight;
+    private int[]? plantPlotBatch;
+    private int[]? grazerPlotBatch;
+    private int[][]? grazerSaturationPlotBatch;
+    private long plotBatchVersion;
+    private long plotResetVersion;
 
-    [Parameter]
-    public int? GrazerCount { get; set; }
+    private GameMode CurrentGameMode =>
+        string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
+            ? GameMode.Mutation
+            : GameMode.Simple;
 
-    [Parameter]
-    public int? NormalizedScore{ get; set; }
+    private bool includeGrazerTotalSeries => CurrentGameMode != GameMode.Simple;
 
-    [Parameter]
-    public int[]? GrazerCountsBySaturation { get; set; }
+    private AreaData? CurrentFrame =>
+        data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
+            ? data[currentFrame]
+            : null;
 
-    [Parameter]
-    public bool IsAnimating { get; set; }
-
-    [Parameter]
-    public bool IsCompleted { get; set; }
-
-    [Parameter]
-    public bool IsPaused { get; set; }
-
-    [Parameter]
-    public EventCallback OnStart { get; set; }
-
-    [Parameter]
-    public EventCallback OnPause { get; set; }
-
-    [Parameter]
-    public EventCallback OnStep { get; set; }
-
-    private int GetGrazerCountBySaturation(int saturation)
+    protected override async Task OnInitializedAsync()
     {
-        if (GrazerCountsBySaturation is null || (uint)saturation >= (uint)GrazerCountsBySaturation.Length)
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+
+        gridWidth = Configuration.GetValue("Grid:Width", 50);
+        gridHeight = Configuration.GetValue("Grid:Height", 50);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-            return 0;
+            jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/cellgrid.js");
         }
 
-        return GrazerCountsBySaturation[saturation];
+        if (!gridInitialized && jsModule is not null)
+        {
+            gridInitialized = await jsModule.InvokeAsync<bool>("initCanvas", "cellCanvas", gridWidth, gridHeight, CellSize, Gap, LineEvery);
+        }
+    }
+
+    private async Task GetData()
+    {
+        if (isAnimating || jsModule is null || !gridInitialized)
+        {
+            return;
+        }
+
+        isAnimating = true;
+        isCompleted = false;
+
+        data.Clear();
+        currentFrame = 0;
+        nextFrameStart = 0;
+        plantPlotBatch = Array.Empty<int>();
+        grazerPlotBatch = Array.Empty<int>();
+        grazerSaturationPlotBatch = Array.Empty<int[]>();
+        plotResetVersion++;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var simulationMode = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
+                ? "mutation"
+                : "simple";
+            await using var stream = MapApi.GetMapStream(gridWidth, gridHeight, simulationMode).GetAsyncEnumerator();
+
+            var startupBatch = await ReadBatchAsync(stream, InitialBufferSize);
+            if (startupBatch.Count == 0)
+            {
+                isAnimating = false;
+                isCompleted = false;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            playbackCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            dotNetRef ??= DotNetObjectReference.Create(this);
+
+            await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", AnimationDelayMilliseconds, dotNetRef);
+            await QueueBatchAsync(startupBatch);
+
+            while (true)
+            {
+                var nextBatch = await ReadBatchAsync(stream, BatchSize);
+                if (nextBatch.Count == 0)
+                {
+                    break;
+                }
+
+                await QueueBatchAsync(nextBatch);
+            }
+
+            await SaveResultAsync();
+
+            await jsModule.InvokeVoidAsync("completePlayback", "cellCanvas");
+            await playbackCompletion.Task;
+        }
+        finally
+        {
+            isAnimating = false;
+            isCompleted = data.Count > 0;
+            currentFrame = Math.Max(data.Count - 1, 0);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task TogglePause()
+    {
+        if (jsModule is null) return;
+
+        if (isPaused)
+        {
+            await jsModule.InvokeVoidAsync("resumePlayback", "cellCanvas");
+        }
+        else
+        {
+            await jsModule.InvokeVoidAsync("pausePlayback", "cellCanvas");
+        }
+
+        isPaused = !isPaused;
+    }
+
+    private async Task StepPlayback()
+    {
+        if (jsModule is null || !isPaused) return;
+        await jsModule.InvokeVoidAsync("stepPlayback", "cellCanvas");
+    }
+
+    private async Task<List<AreaData>> ReadBatchAsync(IAsyncEnumerator<AreaData> stream, int maxCount)
+    {
+        var batch = new List<AreaData>(maxCount);
+        while (batch.Count < maxCount && await stream.MoveNextAsync())
+        {
+            var frame = stream.Current;
+            data.Add(frame);
+            batch.Add(frame);
+        }
+
+        return batch;
+    }
+
+    private async Task QueueBatchAsync(List<AreaData> batch)
+    {
+        if (jsModule is null || batch.Count == 0)
+        {
+            return;
+        }
+
+        var startFrame = nextFrameStart;
+        var cellCount = gridWidth * gridHeight;
+        var allTypes = new byte[batch.Count * cellCount];
+        var allSaturation = new byte[batch.Count * cellCount];
+        var plantCounts = new int[batch.Count];
+        var grazerCounts = new int[batch.Count];
+        var score = new int[batch.Count];
+        var grazerSaturationCounts = new int[GrazerSaturationLevelCount][];
+
+        for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
+        {
+            grazerSaturationCounts[saturation] = new int[batch.Count];
+        }
+
+        for (var i = 0; i < batch.Count; i++)
+        {
+            var frame = batch[i];
+            plantCounts[i] = frame.PlantCount;
+            grazerCounts[i] = frame.GrazerCount;
+            score[i] = frame.NormalizedScore;
+
+            if (frame.GrazerCountsBySaturation is not null)
+            {
+                var saturationCount = Math.Min(frame.GrazerCountsBySaturation.Length, GrazerSaturationLevelCount);
+                for (var saturation = 0; saturation < saturationCount; saturation++)
+                {
+                    grazerSaturationCounts[saturation][i] = frame.GrazerCountsBySaturation[saturation];
+                }
+            }
+
+            var offset = i * cellCount;
+            Buffer.BlockCopy(frame.Types, 0, allTypes, offset, cellCount);
+            Buffer.BlockCopy(frame.Saturations, 0, allSaturation, offset, cellCount);
+        }
+
+        nextFrameStart += batch.Count;
+        currentFrame = nextFrameStart - 1;
+
+        await jsModule.InvokeVoidAsync("enqueueFrames",
+            "cellCanvas", allTypes, allSaturation,
+            plantCounts, grazerCounts, score, grazerSaturationCounts, startFrame);
+
+        plantPlotBatch = plantCounts;
+        grazerPlotBatch = grazerCounts;
+        grazerSaturationPlotBatch = grazerSaturationCounts;
+        plotBatchVersion++;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveResultAsync()
+    {
+        if (data.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var lastFrame = data[^1];
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var userId = user.Identity?.IsAuthenticated == true
+                ? user.FindFirstValue(ClaimTypes.NameIdentifier)
+                : null;
+
+            var result = new Result
+            {
+                UserId = userId,
+                DateTime = DateTime.UtcNow,
+                Score = lastFrame.NormalizedScore,
+                PlantsCreated = lastFrame.OverallPlantsCount,
+                GrazersCreated = lastFrame.OverallGrazersCount
+            };
+
+            DbContext.Results.Add(result);
+            await DbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to persist simulation result.");
+        }
+    }
+
+    [JSInvokable]
+    public void OnPlaybackComplete()
+    {
+        playbackCompletion?.TrySetResult(true);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        dotNetRef?.Dispose();
+        try
+        {
+            if (jsModule is not null)
+            {
+                await jsModule.InvokeVoidAsync("dispose", "cellCanvas");
+                await jsModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+        }
     }
 }

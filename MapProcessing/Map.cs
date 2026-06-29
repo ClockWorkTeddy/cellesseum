@@ -128,23 +128,28 @@ namespace MapProcessing
         /// <summary>
         /// Get snapshot of current map state.
         /// </summary>
-        public AreaData SnapShotArea()
+        public AreaData SnapShotArea(bool includeGrazerCountsBySaturation = true)
         {
-            return SnapShotAreaInternal();
+            return SnapShotAreaInternal(includeGrazerCountsBySaturation);
         }
 
-        private AreaData SnapShotAreaInternal()
+        private AreaData SnapShotAreaInternal(bool includeGrazerCountsBySaturation)
         {
             var cellCount = _types.Length;
             var types = new byte[cellCount];
             var saturations = new byte[cellCount];
-            var grazerCountsBySaturation = new int[8];
+            int[]? grazerCountsBySaturation = null;
 
-            foreach (var grazer in grazerHash.Values)
+            if (includeGrazerCountsBySaturation)
             {
-                if ((uint)grazer.Saturation < (uint)grazerCountsBySaturation.Length)
+                grazerCountsBySaturation = new int[8];
+
+                foreach (var grazer in grazerHash.Values)
                 {
-                    grazerCountsBySaturation[grazer.Saturation]++;
+                    if ((uint)grazer.Saturation < (uint)grazerCountsBySaturation.Length)
+                    {
+                        grazerCountsBySaturation[grazer.Saturation]++;
+                    }
                 }
             }
 

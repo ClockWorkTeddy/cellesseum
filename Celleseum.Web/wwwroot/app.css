@@ -21,6 +21,36 @@ html, body {
     color: var(--text);
 }
 
+.back-button {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid rgba(129, 194, 255, 0.25);
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(233, 238, 252, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: background .15s ease, transform .12s ease, color .15s ease;
+}
+
+.back-button svg {
+    width: 40px;
+    height: 40px;
+    display: block;
+}
+
+.back-button:hover {
+    color: #fff;
+}
+
+.back-button:focus-visible {
+    outline: 2px solid rgba(124, 92, 255, 0.85);
+    outline-offset: 2px;
+}
+
 body {
     display: flex;
     flex-direction: column; /* prevent horizontal shrink */
@@ -73,10 +103,17 @@ body {
     text-align: center;
 }
 
+.cell-canvas {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    margin: 20px auto 20px;
+}
+
 .divider {
     height: 1px;
     background: rgba(255,255,255,.10);
-    margin: 8px 0px 0px 0px;
+    margin: 8px 0px 8px 0px;
 }
 
 .hint {
@@ -125,6 +162,33 @@ body {
     font-size: 12px;
 }
 
+.plot-card {
+    position: relative;
+    flex: 1 1 0;
+    max-width: 300px;
+    --plot-badge-gap: 8px;
+    --plot-canvas-margin: 0;
+}
+
+.plot-row {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+}
+
+@media (max-width: 680px) {
+    .plot-row {
+        width: 100%;
+    }
+}
+
+.plot-section-hidden {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .saturation-badge {
     min-width: 1ch;
     text-align: center;
@@ -133,15 +197,22 @@ body {
     padding: 2px 6px;
     font-size: 9px;
     font-weight: 700;
+    line-height: 1;
     background: #0000002e;
     font-variant-numeric: tabular-nums;
 }
 
+.plot-card > .saturation-badge {
+    display: block;
+    width: fit-content;
+    margin: 0 auto var(--plot-badge-gap);
+}
+
 .saturation-badges {
-    display: inline-flex;
     flex-wrap: wrap;
     gap: 4px;
     justify-content: center;
+    margin: 4px;
 }
 
 .start-btn {
@@ -201,39 +272,6 @@ body {
 
 /*Nice*/
 
-/* Cell canvas: single <canvas> element replaces thousands of divs */
-.cell-canvas {
-    display: block;
-    margin: 20px auto 20px;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-}
-
-.plot-section-hidden {
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    pointer-events: none;
-}
-
-.plot-row {
-    display: flex;
-    gap: 8px;
-    margin: 0 auto;
-}
-
-.plot-card {
-    position: relative;
-    flex: 1 1 0;
-    max-width: 300px;
-}
-
-@media (max-width: 680px) {
-    .plot-row {
-        width: 100%;
-    }
-}
-
 .plot-label {
     position: absolute;
     top: 0;
@@ -258,10 +296,14 @@ body {
     border-radius: 2px;
     box-sizing: border-box;
     display: block;
-    margin: 4px;
+    margin: var(--plot-canvas-margin);
     flex: 1;
     height: 100px;
     width: 100%;
+}
+
+.plot-card > .saturation-badge + .plot-canvas {
+    margin-top: 0;
 }
 
 .plot-canvas-grazers {

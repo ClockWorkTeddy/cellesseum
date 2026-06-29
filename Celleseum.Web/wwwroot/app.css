@@ -21,36 +21,6 @@ html, body {
     color: var(--text);
 }
 
-.back-button {
-    width: 48px;
-    height: 48px;
-    padding: 0;
-    border: 1px solid rgba(129, 194, 255, 0.25);
-    border-radius: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(233, 238, 252, 0.5);
-    background: rgba(255, 255, 255, 0.15);
-    cursor: pointer;
-    transition: background .15s ease, transform .12s ease, color .15s ease;
-}
-
-.back-button svg {
-    width: 40px;
-    height: 40px;
-    display: block;
-}
-
-.back-button:hover {
-    color: #fff;
-}
-
-.back-button:focus-visible {
-    outline: 2px solid rgba(124, 92, 255, 0.85);
-    outline-offset: 2px;
-}
-
 body {
     display: flex;
     flex-direction: column; /* prevent horizontal shrink */
@@ -150,7 +120,6 @@ body {
 }
 
 .playback-controls {
-    display: flex;
     justify-content: center;
     gap: 8px;
     margin: 10px auto 12px;
@@ -202,6 +171,10 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+.play-button svg {
+    margin: 0 0 0 2px;
+}
+
 .plot-card > .saturation-badge {
     display: block;
     width: fit-content;
@@ -213,6 +186,47 @@ body {
     gap: 4px;
     justify-content: center;
     margin: 4px;
+}
+
+.service-button {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid rgba(129, 194, 255, 0.25);
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(233, 238, 252, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: background .15s ease, transform .12s ease, color .15s ease;
+}
+
+.service-button svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+.service-button:hover {
+    color: #fff;
+}
+
+.service-button:focus-visible {
+    outline: 2px solid rgba(124, 92, 255, 0.85);
+    outline-offset: 2px;
+}
+
+.service-button-small {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+}
+
+.service-button-small svg {
+    width: 16px;
+    height: 16px;
 }
 
 .start-btn {

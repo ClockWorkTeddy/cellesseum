@@ -1,4 +1,3 @@
-@using Celleseum.Web.Components.Buttons
 @using Celleseum.Web.Components.Enums
 @using Microsoft.JSInterop
 @implements IAsyncDisposable
@@ -55,19 +54,7 @@
         </div>
         <div class="divider"></div>
     </div>
-    @if (IsAnimating)
-    {
-        <div class="playback-controls">
-            <button class="btn" type="button" @onclick="OnPause">
-                @(IsPaused ? "Resume" : "Pause")
-            </button>
-            <button class="btn" type="button" @onclick="OnStep" disabled="@(!IsPaused)">
-                Step
-            </button>
-        </div>
-    }
-    <StartButton IsAnimating="@IsAnimating" OnStart="@OnStart" />
-</div>
+    </div>
 
 @code {
     private const int GrazerSaturationLevelCount = 8;
@@ -99,9 +86,6 @@
     public bool IsCompleted { get; set; }
 
     [Parameter]
-    public bool IsPaused { get; set; }
-
-    [Parameter]
     public GameMode GameMode { get; set; }
 
     [Parameter]
@@ -121,15 +105,6 @@
 
     [Parameter]
     public long PlotResetVersion { get; set; }
-
-    [Parameter]
-    public EventCallback OnStart { get; set; }
-
-    [Parameter]
-    public EventCallback OnPause { get; set; }
-
-    [Parameter]
-    public EventCallback OnStep { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

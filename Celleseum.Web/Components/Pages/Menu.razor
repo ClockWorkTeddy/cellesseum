@@ -14,8 +14,8 @@
         </AuthorizeView>
         <div class="login-controls">
             <div class="login-form">
-                <button class="login-signin-btn" type="button" @onclick='() => Navigation.NavigateTo("/play?mode=simple")'>SimpleMode</button>
-                <button class="secondary-button" type="button" @onclick='() => Navigation.NavigateTo("/play?mode=mutation")'>MutationMode</button>
+                <button class="login-signin-btn" type="button" @onclick='() => LaunchPlay("simple")'>SimpleMode</button>
+                <button class="secondary-button" type="button" @onclick='() => LaunchPlay("mutation")'>MutationMode</button>
                 <button class="secondary-button" type="button" @onclick='() => Navigation.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)'>Sign out</button>
             </div>
         </div>
@@ -23,3 +23,15 @@
 </div>
 
 @inject NavigationManager Navigation
+
+@code {
+    private void LaunchPlay(string mode)
+    {
+        var selectedMode = string.Equals(mode, "mutation", StringComparison.OrdinalIgnoreCase)
+            ? "mutation"
+            : "simple";
+
+        Navigation.NavigateTo($"/play?mode={selectedMode}&backUrl=%2F");
+    }
+
+}

@@ -122,7 +122,8 @@ body {
 .playback-controls {
     justify-content: center;
     gap: 8px;
-    margin: 10px auto 12px;
+    margin: 0 auto;
+    padding-top: 15px;
 }
 
 .playback-controls .btn {
@@ -179,6 +180,18 @@ body {
     display: block;
     width: fit-content;
     margin: 0 auto var(--plot-badge-gap);
+}
+
+.plot-label {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .saturation-badges {
@@ -285,18 +298,6 @@ body {
 }
 
 /*Nice*/
-
-.plot-label {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 11px;
-    font-weight: 650;
-    line-height: 1;
-    text-align: center;
-    white-space: nowrap;
-}
 
 .plot-label-plants {
     color: var(--plot-series-color, #00bb00);

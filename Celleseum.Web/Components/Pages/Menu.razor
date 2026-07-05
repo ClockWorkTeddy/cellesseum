@@ -1,22 +1,26 @@
 @page "/menu"
-@using Microsoft.AspNetCore.Authorization
+@using Celleseum.Data
+@using Celleseum.Web.Components.Buttons
+@using MapProcessing
+@using Celleseum.Web.Components.Enums
+@using System.Security.Claims@using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
 @attribute [Authorize]
 
 <canvas id="demoCanvas" class="demo-bg-canvas"></canvas>
 <div class="entry-stack">
-    <main class="entry-card">
-        <div class="login-title">Cellesseum</div>
-        <AuthorizeView>
-            <Authorized>
-                <div class="login-text">Welcome, @context.User.Identity?.Name!</div>
-            </Authorized>
-        </AuthorizeView>
-        <div class="login-controls">
-            <div class="login-form">
+    <main class="entry-card menu-card">
+        <div class="menu-header">
+            <div class="menu-header-spacer"></div>
+            <div class="login-title menu-title">Cellesseum</div>
+            <div class="menu-logout-slot">
+                <LogoutButton OnClick='() => Navigation.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)' />
+            </div>
+        </div>
+        <div class="login-controls menu-controls">
+            <div class="login-form menu-form">
                 <button class="login-signin-btn" type="button" @onclick='() => LaunchPlay("simple")'>SimpleMode</button>
                 <button class="secondary-button" type="button" @onclick='() => LaunchPlay("mutation")'>MutationMode</button>
-                <button class="secondary-button" type="button" @onclick='() => Navigation.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)'>Sign out</button>
             </div>
         </div>
     </main>

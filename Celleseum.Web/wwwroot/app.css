@@ -424,8 +424,10 @@ body {
     height: 48px;
 }
 
-.menu-title {
-    width: auto;
+.menu-header .menu-title {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     height: auto;
     margin: 0;
     text-align: center;
@@ -550,7 +552,7 @@ body {
 }
 
 .login-title {
-    width: 150px;
+    width: 280px;
     font-size: 24px;
     font-weight: 590;
     height: 50px;

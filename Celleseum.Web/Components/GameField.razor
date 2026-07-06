@@ -141,12 +141,12 @@
             await plotModule.InvokeVoidAsync("pushFrames", "plotPlants", PlantPlotBatch);
         }
 
-        if (GrazerPlotBatch is { Length: > 0 })
+        if (IncludeGrazerTotalSeries && GrazerPlotBatch is { Length: > 0 })
         {
             await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", GrazerPlotBatch);
         }
 
-        if (IncludeGrazerTotalSeries && GrazerSaturationPlotBatch is { Length: > 0 })
+        if (!IncludeGrazerTotalSeries && GrazerSaturationPlotBatch is { Length: > 0 })
         {
             await plotModule.InvokeVoidAsync("pushSeriesFrames", "plotGrazers", GrazerSaturationPlotBatch);
         }

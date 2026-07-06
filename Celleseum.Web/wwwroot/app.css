@@ -199,10 +199,16 @@ body {
 }
 
 .saturation-badges {
+    display: flex;
     flex-wrap: wrap;
     gap: 4px;
     justify-content: center;
     margin: 4px;
+}
+
+.plot-card > .saturation-badges-plot {
+    width: fit-content;
+    margin: 0 auto var(--plot-badge-gap);
 }
 
 .service-button {

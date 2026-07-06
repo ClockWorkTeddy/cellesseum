@@ -38,17 +38,15 @@
                 }
                 else
                 {
-                    <span class="stats-item">
-                        <span class="saturation-badges">
+                    <div class="saturation-badges saturation-badges-plot">
                         @for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
                         {
                             <strong class="saturation-badge saturation-badge-@saturation"
                                     id="@($"stat-grazer-{saturation}")"
                                     title="@($"Saturation {saturation}")">@GetGrazerCountBySaturation(saturation)</strong>
                         }
-                        </span>
-                        <canvas id="plotGrazers" class="plot-canvas plot-canvas-grazers"></canvas>
-                    </span>
+                    </div>
+                    <canvas id="plotGrazers" class="plot-canvas plot-canvas-grazers"></canvas>
                 }
             </div>
         </div>

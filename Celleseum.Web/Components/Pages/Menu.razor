@@ -3,7 +3,8 @@
 @using Celleseum.Web.Components.Buttons
 @using MapProcessing
 @using Celleseum.Web.Components.Enums
-@using System.Security.Claims@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
 @attribute [Authorize]
 
@@ -14,7 +15,7 @@
             <div class="menu-header-spacer"></div>
             <div class="login-title menu-title">Cellesseum</div>
             <div class="menu-logout-slot">
-                <LogoutButton OnClick='() => Navigation.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)' />
+                <LogoutButton Size="IconButtonSize.Small" OnClick='() => Navigation.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)' />
             </div>
         </div>
         <div class="login-controls menu-controls">

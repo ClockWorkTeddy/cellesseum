@@ -194,6 +194,10 @@ body {
     white-space: nowrap;
 }
 
+.plot-label-plants {
+    color: var(--plot-series-color, #00bb00);
+}
+
 .saturation-badges {
     flex-wrap: wrap;
     gap: 4px;
@@ -240,6 +244,28 @@ body {
 .service-button-small svg {
     width: 16px;
     height: 16px;
+}
+
+.service-button-medium {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+}
+
+.service-button-medium svg {
+    width: 24px;
+    height: 24px;
+}
+
+.service-button-large {
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+}
+
+.service-button-large svg {
+    width: 30px;
+    height: 30px;
 }
 
 .start-btn {
@@ -298,10 +324,6 @@ body {
 }
 
 /*Nice*/
-
-.plot-label-plants {
-    color: var(--plot-series-color, #00bb00);
-}
 
 .plot-label-grazers {
     color: var(--plot-series-color, #80bb00);

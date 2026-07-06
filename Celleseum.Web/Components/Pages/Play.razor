@@ -7,6 +7,7 @@
 @rendermode InteractiveServer
 @attribute [StreamRendering(true)]
 @implements IAsyncDisposable
+@inject NavigationManager Navigation
 
 @inject MapClient MapApi
 @inject IConfiguration Configuration
@@ -23,12 +24,14 @@
         <div class="col-8">
             <div class="login-title">Cellesseum</div>
         </div>
+        @if(isAuthenticated)
+        {
+            <div class="col-2 d-flex justify-content-end align-items-center">
+                <LogoutButton Size="IconButtonSize.Medium" OnClick='() => Navigation.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)' />
+            </div>
+        }
         <div class="col-2"></div>
     </div>
-    @if (isAuthenticated)
-    {
-        <LoginDisplay />
-    }
 
 <GameField
       CurrentStep="@currentFrame"

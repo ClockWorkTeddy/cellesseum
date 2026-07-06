@@ -128,7 +128,7 @@
             ? GameMode.Mutation
             : GameMode.Simple;
 
-    private bool includeGrazerTotalSeries => CurrentGameMode != GameMode.Simple;
+    private bool includeGrazerTotalSeries => CurrentGameMode == GameMode.Simple;
 
     private AreaData? CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count

@@ -34,20 +34,18 @@
     </div>
 
 <GameField
-      CurrentStep="@currentFrame"
-      PlantCount="@CurrentFrame?.PlantCount"
-      GrazerCount="@CurrentFrame?.GrazerCount"
-      NormalizedScore="@CurrentFrame?.NormalizedScore"
-      GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
-      IsAnimating="@isAnimating"
-      IsCompleted="@isCompleted"
-      GameMode="@CurrentGameMode"
-      PlantPlotBatch="@plantPlotBatch"
-      GrazerPlotBatch="@grazerPlotBatch"
-      GrazerSaturationPlotBatch="@grazerSaturationPlotBatch"
-      IncludeGrazerTotalSeries="@includeGrazerTotalSeries"
-      PlotBatchVersion="@plotBatchVersion"
-      PlotResetVersion="@plotResetVersion" />
+  CurrentStep="@currentFrame"
+  PlantCount="@CurrentFrame?.PlantCount"
+  GrazerCount="@CurrentFrame?.GrazerCount"
+  NormalizedScore="@CurrentFrame?.NormalizedScore"
+  GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
+  IsAnimating="@isAnimating"
+  IsCompleted="@isCompleted"
+  GameMode="@CurrentGameMode"
+  PlotBatch="@plotBatch"
+  PlotBatchVersion="@plotBatchVersion"
+  PlotResetVersion="@plotResetVersion"
+  Terms="@plotTerms" />
     <div class="playback-controls">
         <div class="row">
             <div class="col-2"></div>
@@ -117,11 +115,10 @@
     private int nextFrameStart;
     private int gridWidth;
     private int gridHeight;
-    private int[]? plantPlotBatch;
-    private int[]? grazerPlotBatch;
-    private int[][]? grazerSaturationPlotBatch;
+    private int[][]? plotBatch;
     private long plotBatchVersion;
     private long plotResetVersion;
+    private int plotTerms;
 
     private GameMode CurrentGameMode =>
         string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
@@ -142,6 +139,7 @@
 
         gridWidth = Configuration.GetValue("Grid:Width", 50);
         gridHeight = Configuration.GetValue("Grid:Height", 50);
+        plotTerms = Configuration.GetValue("Plot:Terms", 3000);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -170,9 +168,7 @@
         data.Clear();
         currentFrame = 0;
         nextFrameStart = 0;
-        plantPlotBatch = Array.Empty<int>();
-        grazerPlotBatch = Array.Empty<int>();
-        grazerSaturationPlotBatch = Array.Empty<int[]>();
+        plotBatch = Array.Empty<int[]>();
         plotResetVersion++;
         await InvokeAsync(StateHasChanged);
 
@@ -181,7 +177,7 @@
             var simulationMode = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
                 ? "mutation"
                 : "simple";
-            await using var stream = MapApi.GetMapStream(gridWidth, gridHeight, simulationMode).GetAsyncEnumerator();
+            await using var stream = MapApi.GetMapStream(gridWidth, gridHeight, simulationMode, plotTerms).GetAsyncEnumerator();
 
             var startupBatch = await ReadBatchAsync(stream, InitialBufferSize);
             if (startupBatch.Count == 0)
@@ -307,9 +303,26 @@
             "cellCanvas", allTypes, allSaturation,
             plantCounts, grazerCounts, score, grazerSaturationCounts, startFrame);
 
-        plantPlotBatch = plantCounts;
-        grazerPlotBatch = grazerCounts;
-        grazerSaturationPlotBatch = grazerSaturationCounts;
+        // Build unified plot batch: row 0 = plants, rows 1+ = grazers (total + saturation levels)
+        var plotRowCount = CurrentGameMode == GameMode.Mutation 
+            ? 2 + GrazerSaturationLevelCount  // plants + total grazers + saturation levels
+            : 2;  // plants + total grazerseMode.Mutation ? GrazerSaturationLevelCount : 1);
+        var unifiedPlotBatch = new int[plotRowCount][];
+        unifiedPlotBatch[0] = plantCounts;
+
+        if (CurrentGameMode == GameMode.Simple)
+        {
+            unifiedPlotBatch[1] = grazerCounts;
+        }
+        else
+        {
+            for (int i = 0; i < GrazerSaturationLevelCount; i++)
+            {
+                unifiedPlotBatch[i + 2] = grazerSaturationCounts[i];
+            }
+        }
+
+        plotBatch = unifiedPlotBatch;
         plotBatchVersion++;
         await InvokeAsync(StateHasChanged);
     }

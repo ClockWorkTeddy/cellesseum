@@ -14,31 +14,23 @@ export function initPlot(canvasId, label, totalSteps) {
     };
 
     window.addEventListener('celleseum:frame', onFrame);
-    plots.set(canvasId, { data: [], seriesData: [], color, gridColor, seriesColors, label, totalSteps, displayUpTo: -1, onFrame });
+    plots.set(canvasId, { seriesData: [], color, gridColor, seriesColors, label, totalSteps, displayUpTo: -1, onFrame });
     return true;
 }
 
-export function pushFrames(canvasId, counts) {
+export function pushFrames(canvasId, frames) {
     const state = plots.get(canvasId);
-    if (!state) return;
-    for (let i = 1; i < counts.length; i++) {
-        state.data.push(counts[i]);
-    }
-}
+    if (!state || !Array.isArray(frames)) return;
 
-export function pushSeriesFrames(canvasId, seriesCounts) {
-    const state = plots.get(canvasId);
-    if (!state || !Array.isArray(seriesCounts)) return;
-
-    if (!Array.isArray(state.seriesData) || state.seriesData.length !== seriesCounts.length) {
-        state.seriesData = new Array(seriesCounts.length);
-        for (let s = 0; s < seriesCounts.length; s++) {
+    if (!Array.isArray(state.seriesData) || state.seriesData.length !== frames.length) {
+        state.seriesData = new Array(frames.length);
+        for (let s = 0; s < frames.length; s++) {
             state.seriesData[s] = [];
         }
     }
 
-    for (let s = 0; s < seriesCounts.length; s++) {
-        const source = seriesCounts[s];
+    for (let s = 0; s < frames.length; s++) {
+        const source = frames[s];
         if (!Array.isArray(source)) continue;
 
         const target = state.seriesData[s];
@@ -51,7 +43,6 @@ export function pushSeriesFrames(canvasId, seriesCounts) {
 export function resetPlot(canvasId) {
     const state = plots.get(canvasId);
     if (!state) return;
-    state.data = [];
     state.seriesData = [];
     state.displayUpTo = -1;
     redraw(canvasId);
@@ -191,12 +182,9 @@ function redraw(canvasId) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
-    const { data, seriesData, color, gridColor, seriesColors, totalSteps, displayUpTo } = state;
-    const hasPrimarySeries = Array.isArray(data) && data.length > 0;
-    const hasExtraSeries = Array.isArray(seriesData) && seriesData.length > 0;
-    const allSeries = hasExtraSeries
-        ? (hasPrimarySeries ? [data, ...seriesData] : [...seriesData])
-        : (hasPrimarySeries ? [data] : []);
+    const { seriesData, color, gridColor, seriesColors, totalSteps, displayUpTo } = state;
+    const hasSeriesData = Array.isArray(seriesData) && seriesData.length > 0;
+    const allSeries = hasSeriesData ? [...seriesData] : [];
 
     let availablePointCount = 0;
     for (let i = 0; i < allSeries.length; i++) {
@@ -221,23 +209,10 @@ function redraw(canvasId) {
     drawHorizontalGrid(ctx, axisX, pad, pW, pH);
     drawPlotBorder(ctx, axisX, axisY, pad, pW, color);
 
-    if (n < 2) return;
+    if (n < 2 || !hasSeriesData) return;
 
     const max = maxOfSeries(allSeries, n);
     if (max === 0) return;
-
-    if (!hasExtraSeries) {
-        const points = [];
-        for (let i = 0; i < n; i++) {
-            points.push(getPlotPoint(i, totalSteps, pW, pad.left, seriesTop, seriesHeight, data[i], max));
-        }
-
-        const baselineY = seriesTop + seriesHeight;
-        lineWeight = 2;
-        drawAreaFill(ctx, points, baselineY, color);
-        drawSeriesLine(ctx, points, color, lineWeight);
-        return;
-    }
 
     for (let seriesIndex = 0; seriesIndex < allSeries.length; seriesIndex++) {
         const series = allSeries[seriesIndex];
@@ -251,9 +226,12 @@ function redraw(canvasId) {
             points.push(getPlotPoint(i, totalSteps, pW, pad.left, seriesTop, seriesHeight, series[i], max));
         }
 
-        const seriesColor = hasPrimarySeries
-            ? (seriesIndex === 0 ? color : (seriesColors[seriesIndex - 1] || color))
-            : (seriesColors[seriesIndex] || color);
+        const seriesColor = seriesIndex === 0 ? color : (seriesColors[seriesIndex - 1] || color);
+        if (seriesIndex === 0) {
+            lineWeight = 2;
+            const baselineY = seriesTop + seriesHeight;
+            drawAreaFill(ctx, points, baselineY, color);
+        }
         drawSeriesLine(ctx, points, seriesColor, lineWeight);
     }
 }

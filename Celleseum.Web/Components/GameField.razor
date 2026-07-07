@@ -87,22 +87,16 @@
     public GameMode GameMode { get; set; }
 
     [Parameter]
-    public int[]? PlantPlotBatch { get; set; }
-
-    [Parameter]
-    public int[]? GrazerPlotBatch { get; set; }
-
-    [Parameter]
-    public int[][]? GrazerSaturationPlotBatch { get; set; }
-
-    [Parameter]
-    public bool IncludeGrazerTotalSeries { get; set; }
+    public int[][]? PlotBatch { get; set; }
 
     [Parameter]
     public long PlotBatchVersion { get; set; }
 
     [Parameter]
     public long PlotResetVersion { get; set; }
+
+    [Parameter]
+    public int Terms { get; set; } = 3000;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -114,8 +108,8 @@
         if (!plotInitialized && plotModule is not null)
         {
             var plotsReady = true;
-            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotPlants", "Plants", 3000);
-            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "Grazers", 3000);
+            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotPlants", "Plants", Terms);
+            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "Grazers", Terms);
             plotInitialized = plotsReady;
         }
 
@@ -136,19 +130,16 @@
             return;
         }
 
-        if (PlantPlotBatch is { Length: > 0 })
+        if (PlotBatch is { Length: > 0 })
         {
-            await plotModule.InvokeVoidAsync("pushFrames", "plotPlants", PlantPlotBatch);
-        }
+            await plotModule.InvokeVoidAsync("pushFrames", "plotPlants", new int[][] { PlotBatch[0] });
 
-        if (IncludeGrazerTotalSeries && GrazerPlotBatch is { Length: > 0 })
-        {
-            await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", GrazerPlotBatch);
-        }
-
-        if (!IncludeGrazerTotalSeries && GrazerSaturationPlotBatch is { Length: > 0 })
-        {
-            await plotModule.InvokeVoidAsync("pushSeriesFrames", "plotGrazers", GrazerSaturationPlotBatch);
+            if (PlotBatch.Length > 1)
+            {
+                var grazerRows = new int[PlotBatch.Length - 1][];
+                Array.Copy(PlotBatch, 1, grazerRows, 0, PlotBatch.Length - 1);
+                await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", grazerRows);
+            }
         }
 
         handledPlotBatchVersion = PlotBatchVersion;

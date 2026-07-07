@@ -45,6 +45,8 @@
   PlotBatch="@plotBatch"
   PlotBatchVersion="@plotBatchVersion"
   PlotResetVersion="@plotResetVersion"
+  PlantPlotWindowSize="@plantPlotWindowSize"
+  GrazerPlotWindowSize="@grazerPlotWindowSize"
   Terms="@plotTerms" />
     <div class="playback-controls">
         <div class="row">
@@ -119,13 +121,13 @@
     private long plotBatchVersion;
     private long plotResetVersion;
     private int plotTerms;
+    private int? plantPlotWindowSize;
+    private int? grazerPlotWindowSize;
 
     private GameMode CurrentGameMode =>
         string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
             ? GameMode.Mutation
             : GameMode.Simple;
-
-    private bool includeGrazerTotalSeries => CurrentGameMode == GameMode.Simple;
 
     private AreaData? CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
@@ -140,6 +142,10 @@
         gridWidth = Configuration.GetValue("Grid:Width", 50);
         gridHeight = Configuration.GetValue("Grid:Height", 50);
         plotTerms = Configuration.GetValue("Plot:Terms", 3000);
+
+        var legacyPlotWindowSize = Configuration.GetValue<int?>("Plot:WindowSize");
+        plantPlotWindowSize = Configuration.GetValue<int?>("Plot:PlantsWindowSize") ?? legacyPlotWindowSize;
+        grazerPlotWindowSize = Configuration.GetValue<int?>("Plot:GrazersWindowSize") ?? legacyPlotWindowSize;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

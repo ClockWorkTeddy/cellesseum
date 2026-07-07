@@ -1,0 +1,87 @@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<canvas id="@CanvasId" class="@CanvasClass"></canvas>
+
+@code {
+    private IJSObjectReference? plotModule;
+    private bool plotInitialized;
+    private long handledPlotBatchVersion = -1;
+    private long handledPlotResetVersion = -1;
+
+    [Parameter]
+    public string CanvasId { get; set; } = string.Empty;
+
+    [Parameter]
+    public string CanvasClass { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public int[][]? PlotBatch { get; set; }
+
+    [Parameter]
+    public long PlotBatchVersion { get; set; }
+
+    [Parameter]
+    public long PlotResetVersion { get; set; }
+
+    [Parameter]
+    public int? WindowSize { get; set; }
+
+    [Parameter]
+    public int Terms { get; set; } = 3000;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            plotModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/plot.js");
+        }
+
+        if (!plotInitialized && plotModule is not null)
+        {
+            plotInitialized = await plotModule.InvokeAsync<bool>("initPlot", CanvasId, Label, Terms, WindowSize);
+        }
+
+        if (!plotInitialized || plotModule is null)
+        {
+            return;
+        }
+
+        if (PlotResetVersion != handledPlotResetVersion)
+        {
+            await plotModule.InvokeVoidAsync("resetPlot", CanvasId);
+            handledPlotResetVersion = PlotResetVersion;
+        }
+
+        if (PlotBatchVersion == handledPlotBatchVersion)
+        {
+            return;
+        }
+
+        if (PlotBatch is { Length: > 0 })
+        {
+            await plotModule.InvokeVoidAsync("pushFrames", CanvasId, PlotBatch);
+        }
+
+        handledPlotBatchVersion = PlotBatchVersion;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (plotModule is not null)
+            {
+                await plotModule.InvokeVoidAsync("disposePlot", CanvasId);
+                await plotModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

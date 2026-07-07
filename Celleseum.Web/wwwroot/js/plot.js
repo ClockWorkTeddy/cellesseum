@@ -1,10 +1,11 @@
 const plots = new Map();
 
-export function initPlot(canvasId, label, totalSteps) {
+export function initPlot(canvasId, label, totalSteps, windowSize = null) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return false;
 
     const { color, gridColor, seriesColors } = resolvePlotColors(canvas);
+    const normalizedWindowSize = Number.isFinite(windowSize) && windowSize > 0 ? Math.floor(windowSize) : null;
 
     const onFrame = (e) => {
         const state = plots.get(canvasId);
@@ -14,7 +15,7 @@ export function initPlot(canvasId, label, totalSteps) {
     };
 
     window.addEventListener('celleseum:frame', onFrame);
-    plots.set(canvasId, { seriesData: [], color, gridColor, seriesColors, label, totalSteps, displayUpTo: -1, onFrame });
+    plots.set(canvasId, { seriesData: [], color, gridColor, seriesColors, label, totalSteps, windowSize: normalizedWindowSize, displayUpTo: -1, onFrame });
     return true;
 }
 
@@ -62,14 +63,14 @@ function maxOf(arr, n) {
     return m;
 }
 
-function maxOfSeries(seriesList, n) {
+function maxOfSeries(seriesList, start, end) {
     let m = 0;
     for (let s = 0; s < seriesList.length; s++) {
         const series = seriesList[s];
         if (!Array.isArray(series)) continue;
 
-        const limit = Math.min(n, series.length);
-        for (let i = 0; i < limit; i++) {
+        const limit = Math.min(end, series.length);
+        for (let i = start; i < limit; i++) {
             if (series[i] > m) m = series[i];
         }
     }
@@ -92,7 +93,7 @@ function resolvePlotColors(canvas) {
 function getPlotPoint(i, totalSteps, pW, padLeft, seriesTop, seriesHeight, value, max) {
     const x = padLeft + (i / (totalSteps - 1)) * pW;
     const y = seriesTop + seriesHeight - (value / max) * seriesHeight;
-    return { x, y };
+    return { x, y, value };
 }
 
 function drawVerticalGrid(ctx, gridColor, totalSteps, pad, pW, axisY) {
@@ -133,36 +134,54 @@ function drawPlotBorder(ctx, axisX, axisY, pad, pW, color) {
     ctx.stroke();
 }
 
-function drawAreaFill(ctx, points, baselineY, color) {
-    if (points.length < 2) return;
+function drawSeriesSegments(ctx, points, color, lineWeight, baselineY, fillColor) {
+    let segment = [];
 
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y);
+    const drawSegment = () => {
+        if (segment.length < 2) {
+            segment = [];
+            return;
+        }
+
+        if (fillColor) {
+            ctx.beginPath();
+            ctx.moveTo(segment[0].x, segment[0].y);
+            for (let i = 1; i < segment.length; i++) {
+                ctx.lineTo(segment[i].x, segment[i].y);
+            }
+            ctx.lineTo(segment[segment.length - 1].x, baselineY);
+            ctx.lineTo(segment[0].x, baselineY);
+            ctx.closePath();
+            ctx.fillStyle = fillColor;
+            ctx.globalAlpha = 0.1;
+            ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWeight;
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 0.85;
+        ctx.moveTo(segment[0].x, segment[0].y);
+        for (let i = 1; i < segment.length; i++) {
+            ctx.lineTo(segment[i].x, segment[i].y);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        segment = [];
+    };
+
+    for (let i = 0; i < points.length; i++) {
+        const point = points[i];
+        if (!point || point.value === 0) {
+            drawSegment();
+            continue;
+        }
+
+        segment.push(point);
     }
-    ctx.lineTo(points[points.length - 1].x, baselineY);
-    ctx.lineTo(points[0].x, baselineY);
-    ctx.closePath();
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.1;
-    ctx.fill();
-}
 
-function drawSeriesLine(ctx, points, color, lineWeight) {
-    if (points.length < 2) return;
-
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWeight;
-    ctx.lineJoin = 'round';
-    ctx.globalAlpha = 0.85;
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+    drawSegment();
 }
 
 function redraw(canvasId) {
@@ -182,7 +201,7 @@ function redraw(canvasId) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
-    const { seriesData, color, gridColor, seriesColors, totalSteps, displayUpTo } = state;
+    const { seriesData, color, gridColor, seriesColors, totalSteps, windowSize, displayUpTo } = state;
     const hasSeriesData = Array.isArray(seriesData) && seriesData.length > 0;
     const allSeries = hasSeriesData ? [...seriesData] : [];
 
@@ -193,7 +212,10 @@ function redraw(canvasId) {
             availablePointCount = series.length;
         }
     }
-    const n = Math.min(displayUpTo + 1, availablePointCount);
+
+    const visibleEnd = Math.min(displayUpTo + 1, availablePointCount);
+    const visibleStart = windowSize ? Math.max(0, visibleEnd - windowSize) : 0;
+    const visibleCount = Math.max(0, visibleEnd - visibleStart);
 
     const pad = { top: 8, bottom: 8, left: 6, right: 6 };
     const pW = cssW - pad.left - pad.right;
@@ -204,34 +226,36 @@ function redraw(canvasId) {
     const seriesTopInset = 10;
     const seriesTop = pad.top + seriesTopInset;
     const seriesHeight = pH - seriesTopInset;
-    let  lineWeight = 1;
-    drawVerticalGrid(ctx, gridColor, totalSteps, pad, pW, axisY);
+    const plotStepCount = windowSize ? Math.max(visibleCount, 2) : totalSteps;
+    const plotSpanWidth = windowSize ? pW * 0.5 : pW;
+    let lineWeight = 1;
+    drawVerticalGrid(ctx, gridColor, plotStepCount, pad, plotSpanWidth, axisY);
     drawHorizontalGrid(ctx, axisX, pad, pW, pH);
     drawPlotBorder(ctx, axisX, axisY, pad, pW, color);
 
-    if (n < 2 || !hasSeriesData) return;
+    if (visibleCount < 2 || !hasSeriesData) return;
 
-    const max = maxOfSeries(allSeries, n);
+    const max = maxOfSeries(allSeries, visibleStart, visibleEnd);
     if (max === 0) return;
 
     for (let seriesIndex = 0; seriesIndex < allSeries.length; seriesIndex++) {
         const series = allSeries[seriesIndex];
         if (!Array.isArray(series)) continue;
 
-        const seriesLength = Math.min(n, series.length);
+        const seriesLength = Math.min(visibleEnd, series.length);
         if (seriesLength < 2) continue;
 
         const points = [];
-        for (let i = 0; i < seriesLength; i++) {
-            points.push(getPlotPoint(i, totalSteps, pW, pad.left, seriesTop, seriesHeight, series[i], max));
+        for (let i = visibleStart; i < seriesLength; i++) {
+            points.push(getPlotPoint(i - visibleStart, plotStepCount, plotSpanWidth, pad.left, seriesTop, seriesHeight, series[i], max));
         }
 
         const seriesColor = seriesIndex === 0 ? color : (seriesColors[seriesIndex - 1] || color);
         if (seriesIndex === 0) {
             lineWeight = 2;
-            const baselineY = seriesTop + seriesHeight;
-            drawAreaFill(ctx, points, baselineY, color);
         }
-        drawSeriesLine(ctx, points, seriesColor, lineWeight);
+
+        const baselineY = seriesTop + seriesHeight;
+        drawSeriesSegments(ctx, points, seriesColor, lineWeight, baselineY, seriesIndex === 0 ? color : null);
     }
 }

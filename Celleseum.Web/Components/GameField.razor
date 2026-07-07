@@ -1,7 +1,4 @@
 @using Celleseum.Web.Components.Enums
-@using Microsoft.JSInterop
-@implements IAsyncDisposable
-@inject IJSRuntime JS
 
 <div>
     <canvas id="cellCanvas" class="cell-canvas"></canvas>
@@ -28,13 +25,27 @@
         <div class="plot-row">
             <div class="plot-card">
                 <strong class="saturation-badge lbl-green" id="stat-plants">Plants</strong>
-                <canvas id="plotPlants" class="plot-canvas plot-canvas-plants"></canvas>
+                <PlotChart
+                    CanvasId="plotPlants"
+                    CanvasClass="plot-canvas plot-canvas-plants"
+                    Label="Plants"
+                    PlotBatch="@PlantPlotBatch"
+                    PlotBatchVersion="@PlotBatchVersion"
+                    PlotResetVersion="@PlotResetVersion"
+                    Terms="@Terms" />
             </div>
             <div class="plot-card">
                 @if (GameMode == GameMode.Simple)
                 {
                     <strong class="saturation-badge lbl-yellow" id="stat-plants">Grazers</strong>
-                    <canvas id="plotGrazers" class="plot-canvas plot-canvas-grazers"></canvas>
+                    <PlotChart
+                        CanvasId="plotGrazers"
+                        CanvasClass="plot-canvas plot-canvas-grazers"
+                        Label="Grazers"
+                        PlotBatch="@GrazerPlotBatch"
+                        PlotBatchVersion="@PlotBatchVersion"
+                        PlotResetVersion="@PlotResetVersion"
+                        Terms="@Terms" />
                 }
                 else
                 {
@@ -46,7 +57,15 @@
                                     title="@($"Saturation {saturation}")">@GetGrazerCountBySaturation(saturation)</strong>
                         }
                     </div>
-                    <canvas id="plotGrazers" class="plot-canvas plot-canvas-grazers"></canvas>
+                    <PlotChart
+                        CanvasId="plotGrazers"
+                        CanvasClass="plot-canvas plot-canvas-grazers"
+                        Label="Grazers"
+                        PlotBatch="@GrazerPlotBatch"
+                        PlotBatchVersion="@PlotBatchVersion"
+                        PlotResetVersion="@PlotResetVersion"
+                        WindowSize="@GrazerPlotWindowSize"
+                        Terms="@Terms" />
                 }
             </div>
         </div>
@@ -56,11 +75,6 @@
 
 @code {
     private const int GrazerSaturationLevelCount = 8;
-
-    private IJSObjectReference? plotModule;
-    private bool plotInitialized;
-    private long handledPlotBatchVersion = -1;
-    private long handledPlotResetVersion = -1;
 
     [Parameter]
     public int CurrentStep { get; set; }
@@ -96,53 +110,32 @@
     public long PlotResetVersion { get; set; }
 
     [Parameter]
+    public int? PlantPlotWindowSize { get; set; }
+
+    [Parameter]
+    public int? GrazerPlotWindowSize { get; set; }
+
+    [Parameter]
     public int Terms { get; set; } = 3000;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private int[][]? PlantPlotBatch =>
+        PlotBatch is { Length: > 0 }
+            ? new[] { PlotBatch[0] }
+            : null;
+
+    private int[][]? GrazerPlotBatch
     {
-        if (firstRender)
+        get
         {
-            plotModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/plot.js");
-        }
-
-        if (!plotInitialized && plotModule is not null)
-        {
-            var plotsReady = true;
-            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotPlants", "Plants", Terms);
-            plotsReady &= await plotModule.InvokeAsync<bool>("initPlot", "plotGrazers", "Grazers", Terms);
-            plotInitialized = plotsReady;
-        }
-
-        if (!plotInitialized || plotModule is null)
-        {
-            return;
-        }
-
-        if (PlotResetVersion != handledPlotResetVersion)
-        {
-            await plotModule.InvokeVoidAsync("resetPlot", "plotPlants");
-            await plotModule.InvokeVoidAsync("resetPlot", "plotGrazers");
-            handledPlotResetVersion = PlotResetVersion;
-        }
-
-        if (PlotBatchVersion == handledPlotBatchVersion)
-        {
-            return;
-        }
-
-        if (PlotBatch is { Length: > 0 })
-        {
-            await plotModule.InvokeVoidAsync("pushFrames", "plotPlants", new int[][] { PlotBatch[0] });
-
-            if (PlotBatch.Length > 1)
+            if (PlotBatch is not { Length: > 1 })
             {
-                var grazerRows = new int[PlotBatch.Length - 1][];
-                Array.Copy(PlotBatch, 1, grazerRows, 0, PlotBatch.Length - 1);
-                await plotModule.InvokeVoidAsync("pushFrames", "plotGrazers", grazerRows);
+                return null;
             }
-        }
 
-        handledPlotBatchVersion = PlotBatchVersion;
+            var grazerRows = new int[PlotBatch.Length - 1][];
+            Array.Copy(PlotBatch, 1, grazerRows, 0, PlotBatch.Length - 1);
+            return grazerRows;
+        }
     }
 
     private int GetGrazerCountBySaturation(int saturation)
@@ -153,21 +146,5 @@
         }
 
         return GrazerCountsBySaturation[saturation];
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            if (plotModule is not null)
-            {
-                await plotModule.InvokeVoidAsync("disposePlot", "plotPlants");
-                await plotModule.InvokeVoidAsync("disposePlot", "plotGrazers");
-                await plotModule.DisposeAsync();
-            }
-        }
-        catch (JSDisconnectedException)
-        {
-        }
     }
 }

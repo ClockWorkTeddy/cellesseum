@@ -1,5 +1,3 @@
-@using Celleseum.Web.Components.Enums
-
 <div>
     <canvas id="cellCanvas" class="cell-canvas"></canvas>
     <div class="stats-bar">
@@ -21,61 +19,9 @@
         </span>
     </div>
     <div class="divider"></div>
-    <div class="@(IsCompleted || IsAnimating ? "plot-section" : "plot-section plot-section-hidden")">
-        <div class="plot-row">
-            <div class="plot-card">
-                <strong class="saturation-badge lbl-green" id="stat-plants">Plants</strong>
-                <PlotChart
-                    CanvasId="plotPlants"
-                    CanvasClass="plot-canvas plot-canvas-plants"
-                    Label="Plants"
-                    PlotBatch="@PlantPlotBatch"
-                    PlotBatchVersion="@PlotBatchVersion"
-                    PlotResetVersion="@PlotResetVersion"
-                    Terms="@Terms" />
-            </div>
-            <div class="plot-card">
-                @if (GameMode == GameMode.Simple)
-                {
-                    <strong class="saturation-badge lbl-yellow" id="stat-plants">Grazers</strong>
-                    <PlotChart
-                        CanvasId="plotGrazers"
-                        CanvasClass="plot-canvas plot-canvas-grazers"
-                        Label="Grazers"
-                        PlotBatch="@GrazerPlotBatch"
-                        PlotBatchVersion="@PlotBatchVersion"
-                        PlotResetVersion="@PlotResetVersion"
-                        Terms="@Terms" />
-                }
-                else
-                {
-                    <div class="saturation-badges saturation-badges-plot">
-                        @for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
-                        {
-                            <strong class="saturation-badge saturation-badge-@saturation"
-                                    id="@($"stat-grazer-{saturation}")"
-                                    title="@($"Saturation {saturation}")">@GetGrazerCountBySaturation(saturation)</strong>
-                        }
-                    </div>
-                    <PlotChart
-                        CanvasId="plotGrazers"
-                        CanvasClass="plot-canvas plot-canvas-grazers"
-                        Label="Grazers"
-                        PlotBatch="@GrazerPlotBatch"
-                        PlotBatchVersion="@PlotBatchVersion"
-                        PlotResetVersion="@PlotResetVersion"
-                        WindowSize="@GrazerPlotWindowSize"
-                        Terms="@Terms" />
-                }
-            </div>
-        </div>
-        <div class="divider"></div>
-    </div>
-    </div>
+</div>
 
 @code {
-    private const int GrazerSaturationLevelCount = 8;
-
     [Parameter]
     public int CurrentStep { get; set; }
 
@@ -87,64 +33,4 @@
 
     [Parameter]
     public int? NormalizedScore { get; set; }
-
-    [Parameter]
-    public int[]? GrazerCountsBySaturation { get; set; }
-
-    [Parameter]
-    public bool IsAnimating { get; set; }
-
-    [Parameter]
-    public bool IsCompleted { get; set; }
-
-    [Parameter]
-    public GameMode GameMode { get; set; }
-
-    [Parameter]
-    public int[][]? PlotBatch { get; set; }
-
-    [Parameter]
-    public long PlotBatchVersion { get; set; }
-
-    [Parameter]
-    public long PlotResetVersion { get; set; }
-
-    [Parameter]
-    public int? PlantPlotWindowSize { get; set; }
-
-    [Parameter]
-    public int? GrazerPlotWindowSize { get; set; }
-
-    [Parameter]
-    public int Terms { get; set; } = 3000;
-
-    private int[][]? PlantPlotBatch =>
-        PlotBatch is { Length: > 0 }
-            ? new[] { PlotBatch[0] }
-            : null;
-
-    private int[][]? GrazerPlotBatch
-    {
-        get
-        {
-            if (PlotBatch is not { Length: > 1 })
-            {
-                return null;
-            }
-
-            var grazerRows = new int[PlotBatch.Length - 1][];
-            Array.Copy(PlotBatch, 1, grazerRows, 0, PlotBatch.Length - 1);
-            return grazerRows;
-        }
-    }
-
-    private int GetGrazerCountBySaturation(int saturation)
-    {
-        if (GrazerCountsBySaturation is null || (uint)saturation >= (uint)GrazerCountsBySaturation.Length)
-        {
-            return 0;
-        }
-
-        return GrazerCountsBySaturation[saturation];
-    }
 }

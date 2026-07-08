@@ -1,6 +1,6 @@
 const plots = new Map();
 
-export function initPlot(canvasId, label, totalSteps, windowSize = null) {
+export function initPlot(canvasId, label, totalSteps, windowSize = null, verticalGridSize = 100) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return false;
 
@@ -15,7 +15,7 @@ export function initPlot(canvasId, label, totalSteps, windowSize = null) {
     };
 
     window.addEventListener('celleseum:frame', onFrame);
-    plots.set(canvasId, { seriesData: [], color, gridColor, seriesColors, label, totalSteps, windowSize: normalizedWindowSize, displayUpTo: -1, onFrame });
+    plots.set(canvasId, { seriesData: [], color, gridColor, seriesColors, label, totalSteps, windowSize: normalizedWindowSize, displayUpTo: -1, onFrame, verticalGridSize });
     return true;
 }
 
@@ -96,26 +96,52 @@ function getPlotPoint(i, totalSteps, pW, padLeft, seriesTop, seriesHeight, value
     return { x, y, value };
 }
 
-function drawVerticalGrid(ctx, gridColor, totalSteps, pad, pW, axisY) {
-    const gridStep = 125;
+function drawVerticalGrid(ctx, gridColor, visibleStart, plotStepCount, pad, gridWidth, stepSpanWidth, axisY) {
+    const gridStep = 50;
+    if (plotStepCount < 2 || stepSpanWidth <= 0 || gridWidth <= 0) {
+        return;
+    }
+
+    const denominator = plotStepCount - 1;
+    const maxLocalTick = (gridWidth / stepSpanWidth) * denominator;
+    const firstTick = Math.max(gridStep, Math.ceil(visibleStart / gridStep) * gridStep);
+    const lastTick = Math.floor((visibleStart + maxLocalTick) / gridStep) * gridStep;
+    if (firstTick > lastTick) {
+        return;
+    }
+
     ctx.beginPath();
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     ctx.globalAlpha = 1;
-    for (let tick = gridStep; tick < totalSteps; tick += gridStep) {
-        const x = pad.left + (tick / (totalSteps - 1)) * pW + 0.5;
+
+    for (let tick = firstTick; tick <= lastTick; tick += gridStep) {
+        const localTick = tick - visibleStart;
+        const x = pad.left + (localTick / denominator) * stepSpanWidth + 0.5;
         ctx.moveTo(x, pad.top + 0.5);
         ctx.lineTo(x, axisY);
     }
+
     ctx.stroke();
 }
 
-function drawHorizontalGrid(ctx, axisX, pad, pW, pH) {
-    const horizontalGridSegmentCount = 5;
+function drawHorizontalGrid(ctx, gridColor, axisX, pad, pW, seriesTop, seriesHeight, max, verticalGridSize) {
+    if (max <= 0) {
+        return;
+    }
+
+    const horizontalGridLineCount = Math.floor(max / verticalGridSize);
+    if (horizontalGridLineCount < 1) {
+        return;
+    }
+
     ctx.beginPath();
+    ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
-    for (let segment = 1; segment < horizontalGridSegmentCount; segment++) {
-        const y = pad.top + (segment / horizontalGridSegmentCount) * pH + 0.5;
+    ctx.globalAlpha = 1;
+    for (let line = 1; line <= horizontalGridLineCount; line++) {
+        const value = line * verticalGridSize;
+        const y = seriesTop + seriesHeight - (value / max) * seriesHeight + 0.5;
         ctx.moveTo(axisX, y);
         ctx.lineTo(pad.left + pW + 0.5, y);
     }
@@ -131,6 +157,20 @@ function drawPlotBorder(ctx, axisX, axisY, pad, pW, color) {
     ctx.lineTo(axisX, axisY);
     ctx.lineTo(pad.left + pW + 0.5, axisY);
     ctx.lineTo(pad.left + pW + 0.5, pad.top + 0.5);
+    ctx.stroke();
+}
+
+function getSeriesColor(seriesIndex, color, seriesColors) {
+    return seriesIndex === 0 ? color : (seriesColors[seriesIndex - 1] || color);
+}
+
+function drawCurrentPositionMarker(ctx, markerX, topY, bottomY, markerColor) {
+    ctx.beginPath();
+    ctx.strokeStyle = markerColor;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 1;
+    ctx.moveTo(markerX, topY + 0.5);
+    ctx.lineTo(markerX, bottomY);
     ctx.stroke();
 }
 
@@ -201,7 +241,7 @@ function redraw(canvasId) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
-    const { seriesData, color, gridColor, seriesColors, totalSteps, windowSize, displayUpTo } = state;
+    const { seriesData, color, gridColor, seriesColors, totalSteps, windowSize, displayUpTo, verticalGridSize } = state;
     const hasSeriesData = Array.isArray(seriesData) && seriesData.length > 0;
     const allSeries = hasSeriesData ? [...seriesData] : [];
 
@@ -214,7 +254,15 @@ function redraw(canvasId) {
     }
 
     const visibleEnd = Math.min(displayUpTo + 1, availablePointCount);
-    const visibleStart = windowSize ? Math.max(0, visibleEnd - windowSize) : 0;
+    const visibleStart = (() => {
+        if (!windowSize) {
+            return 0;
+        }
+
+        const slidingStart = Math.max(0, visibleEnd - windowSize);
+        const terminalFreezeStart = Math.max(0, totalSteps - (windowSize * 2));
+        return Math.min(slidingStart, terminalFreezeStart);
+    })();
     const visibleCount = Math.max(0, visibleEnd - visibleStart);
 
     const pad = { top: 8, bottom: 8, left: 6, right: 6 };
@@ -226,17 +274,18 @@ function redraw(canvasId) {
     const seriesTopInset = 10;
     const seriesTop = pad.top + seriesTopInset;
     const seriesHeight = pH - seriesTopInset;
-    const plotStepCount = windowSize ? Math.max(visibleCount, 2) : totalSteps;
+    const plotStepCount = windowSize ? Math.max(windowSize, 2) : totalSteps;
     const plotSpanWidth = windowSize ? pW * 0.5 : pW;
     let lineWeight = 1;
-    drawVerticalGrid(ctx, gridColor, plotStepCount, pad, plotSpanWidth, axisY);
-    drawHorizontalGrid(ctx, axisX, pad, pW, pH);
+    drawVerticalGrid(ctx, gridColor, visibleStart, plotStepCount, pad, pW, plotSpanWidth, axisY);
     drawPlotBorder(ctx, axisX, axisY, pad, pW, color);
 
     if (visibleCount < 2 || !hasSeriesData) return;
 
     const max = maxOfSeries(allSeries, visibleStart, visibleEnd);
     if (max === 0) return;
+
+    drawHorizontalGrid(ctx, gridColor, axisX, pad, pW, seriesTop, seriesHeight, max, verticalGridSize);
 
     for (let seriesIndex = 0; seriesIndex < allSeries.length; seriesIndex++) {
         const series = allSeries[seriesIndex];
@@ -250,12 +299,35 @@ function redraw(canvasId) {
             points.push(getPlotPoint(i - visibleStart, plotStepCount, plotSpanWidth, pad.left, seriesTop, seriesHeight, series[i], max));
         }
 
-        const seriesColor = seriesIndex === 0 ? color : (seriesColors[seriesIndex - 1] || color);
+        const seriesColor = getSeriesColor(seriesIndex, color, seriesColors);
         if (seriesIndex === 0) {
             lineWeight = 2;
         }
 
         const baselineY = seriesTop + seriesHeight;
         drawSeriesSegments(ctx, points, seriesColor, lineWeight, baselineY, seriesIndex === 0 ? color : null);
+    }
+
+    const latestIndex = visibleEnd - 1;
+    let markerColor = null;
+    let markerValue = Number.NEGATIVE_INFINITY;
+
+    for (let seriesIndex = 0; seriesIndex < allSeries.length; seriesIndex++) {
+        const series = allSeries[seriesIndex];
+        if (!Array.isArray(series) || latestIndex >= series.length) continue;
+
+        const value = series[latestIndex];
+        if (!Number.isFinite(value)) continue;
+
+        if (value > markerValue) {
+            markerValue = value;
+            markerColor = getSeriesColor(seriesIndex, color, seriesColors);
+        }
+    }
+
+    if (markerColor) {
+        const markerRatio = (visibleCount - 1) / (plotStepCount - 1);
+        const markerX = pad.left + markerRatio * plotSpanWidth + 0.5;
+        drawCurrentPositionMarker(ctx, markerX, pad.top, axisY, markerColor);
     }
 }

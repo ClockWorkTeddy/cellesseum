@@ -37,16 +37,16 @@
   CurrentStep="@currentFrame"
   PlantCount="@CurrentFrame?.PlantCount"
   GrazerCount="@CurrentFrame?.GrazerCount"
-  NormalizedScore="@CurrentFrame?.NormalizedScore"
-  GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
+  NormalizedScore="@CurrentFrame?.NormalizedScore" />
+<Telemetry
   IsAnimating="@isAnimating"
   IsCompleted="@isCompleted"
   GameMode="@CurrentGameMode"
   PlotBatch="@plotBatch"
   PlotBatchVersion="@plotBatchVersion"
   PlotResetVersion="@plotResetVersion"
-  PlantPlotWindowSize="@plantPlotWindowSize"
   GrazerPlotWindowSize="@grazerPlotWindowSize"
+  GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
   Terms="@plotTerms" />
     <div class="playback-controls">
         <div class="row">
@@ -121,7 +121,6 @@
     private long plotBatchVersion;
     private long plotResetVersion;
     private int plotTerms;
-    private int? plantPlotWindowSize;
     private int? grazerPlotWindowSize;
 
     private GameMode CurrentGameMode =>
@@ -144,7 +143,6 @@
         plotTerms = Configuration.GetValue("Plot:Terms", 3000);
 
         var legacyPlotWindowSize = Configuration.GetValue<int?>("Plot:WindowSize");
-        plantPlotWindowSize = Configuration.GetValue<int?>("Plot:PlantsWindowSize") ?? legacyPlotWindowSize;
         grazerPlotWindowSize = Configuration.GetValue<int?>("Plot:GrazersWindowSize") ?? legacyPlotWindowSize;
     }
 

@@ -32,6 +32,9 @@
     public int? WindowSize { get; set; }
 
     [Parameter]
+    public int? VerticalGridSize { get; set; }
+
+    [Parameter]
     public int Terms { get; set; } = 3000;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -43,7 +46,7 @@
 
         if (!plotInitialized && plotModule is not null)
         {
-            plotInitialized = await plotModule.InvokeAsync<bool>("initPlot", CanvasId, Label, Terms, WindowSize);
+            plotInitialized = await plotModule.InvokeAsync<bool>("initPlot", CanvasId, Label, Terms, WindowSize, VerticalGridSize);
         }
 
         if (!plotInitialized || plotModule is null)

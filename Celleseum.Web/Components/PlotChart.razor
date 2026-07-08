@@ -32,7 +32,10 @@
     public int? WindowSize { get; set; }
 
     [Parameter]
-    public int? VerticalGridSize { get; set; }
+    public int? HorizontalGridGap { get; set; }
+
+    [Parameter]
+    public int? VerticalGridGap { get; set; }
 
     [Parameter]
     public int Terms { get; set; } = 3000;
@@ -46,7 +49,7 @@
 
         if (!plotInitialized && plotModule is not null)
         {
-            plotInitialized = await plotModule.InvokeAsync<bool>("initPlot", CanvasId, Label, Terms, WindowSize, VerticalGridSize);
+            plotInitialized = await plotModule.InvokeAsync<bool>("initPlot", CanvasId, Label, Terms, WindowSize, VerticalGridGap, HorizontalGridGap );
         }
 
         if (!plotInitialized || plotModule is null)

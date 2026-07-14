@@ -1,0 +1,30 @@
+@using Celleseum.Web.Components.Buttons
+
+<section class="entry-card">
+    <div class="menu-header">
+        <div class="menu-back-slot">
+            <BackButton OnBack="@OnBack" />
+        </div>
+        <div class="login-title menu-title">Registration</div>
+        <div class="menu-header-spacer"></div>
+    </div>
+    <div class="login-controls">
+        <form method="post" action="/Account/Register/Local" data-enhance="false" class="login-form">
+            <div class="login-input-wrap">
+                <input id="register-email-home" name="email" type="email" required class="login-input" placeholder="E-mail" autocomplete="email" />
+            </div>
+            <div class="login-input-wrap">
+                <input id="register-password-home" name="password" type="password" required class="login-input" placeholder="Password" autocomplete="new-password" />
+            </div>
+            <div class="login-input-wrap">
+                <input id="register-confirm-home" name="confirmPassword" type="password" required class="login-input" placeholder="Confirm password" autocomplete="new-password" />
+            </div>
+            <button class="login-signin-btn" type="submit">Create account</button>
+        </form>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+}

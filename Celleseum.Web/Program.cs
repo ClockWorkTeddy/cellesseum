@@ -292,7 +292,7 @@ app.MapGet("/signin-google-complete", async (SignInManager<ApplicationUser> sign
 
     if (signInResult.Succeeded)
     {
-        return Results.Redirect("/menu");
+        return Results.Redirect("/");
     }
 
     var email = info.Principal.FindFirstValue(ClaimTypes.Email);
@@ -332,7 +332,7 @@ app.MapGet("/signin-google-complete", async (SignInManager<ApplicationUser> sign
     }
 
     await signInManager.SignInAsync(user, isPersistent: true);
-    return Results.Redirect("/menu");
+    return Results.Redirect("/");
 })
 .RequireRateLimiting("auth-external");
 

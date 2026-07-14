@@ -1,19 +1,37 @@
 @page "/"
-@using Celleseum.Data
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.EntityFrameworkCore
+@using Celleseum.Web.Components.Buttons
 @rendermode InteractiveServer
 @attribute [StreamRendering(true)]
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
-@inject CellesseumDbContext DbContext
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<Main
-    OnPlay="LaunchPlay"
-    RecentResults="recentResults" />
+<canvas id="demoCanvas" class="demo-bg-canvas"></canvas>
+<div class="entry-stack home-entry-stack">
+    @if (currentElement == HomeElement.Main)
+    {
+        <Main OnPlay="@(() => SelectElement(HomeElement.Menu))"/>
+    }
+    else if (currentElement == HomeElement.Menu)
+    {
+        <Menu
+            OnBack="@(() => SelectElement(HomeElement.Main))"
+            OnLogin="@(() => SelectElement(HomeElement.Login))" />
+    }
+    else if (currentElement == HomeElement.Login)
+    {
+        <LoginCard 
+            OnBack="@(() => SelectElement(HomeElement.Menu))"
+            OnRegisterClick="@(() => SelectElement(HomeElement.Registration))" />
+    }
+    else if (currentElement == HomeElement.Registration)
+    {
+        <RegisterCard OnBack="@(() => SelectElement(HomeElement.Login))" />
+    }
+</div>
 
 @code {
     [Parameter]
@@ -26,8 +44,7 @@
 
     private IJSObjectReference? demoModule;
     private bool demoInitialized;
-    private bool shouldNavigateToMenu;
-    private List<Result> recentResults = new();
+    private HomeElement currentElement = HomeElement.Main;
 
     protected override async Task OnInitializedAsync()
     {
@@ -35,48 +52,60 @@
         var isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
         var isLoggedOutRequest = LoggedOut || Navigation.Uri.Contains("loggedOut=true", StringComparison.OrdinalIgnoreCase);
 
-        shouldNavigateToMenu = isAuthenticated && !isLoggedOutRequest;
-
-        if (!shouldNavigateToMenu)
+        if (TryParseElement(Mode, out var requestedElement))
         {
-            await LoadRecentResultsAsync();
+            currentElement = requestedElement;
+            return;
         }
+
+        currentElement = isAuthenticated && !isLoggedOutRequest
+            ? HomeElement.Menu
+            : HomeElement.Main;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && shouldNavigateToMenu)
-        {
-            Navigation.NavigateTo("/menu", replace: true);
-            return;
-        }
-
         if (firstRender)
         {
             demoModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/demo.js");
         }
 
-        if (!shouldNavigateToMenu && !demoInitialized && demoModule is not null)
+        if (!demoInitialized && demoModule is not null)
         {
             demoInitialized = await demoModule.InvokeAsync<bool>("initDemo", "demoCanvas");
         }
     }
 
-    private void LaunchPlay()
+    private static bool TryParseElement(string? mode, out HomeElement element)
     {
-        var mode = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
+        element = HomeElement.Main;
+
+        if (string.IsNullOrWhiteSpace(mode))
+        {
+            return false;
+        }
+
+        if (Enum.TryParse<HomeElement>(mode, true, out var parsedElement))
+        {
+            element = parsedElement;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void SelectElement(HomeElement element)
+    {
+        currentElement = element;
+    }
+
+    private void LaunchPlay(string mode)
+    {
+        var selectedMode = string.Equals(mode, "mutation", StringComparison.OrdinalIgnoreCase)
             ? "mutation"
             : "simple";
 
-        Navigation.NavigateTo($"/play?mode={mode}&backUrl=%2F");
-    }
-
-    private async Task LoadRecentResultsAsync()
-    {
-        recentResults = await DbContext.Results
-            .OrderByDescending(r => r.DateTime)
-            .Take(5)
-            .ToListAsync();
+        Navigation.NavigateTo($"/play?mode={selectedMode}&backUrl=%2F%3Fmode%3DMenu");
     }
 
     public async ValueTask DisposeAsync()
@@ -96,5 +125,13 @@
         catch (JSDisconnectedException)
         {
         }
+    }
+
+    private enum HomeElement
+    {
+        Main,
+        Menu,
+        Login,
+        Registration
     }
 }

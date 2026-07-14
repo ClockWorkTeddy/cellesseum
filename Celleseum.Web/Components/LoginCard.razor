@@ -1,11 +1,13 @@
-@page "/Account/Login"
-@rendermode InteractiveServer
-@inject IJSRuntime JS
-@implements IAsyncDisposable
+@using Celleseum.Web.Components.Buttons
 
-<canvas id="demoCanvas" class="demo-bg-canvas"></canvas>
-<main class="login-card">
-    <div class="login-title">Cellesseum</div>
+<section class="entry-card">
+    <div class="menu-header">
+        <div class="menu-back-slot">
+            <BackButton OnBack="@OnBack" />
+        </div>
+        <div class="login-title menu-title">Login</div>
+        <div class="menu-header-spacer"></div>
+    </div>
     <div class="login-controls">
         <form method="post" action="/Account/Login/Local" data-enhance="false" class="login-form">
             <div class="login-input-wrap">
@@ -16,7 +18,7 @@
             </div>
             <button class="login-signin-btn" type="submit">Sign in</button>
             <div class="login-register-zone">
-                <button class=" secondary-button login-register-btn" type="button" onclick="location.href='/Account/Register'">Register</button>
+                <button class="secondary-button login-register-btn" type="button" @onclick="OnRegisterClick">Register</button>
                 <button class="login-google-btn" type="button" onclick="location.href='/Account/Login/Google'" aria-label="Login with Google">
                     <svg viewBox="0 0 24 24" width="24" height="24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/>
@@ -28,35 +30,12 @@
             </div>
         </form>
     </div>
-</main>
+</section>
 
 @code {
-    private IJSObjectReference? demoModule;
-    private bool demoInitialized;
+    [Parameter]
+    public EventCallback OnBack { get; set; }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            demoModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/demo.js");
-        }
-
-        if (!demoInitialized && demoModule is not null)
-        {
-            demoInitialized = await demoModule.InvokeAsync<bool>("initDemo", "demoCanvas");
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            if (demoModule is not null)
-            {
-                await demoModule.InvokeVoidAsync("disposeDemo", "demoCanvas");
-                await demoModule.DisposeAsync();
-            }
-        }
-        catch (JSDisconnectedException) { }
-    }
+    [Parameter]
+    public EventCallback OnRegisterClick { get; set; }
 }

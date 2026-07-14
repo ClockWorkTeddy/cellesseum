@@ -86,7 +86,23 @@ body {
     margin: 8px 0px 8px 0px;
 }
 
-.hint {
+.entry-stack {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
+.home-entry-stack {
+    box-sizing: border-box;
+    height: calc(100vh - 64px);
+    justify-content: flex-start;
+    padding-top: 320px;
+}
+
+.hint { 
     margin-top: 16px;
     color: rgba(233,238,252,.55);
     font-size: 13px;
@@ -119,6 +135,16 @@ body {
     color: #80bb00;
 }
 
+.menu-back-slot {
+    display: flex;
+    justify-content: flex-start;
+    padding: 3px 0 0 0;
+}
+
+.play-button svg {
+    margin: 0 0 0 2px;
+}
+
 .playback-controls {
     justify-content: center;
     gap: 8px;
@@ -138,6 +164,48 @@ body {
     max-width: 300px;
     --plot-badge-gap: 8px;
     --plot-canvas-margin: 0;
+}
+
+.plot-card > .saturation-badge {
+    display: block;
+    width: fit-content;
+    margin: 0 auto var(--plot-badge-gap);
+}
+
+.plot-card > .saturation-badges-plot {
+    width: fit-content;
+    margin: 0 auto var(--plot-badge-gap);
+}
+
+.plot-canvas {
+    border-radius: 2px;
+    box-sizing: border-box;
+    display: block;
+    margin: var(--plot-canvas-margin);
+    flex: 1;
+    height: 100px;
+    width: 100%;
+}
+
+.plot-label {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.plot-label-grazers {
+    color: var(--plot-series-color, #80bb00);
+}
+
+
+.plot-label-plants {
+    color: var(--plot-series-color, #00bb00);
 }
 
 .plot-row {
@@ -172,43 +240,12 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-.play-button svg {
-    margin: 0 0 0 2px;
-}
-
-.plot-card > .saturation-badge {
-    display: block;
-    width: fit-content;
-    margin: 0 auto var(--plot-badge-gap);
-}
-
-.plot-label {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 11px;
-    font-weight: 650;
-    line-height: 1;
-    text-align: center;
-    white-space: nowrap;
-}
-
-.plot-label-plants {
-    color: var(--plot-series-color, #00bb00);
-}
-
 .saturation-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
     justify-content: center;
     margin: 4px;
-}
-
-.plot-card > .saturation-badges-plot {
-    width: fit-content;
-    margin: 0 auto var(--plot-badge-gap);
 }
 
 .service-button {
@@ -331,20 +368,6 @@ body {
 
 /*Nice*/
 
-.plot-label-grazers {
-    color: var(--plot-series-color, #80bb00);
-}
-
-.plot-canvas {
-    border-radius: 2px;
-    box-sizing: border-box;
-    display: block;
-    margin: var(--plot-canvas-margin);
-    flex: 1;
-    height: 100px;
-    width: 100%;
-}
-
 .plot-card > .saturation-badge + .plot-canvas {
     margin-top: 0;
 }
@@ -405,15 +428,6 @@ body {
     pointer-events: none;
 }
 
-.entry-stack {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    align-items: center;
-}
-
 .entry-card {
     position: relative;
     z-index: 1;
@@ -425,7 +439,6 @@ body {
     justify-content: space-between;
     padding: 16px 32px 32px 32px;
     width: 360px;
-    min-height: 220px;
     background: rgba(28, 37, 56, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 20px;
@@ -588,6 +601,7 @@ body {
     color: rgba(229, 231, 235, 0.75);
     background: rgba(28, 37, 56, 0.00);
     margin: 0 auto;
+    margin-bottom: 12px;
     position: relative;
     z-index: 1;
     border-radius: 10px;

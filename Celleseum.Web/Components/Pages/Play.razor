@@ -19,17 +19,11 @@
     <main class="card">
     <div class="row">
         <div class="col-2 d-flex justify-content-start align-items-center">
-            <BackButton BackUrl="@BackUrl" />
+            <BackButton Size="IconButtonSize.Medium" OnBack="@HandleBackAsync" />
         </div>
         <div class="col-8">
             <div class="login-title">Cellesseum</div>
         </div>
-        @if(isAuthenticated)
-        {
-            <div class="col-2 d-flex justify-content-end align-items-center">
-                <LogoutButton Size="IconButtonSize.Medium" OnClick='() => Navigation.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)' />
-            </div>
-        }
         <div class="col-2"></div>
     </div>
 
@@ -132,6 +126,14 @@
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
             ? data[currentFrame]
             : null;
+
+    private async Task HandleBackAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(BackUrl))
+        {
+            Navigation.NavigateTo(BackUrl);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

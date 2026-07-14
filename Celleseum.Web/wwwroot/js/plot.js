@@ -212,8 +212,7 @@ function drawSeriesSegments(ctx, points, color, lineWeight, baselineY, fillColor
 
     for (let i = 0; i < points.length; i++) {
         const point = points[i];
-        if (!point || point.value === 0) {
-            drawSegment();
+        if (!point || !Number.isFinite(point.value) || point.value === 0) {
             continue;
         }
 
@@ -281,8 +280,7 @@ function redraw(canvasId) {
 
     if (visibleCount < 2 || !hasSeriesData) return;
 
-    const max = maxOfSeries(allSeries, visibleStart, visibleEnd);
-    if (max === 0) return;
+    const max = Math.max(1, maxOfSeries(allSeries, visibleStart, visibleEnd));
 
     drawHorizontalGrid(ctx, gridColor, axisX, pad, pW, seriesTop, seriesHeight, max, horizontalGridGap);
 

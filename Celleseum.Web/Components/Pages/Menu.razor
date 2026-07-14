@@ -4,18 +4,26 @@
 @using MapProcessing
 @using Celleseum.Web.Components.Enums
 @using System.Security.Claims
-@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
 @rendermode InteractiveServer
-@attribute [Authorize]
 
 <canvas id="demoCanvas" class="demo-bg-canvas"></canvas>
 <div class="entry-stack">
     <main class="entry-card menu-card">
         <div class="menu-header">
-            <div class="menu-header-spacer"></div>
+            <div class="menu-back-slot">
+                <BackButton OnBack="@OnBack" />
+            </div>
             <div class="login-title menu-title">Cellesseum</div>
             <div class="menu-logout-slot">
-                <LogoutButton Size="IconButtonSize.Small" OnClick='() => Navigation.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)' />
+                @if (isAuthenticated)
+                {
+                    <LogoutButton Size="IconButtonSize.Small" OnClick='() => Navigation.NavigateTo("/Account/Logout?returnUrl=%2F", forceLoad: true)' />
+                }
+                else
+                {
+                    <LoginButton Size="IconButtonSize.Small" OnClick="() => OnLogin.InvokeAsync(null)"/>
+                }
             </div>
         </div>
         <div class="login-controls menu-controls">
@@ -25,18 +33,79 @@
             </div>
         </div>
     </main>
+    @if (recentResults.Count > 0)
+    {
+        <section class="entry-card results-card">
+            <div class="login-title">Last Results</div>
+            <ul class="results-list">
+                @foreach (var result in recentResults)
+                {
+                    <li>
+                        <span>@result.DateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</span>
+                        <span>Score: @result.Score</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
 </div>
 
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject CellesseumDbContext DbContext
 
 @code {
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    [Parameter]
+    public EventCallback OnLogin { get; set; }
+
+    private List<Result> recentResults = new();
+
+    public List<Result> RecentResults => recentResults;
+
+    private bool isAuthenticated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+        
+        await LoadRecentResultsAsync();
+    }
+
     private void LaunchPlay(string mode)
     {
         var selectedMode = string.Equals(mode, "mutation", StringComparison.OrdinalIgnoreCase)
             ? "mutation"
             : "simple";
 
-        Navigation.NavigateTo($"/play?mode={selectedMode}&backUrl=%2F");
+        Navigation.NavigateTo($"/play?mode={selectedMode}&backUrl=%2F%3Fmode%3DMenu");
     }
 
+    private async Task LoadRecentResultsAsync()
+    {
+        if (!isAuthenticated)
+        {
+            // Show all results if not authenticated
+            recentResults = await DbContext.Results
+                .OrderByDescending(r => r.DateTime)
+                .Take(5)
+                .ToListAsync();
+        }
+        else
+        {
+            // Show only current user's results if authenticated
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            recentResults = await DbContext.Results
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.DateTime)
+                .Take(5)
+                .ToListAsync();
+        }
+    }
 }

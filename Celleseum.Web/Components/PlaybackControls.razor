@@ -1,0 +1,55 @@
+@using Celleseum.Web.Components.Buttons
+
+<div class="playback-controls">
+    <div class="row">
+        <div class="col-2"></div>
+        <div class="col-8">
+            <div class="row">
+                <div class="col-5"></div>
+                @if (!IsAnimating)
+                {
+                    <div class="col-2 d-flex justify-content-center">
+                        <StartButton OnStart="OnStart" />
+                    </div>
+                }
+                else
+                {
+                    @if (IsPaused)
+                    {
+                        <div class="col-2 d-flex justify-content-center">
+                            <StartButton OnStart="OnTogglePause" />
+                        </div>
+                        <div class="col-5 d-flex justify-content-start p-0">
+                            <StepButton OnClick="OnStepPlayback" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-2 d-flex justify-content-center">
+                            <PauseButton OnClick="OnTogglePause" />
+                        </div>
+                        <div class="col-5 d-flex justify-content-start p-0"></div>
+                    }
+                }
+            </div>
+        </div>
+        <div class="col-2"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public bool IsAnimating { get; set; }
+
+    [Parameter]
+    public bool IsPaused { get; set; }
+
+    [Parameter]
+    public EventCallback OnStart { get; set; }
+
+    [Parameter]
+    public EventCallback OnTogglePause { get; set; }
+
+    [Parameter]
+    public EventCallback OnStepPlayback { get; set; }
+}

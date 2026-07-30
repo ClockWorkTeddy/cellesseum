@@ -937,3 +937,117 @@ h1:focus { outline: none; }
 .random-number-container {
     min-height: 250px;
 }
+
+/* Main page container and layout */
+.main-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+}
+
+/* Info card styling */
+.info-card {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 24px 32px;
+    width: 100%;
+    max-width: 360px;
+    background: rgba(28, 37, 56, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+    align-items: center;
+}
+
+.info-title {
+    font-size: 20px;
+    font-weight: 590;
+    color: rgba(229, 231, 235, 0.85);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+    margin: 0 0 0 0;
+}
+
+.info-description {
+    font-weight: 500;
+    color: rgba(229, 231, 235, 0.8);
+    line-height: 1.4;
+    font-size: 13px;
+    text-align: center;
+    margin: 0;
+}
+
+.info-divider {
+    height: 1px;
+    margin: 12px 0px;
+    background: rgba(255, 255, 255, 0.15);
+    width: 300px;
+}
+
+.info-content {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    width: 300px;
+    align-items: center;
+}
+
+.info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.info-text p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.0;
+    color: rgba(229, 231, 235, 0.75);
+}
+
+.info-mock-text {
+    font-size: 11px;
+    color: rgba(229, 231, 235, 0.5);
+    font-weight: 400;
+}
+
+.info-image {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    min-height: auto;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(12, 21, 36, 0.4);
+    width: 62px;
+    height: 62px;
+    flex-shrink: 0;
+}
+
+.info-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .info-content {
+        grid-template-columns: 1fr;
+    }
+
+    .info-image {
+        min-height: 150px;
+        width: 100%;
+    }
+
+    .info-card {
+        max-width: 100%;
+    }
+}

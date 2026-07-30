@@ -16,7 +16,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<Play> Logger
 
-    <main class="card">
+<main class="card">
     <div class="row">
         <div class="col-2 d-flex justify-content-start align-items-center">
             <BackButton Size="IconButtonSize.Medium" OnBack="@HandleBackAsync" />
@@ -26,67 +26,35 @@
         </div>
         <div class="col-2"></div>
     </div>
-
-<GameField
-  CurrentStep="@currentFrame"
-  PlantCount="@CurrentFrame?.PlantCount"
-  GrazerCount="@CurrentFrame?.GrazerCount"
-  NormalizedScore="@CurrentFrame?.NormalizedScore" />
-<Telemetry
-  IsAnimating="@isAnimating"
-  IsCompleted="@isCompleted"
-  GameMode="@CurrentGameMode"
-  PlotBatch="@plotBatch"
-  PlotBatchVersion="@plotBatchVersion"
-  PlotResetVersion="@plotResetVersion"
-  GrazerPlotWindowSize="@grazerPlotWindowSize"
-  GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
-  Terms="@plotTerms" />
-    <div class="playback-controls">
-        <div class="row">
-            <div class="col-2"></div>
-            <div class="col-8">
-                <div class="row">
-                    <div class="col-5"></div>
-                    @if (!isAnimating)
-                    {
-                        <div class="col-2 d-flex justify-content-center">
-                            <StartButton OnStart="GetData" />
-                        </div>
-                    }
-                    else
-                    {
-                        @if (isPaused)
-                        {
-                            <div class="col-2 d-flex justify-content-center">
-                                <StartButton OnStart="TogglePause" />
-                            </div>
-                            <div class="col-5 d-flex justify-content-start p-0">
-                                <StepButton OnClick="StepPlayback" />
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="col-2 d-flex justify-content-center">
-                                <PauseButton OnClick="TogglePause" />
-                            </div>
-                            <div class="col-5 d-flex justify-content-start p-0"/>
-                        }
-                    }
-                </div>
-            </div>
-            <div class="col-2"></div>
-        </div>
-
-        </div>
+    <GameField
+      CurrentStep="@currentFrame"
+      PlantCount="@CurrentFrame?.PlantCount"
+      GrazerCount="@CurrentFrame?.GrazerCount"
+      NormalizedScore="@CurrentFrame?.NormalizedScore" />
+    <PlaybackControls
+      IsAnimating="@isAnimating"
+      IsPaused="@isPaused"
+      OnStart="GetData"
+      OnTogglePause="TogglePause"
+      OnStepPlayback="StepPlayback" />
+    <!--<Telemetry
+      IsAnimating="@isAnimating"
+      IsCompleted="@isCompleted"
+      GameMode="@CurrentGameMode"
+      PlotBatch="@plotBatch"
+      PlotBatchVersion="@plotBatchVersion"
+      PlotResetVersion="@plotResetVersion"
+      GrazerPlotWindowSize="@grazerPlotWindowSize"
+      GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
+      Terms="@plotTerms" />-->
 </main>
 
 
 @code {
-    private const int CellSize = 2;
-    private const int Gap = 1;
+    private const int CellSize = 8;
+    private const int Gap = 4;
     private const int LineEvery = 1;
-    private const int AnimationDelayMilliseconds = 25;
+    private const int AnimationDelayMilliseconds = 50;
     private const int InitialBufferSize = 50;
     private const int BatchSize = 150;
     private const int GrazerSaturationLevelCount = 8;

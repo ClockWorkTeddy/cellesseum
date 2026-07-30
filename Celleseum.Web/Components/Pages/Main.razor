@@ -1,11 +1,36 @@
-<section class="entry-card">
-    <div class="login-title">Cellesseum</div>
-    <div class="login-controls">
-        <div class="login-form">
-            <button class="login-signin-btn" type="button" @onclick="HandlePlayAsync">Play</button>
+<div class="main-container">
+    <section class="entry-card">
+        <div class="login-title">Cellesseum</div>
+        <div class="login-controls">
+            <div class="login-form">
+                <button class="login-signin-btn" type="button" @onclick="HandlePlayAsync">Play</button>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
+
+    <section class="info-card">
+        <div class="info-title">What is going on?</div>
+        <div class="row">
+             <div class="info-divider"/>
+        </div>
+        <div class="row">
+            <p class="info-description">Cellesseum is a cellular automation game where you can observe cell evolution and behavioral patterns alongside telemetry. The game supports various modes with different rules</p>
+        </div>
+        <div class="row">
+             <div class="info-divider"/>
+        </div>
+        <div class="row">
+            <div class="info-content">
+                <div class="info-text">
+                    <p class="info-mock-text">text text text text text text text text text text text text text text text text text text text text text text text text text text</p>
+                </div>
+                <div class="info-image">
+                    <img src="images/plants.gif" alt="Cellesseum simulation" />
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
 
 @inject NavigationManager Navigation
 

@@ -2,38 +2,30 @@
 
 <div class="playback-controls">
     <div class="row">
-        <div class="col-2"></div>
-        <div class="col-8">
-            <div class="row">
-                <div class="col-5"></div>
-                @if (!IsAnimating)
-                {
-                    <div class="col-2 d-flex justify-content-center">
-                        <StartButton OnStart="OnStart" />
-                    </div>
-                }
-                else
-                {
-                    @if (IsPaused)
-                    {
-                        <div class="col-2 d-flex justify-content-center">
-                            <StartButton OnStart="OnTogglePause" />
-                        </div>
-                        <div class="col-5 d-flex justify-content-start p-0">
-                            <StepButton OnClick="OnStepPlayback" />
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="col-2 d-flex justify-content-center">
-                            <PauseButton OnClick="OnTogglePause" />
-                        </div>
-                        <div class="col-5 d-flex justify-content-start p-0"></div>
-                    }
-                }
+        @if (!IsAnimating)
+        {
+            <div class="col-12 d-flex justify-content-center">
+                <StartButton OnStart="OnStart" />
             </div>
-        </div>
-        <div class="col-2"></div>
+        }
+        else
+        {
+            @if (IsPaused)
+            {
+                <div class="col-6 d-flex justify-content-end px-1">
+                    <StartButton OnStart="OnTogglePause" />
+                </div>
+                <div class="col-6 d-flex justify-content-start px-1">
+                    <StepButton OnClick="OnStepPlayback" />
+                </div>
+            }
+            else
+            {
+                <div class="col-12 d-flex justify-content-center">
+                    <PauseButton OnClick="OnTogglePause" />
+                </div>
+            }
+        }
     </div>
 </div>
 

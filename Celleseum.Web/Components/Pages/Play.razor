@@ -84,11 +84,25 @@
     private long plotResetVersion;
     private int plotTerms;
     private int? grazerPlotWindowSize;
+    private readonly List<int> plantPlotHistory = new();
+    private readonly List<int> grazerPlotHistory = new();
+    private readonly List<int>[] grazerSaturationPlotHistory = CreatePlotHistorySeries(GrazerSaturationLevelCount);
 
     private GameMode CurrentGameMode =>
         string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
             ? GameMode.Mutation
             : GameMode.Simple;
+
+    private static List<int>[] CreatePlotHistorySeries(int count)
+    {
+        var series = new List<int>[count];
+        for (var i = 0; i < count; i++)
+        {
+            series[i] = new List<int>();
+        }
+
+        return series;
+    }
 
     private AreaData? CurrentFrame =>
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
@@ -142,6 +156,13 @@
         data.Clear();
         currentFrame = 0;
         nextFrameStart = 0;
+        plantPlotHistory.Clear();
+        grazerPlotHistory.Clear();
+        for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
+        {
+            grazerSaturationPlotHistory[saturation].Clear();
+        }
+
         plotBatch = Array.Empty<int[]>();
         plotResetVersion++;
         await InvokeAsync(StateHasChanged);
@@ -277,22 +298,29 @@
             "cellCanvas", allTypes, allSaturation,
             plantCounts, grazerCounts, score, grazerSaturationCounts, startFrame);
 
-        // Build unified plot batch: row 0 = plants, rows 1+ = grazers (total + saturation levels)
-        var plotRowCount = CurrentGameMode == GameMode.Mutation 
-            ? 2 + GrazerSaturationLevelCount  // plants + total grazers + saturation levels
-            : 2;  // plants + total grazerseMode.Mutation ? GrazerSaturationLevelCount : 1);
+        plantPlotHistory.AddRange(plantCounts);
+        grazerPlotHistory.AddRange(grazerCounts);
+        for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
+        {
+            grazerSaturationPlotHistory[saturation].AddRange(grazerSaturationCounts[saturation]);
+        }
+
+        // Build unified plot snapshot to avoid losing batches when renders are coalesced.
+        var plotRowCount = CurrentGameMode == GameMode.Mutation
+            ? 2 + GrazerSaturationLevelCount
+            : 2;
         var unifiedPlotBatch = new int[plotRowCount][];
-        unifiedPlotBatch[0] = plantCounts;
+        unifiedPlotBatch[0] = plantPlotHistory.ToArray();
 
         if (CurrentGameMode == GameMode.Simple)
         {
-            unifiedPlotBatch[1] = grazerCounts;
+            unifiedPlotBatch[1] = grazerPlotHistory.ToArray();
         }
         else
         {
-            for (int i = 0; i < GrazerSaturationLevelCount; i++)
+            for (var i = 0; i < GrazerSaturationLevelCount; i++)
             {
-                unifiedPlotBatch[i + 2] = grazerSaturationCounts[i];
+                unifiedPlotBatch[i + 2] = grazerSaturationPlotHistory[i].ToArray();
             }
         }
 

@@ -23,21 +23,10 @@ export function pushFrames(canvasId, frames) {
     const state = plots.get(canvasId);
     if (!state || !Array.isArray(frames)) return;
 
-    if (!Array.isArray(state.seriesData) || state.seriesData.length !== frames.length) {
-        state.seriesData = new Array(frames.length);
-        for (let s = 0; s < frames.length; s++) {
-            state.seriesData[s] = [];
-        }
-    }
-
+    state.seriesData = new Array(frames.length);
     for (let s = 0; s < frames.length; s++) {
         const source = frames[s];
-        if (!Array.isArray(source)) continue;
-
-        const target = state.seriesData[s];
-        for (let i = 0; i < source.length; i++) {
-            target.push(source[i]);
-        }
+        state.seriesData[s] = Array.isArray(source) ? source.slice() : [];
     }
 }
 

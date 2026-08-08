@@ -140,21 +140,25 @@ namespace MapProcessing
             var saturations = new byte[cellCount];
             int[]? grazerCountsBySaturation = null;
 
+            // Copy both arrays in parallel while (optionally) counting grazer saturations.
+            var copyTask = Task.Run(() =>
+            {
+                Array.Copy(_types, types, cellCount);
+                Array.Copy(_saturations, saturations, cellCount);
+            });
+
             if (includeGrazerCountsBySaturation)
             {
-                grazerCountsBySaturation = new int[8];
-
+                var counts = new int[8];
                 foreach (var grazer in grazerHash.Values)
                 {
-                    if ((uint)grazer.Saturation < (uint)grazerCountsBySaturation.Length)
-                    {
-                        grazerCountsBySaturation[grazer.Saturation]++;
-                    }
+                    if ((uint)grazer.Saturation < (uint)counts.Length)
+                        counts[grazer.Saturation]++;
                 }
+                grazerCountsBySaturation = counts;
             }
 
-            Array.Copy(_types, types, cellCount);
-            Array.Copy(_saturations, saturations, cellCount);
+            copyTask.Wait();
             return new AreaData
             {
                 PlantCount = plantHash.Count,

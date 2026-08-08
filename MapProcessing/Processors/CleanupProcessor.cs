@@ -10,7 +10,7 @@ namespace MapProcessing
             var deadCreatures = map.GetDeadCreatures();
             var eatenCreatures = map.GetEatenCreatures();
 
-            deadCreatures.ForEach(dc =>
+            foreach (var dc in deadCreatures)
             {
                 if (dc is Plant plant)
                 {
@@ -21,14 +21,14 @@ namespace MapProcessing
                     map.RemoveGrazer(dc.Id);
                 }
                 MapAreaHelper.ClearArea(map, dc);
-            });
+            }
 
             deadCreatures.Clear();
 
-            eatenCreatures.ForEach(ec =>
+            foreach (var ec in eatenCreatures)
             {
                 map.RemovePlant(ec.Location.Y * map.Width + ec.Location.X);
-            });
+            }
             eatenCreatures.Clear();
         }
 

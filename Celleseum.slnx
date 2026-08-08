@@ -6,6 +6,7 @@
     <File Path="compose.dev.yml" />
     <File Path="compose.prod.yml" />
   </Folder>
+  <Project Path="BenchmarkSuite2/BenchmarkSuite2.csproj" />
   <Project Path="Celleseum.ApiService/Celleseum.ApiService.csproj" />
   <Project Path="Celleseum.AppHost/Celleseum.AppHost.csproj" />
   <Project Path="Celleseum.Data/Celleseum.Data.csproj" Id="7c5b9289-5fba-49fb-9050-b5e2787a68d4" />

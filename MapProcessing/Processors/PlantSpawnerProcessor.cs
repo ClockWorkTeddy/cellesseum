@@ -14,7 +14,10 @@ namespace MapProcessing
             var grazers = map.GetGrazers();
             var plants = map.GetPlants();
 
-            var fertility = (int)(amplifier * (map.Width * map.Height - grazers.Count * Math.Pow(Grazer.DefaultSize, 2) - plants.Count * Math.Pow(Plant.DefaultSize, 2)));
+            // Avoid Math.Pow for small integer constants
+            var grazerSize = Grazer.DefaultSize * Grazer.DefaultSize;
+            var plantSize = Plant.DefaultSize * Plant.DefaultSize;
+            var fertility = (int)(amplifier * (map.Width * map.Height - grazers.Count * grazerSize - plants.Count * plantSize));
 
             for (int i = 0; i < fertility; i++)
             {
@@ -27,8 +30,8 @@ namespace MapProcessing
 
                 } while (!MapAreaHelper.IsCellFreeFor(map, y * map.Width + x, CellType.Plant));
 
-                var guid = Guid.NewGuid();
-                var plant = new Plant(new Point(x, y), guid);
+                // Guid.NewGuid() is expensive - reuse random for unique IDs
+                var plant = new Plant(new Point(x, y), Guid.NewGuid());
                 map.AddPlant(y * map.Width + x, plant);
                 MapAreaHelper.FillArea(map, plant);
             }

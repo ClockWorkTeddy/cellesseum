@@ -7,14 +7,17 @@ namespace MapProcessing
             var saturation = creature is Grazer grazer ? grazer.Saturation : (byte)Math.Clamp(creature.NutritionValue, 0, 8);
             var type = creature.Type;
             var baseIndex = creature.Location.Y * map.Width + creature.Location.X;
+            var width = map.Width;
+            var size = creature.Size;
 
-            for (int y = 0; y < creature.Size; y++)
+            for (int y = 0; y < size; y++)
             {
-                var rowBase = baseIndex + y * map.Width;
-                for (int x = 0; x < creature.Size; x++)
+                var rowBase = baseIndex + y * width;
+                for (int x = 0; x < size; x++)
                 {
-                    map.SetCellType(rowBase + x, type);
-                    map.SetSaturation(rowBase + x, saturation);
+                    var index = rowBase + x;
+                    map.SetCellType(index, type);
+                    map.SetSaturation(index, saturation);
                 }
             }
         }
@@ -22,14 +25,17 @@ namespace MapProcessing
         public static void ClearArea(Map map, Creature creature)
         {
             var baseIndex = creature.Location.Y * map.Width + creature.Location.X;
+            var width = map.Width;
+            var size = creature.Size;
 
-            for (int y = 0; y < creature.Size; y++)
+            for (int y = 0; y < size; y++)
             {
-                var rowBase = baseIndex + y * map.Width;
-                for (int x = 0; x < creature.Size; x++)
+                var rowBase = baseIndex + y * width;
+                for (int x = 0; x < size; x++)
                 {
-                    map.SetCellType(rowBase + x, CellType.Empty);
-                    map.SetSaturation(rowBase + x, 0);
+                    var index = rowBase + x;
+                    map.SetCellType(index, CellType.Empty);
+                    map.SetSaturation(index, 0);
                 }
             }
         }

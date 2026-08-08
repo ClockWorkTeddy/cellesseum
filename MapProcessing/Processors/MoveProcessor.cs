@@ -20,12 +20,27 @@ namespace MapProcessing
 
         private void MoveCreature(Map map, Creature creature)
         {
+            var oldLocation = creature.Location;
+            var newLocation = GetNewPositionNearParent(map, creature);
+
+            // If creature didn't move, skip all the work
+            if (oldLocation == newLocation)
+            {
+                if (creature is Grazer grazer)
+                {
+                    Grazing(map, grazer);
+                }
+                return;
+            }
+
+            // Only clear the old area
             MapAreaHelper.ClearArea(map, creature);
 
-            creature.Location = GetNewPositionNearParent(map, creature);
-            if (creature is Grazer grazer)
+            // Update location and fill new area
+            creature.Location = newLocation;
+            if (creature is Grazer grazer2)
             {
-                Grazing(map, grazer);
+                Grazing(map, grazer2);
             }
             MapAreaHelper.FillArea(map, creature);
         }

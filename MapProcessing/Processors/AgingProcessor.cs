@@ -26,7 +26,7 @@ namespace MapProcessing
             creature.Age++;
 
             var baseIndex = creature.Location.Y * map.Width + creature.Location.X;
-            map.SetSaturation(baseIndex, (byte)creature.NutritionValue);
+            map.SetSaturation(baseIndex, (byte)Math.Min(creature.NutritionValue, 8));
             if (creature.Dead)
             {
                 deadCreatures.Add(creature);

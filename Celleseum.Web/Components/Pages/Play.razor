@@ -31,6 +31,16 @@
           PlantCount="@CurrentFrame?.PlantCount"
           GrazerCount="@CurrentFrame?.GrazerCount"
           NormalizedScore="@CurrentFrame?.NormalizedScore" />
+        @if (isLoading)
+        {
+            <div class="sim-loading-overlay">
+                <div class="sim-loading-label">Simulating…</div>
+                <div class="sim-progress-track">
+                    <div class="sim-progress-fill" style="width:@(loadedFrames * 100 / Math.Max(1, plotTerms))%"></div>
+                </div>
+                <div class="sim-loading-counter">@loadedFrames / @plotTerms frames</div>
+            </div>
+        }
         <PlaybackControls
           IsAnimating="@isAnimating"
           IsPaused="@isPaused"
@@ -52,10 +62,10 @@
 
 
 @code {
-    private const int CellSize = 2;
-    private const int Gap = 1;
+    private const int CellSize = 4;
+    private const int Gap = 2;
     private const int LineEvery = 1;
-    private const int AnimationDelayMilliseconds = 25;
+    private const int AnimationDelayMilliseconds = 40;
     private const int InitialBufferSize = 50;
     private const int BatchSize = 150;
     private const int GrazerSaturationLevelCount = 8;
@@ -72,6 +82,8 @@
     private DotNetObjectReference<Play>? dotNetRef;
     private TaskCompletionSource<bool>? playbackCompletion;
     private bool isAuthenticated;
+    private bool isLoading;
+    private int loadedFrames;
     private bool isAnimating;
     private bool isPaused;
     private bool isCompleted;
@@ -152,6 +164,8 @@
         }
 
         isAnimating = true;
+        isLoading = true;
+        loadedFrames = 0;
         isCompleted = false;
 
         data.Clear();
@@ -173,32 +187,43 @@
             var simulationMode = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
                 ? "mutation"
                 : "simple";
-            await using var stream = MapApi.GetMapStream(gridWidth, gridHeight, simulationMode, plotTerms).GetAsyncEnumerator();
 
-            var startupBatch = await ReadBatchAsync(stream, InitialBufferSize);
-            if (startupBatch.Count == 0)
+            // Phase 1: stream all frames from the server as they are computed,
+            // updating the progress overlay every 50 frames so the user sees activity immediately.
+            await foreach (var frame in MapApi.GetMapStream(gridWidth, gridHeight, simulationMode, plotTerms))
+            {
+                data.Add(frame);
+                loadedFrames = data.Count;
+                if (loadedFrames % 50 == 0)
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+
+            if (data.Count == 0)
             {
                 isAnimating = false;
+                isLoading = false;
                 isCompleted = false;
                 await InvokeAsync(StateHasChanged);
                 return;
             }
 
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+
+            // Phase 2: all frames are in memory — queue them to JS in batches and play.
+            // Because the server wait is over, batches are sent at memory speed so the
+            // JS queue never drains mid-animation.
             playbackCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dotNetRef ??= DotNetObjectReference.Create(this);
 
             await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", AnimationDelayMilliseconds, dotNetRef);
-            await QueueBatchAsync(startupBatch);
 
-            while (true)
+            for (var i = 0; i < data.Count; i += BatchSize)
             {
-                var nextBatch = await ReadBatchAsync(stream, BatchSize);
-                if (nextBatch.Count == 0)
-                {
-                    break;
-                }
-
-                await QueueBatchAsync(nextBatch);
+                var batch = data.GetRange(i, Math.Min(BatchSize, data.Count - i));
+                await QueueBatchAsync(batch);
             }
 
             await SaveResultAsync();
@@ -208,6 +233,7 @@
         }
         finally
         {
+            isLoading = false;
             isAnimating = false;
             isCompleted = data.Count > 0;
             currentFrame = Math.Max(data.Count - 1, 0);
@@ -215,7 +241,7 @@
         }
     }
 
-    private async Task TogglePause()
+        private async Task TogglePause()
     {
         if (jsModule is null) return;
 

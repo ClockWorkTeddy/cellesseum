@@ -7,7 +7,9 @@
  */
 
 const grids = new Map();
-const grazerColorPalette = (() => {
+// Grazer palette pre-packed as Uint32 RGBA words (little-endian: 0xAABBGGRR)
+// One word per palette entry — no string allocation or CSS parsing per cell.
+const grazerPaletteU32 = (() => {
     const anchors = [
         [0x80, 0xFF, 0x00],
         [0xFF, 0xFF, 0x00],
@@ -17,7 +19,7 @@ const grazerColorPalette = (() => {
         [0x00, 0xFF, 0x80]
     ];
 
-    const palette = new Array(8);
+    const palette = new Uint32Array(8);
     const segmentCount = anchors.length - 1;
 
     for (let i = 0; i < 8; i++) {
@@ -27,23 +29,18 @@ const grazerColorPalette = (() => {
         const localT = segmentFloat - segment;
 
         const from = anchors[segment];
-        const to = anchors[segment + 1];
+        const to   = anchors[segment + 1];
 
         const r = Math.round(from[0] + (to[0] - from[0]) * localT);
         const g = Math.round(from[1] + (to[1] - from[1]) * localT);
         const b = Math.round(from[2] + (to[2] - from[2]) * localT);
 
-        palette[i] = `rgb(${r}, ${g}, ${b})`;
+        // little-endian RGBA: byte order R,G,B,A → Uint32 = A<<24 | B<<16 | G<<8 | R
+        palette[i] = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
     }
 
     return palette;
 })();
-
-function grazerColorFromVariant(variant) {
-    const value = variant & 0xFF;
-    const index = Math.min(7, value);
-    return grazerColorPalette[index];
-}
 
 export function initCanvas(canvasId, gridWidth, gridHeight, cellSize, gap, lineEvery) {
     const canvas = document.getElementById(canvasId);
@@ -67,69 +64,98 @@ export function drawFrame(canvasId, frameData, saturationData) {
     const config = grids.get(canvasId);
     if (!config) return;
 
-    const { gridWidth, gridHeight, cellSize, gap, lineEvery, step, totalWidth, totalHeight, ctx } = config;
+    const { gridWidth, gridHeight, cellSize, gap, step, totalWidth, totalHeight, ctx } = config;
+    const cellCount = gridWidth * gridHeight;
 
-    // 1. Fill entire canvas with empty-cell color (hides all gaps)
-    ctx.clearRect(0, 0, totalWidth, totalHeight);
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
-    ctx.fillRect(0, 0, totalWidth, totalHeight);
-
-    // 2. Draw visible grid lines only at every lineEvery-th boundary
-    ctx.fillStyle = "rgba(255,255,255,0.1)";
-    for (let g = 0; g <= gridWidth; g += lineEvery) {
-        ctx.fillRect(g * step, 0, gap, totalHeight);   // vertical
+    // Allocate once, reuse every frame
+    if (!config.imageData) {
+        config.imageData = ctx.createImageData(totalWidth, totalHeight);
+        config.pixels32  = new Uint32Array(config.imageData.data.buffer);
+        config.drawn     = new Uint8Array(cellCount); // tracks grazer cells already painted
     }
-    for (let g = 0; g <= gridHeight; g += lineEvery) {
-        ctx.fillRect(0, g * step, totalWidth, gap);    // horizontal
-    }
+    const pixels32 = config.pixels32;
+    const drawn    = config.drawn;
 
-    // CellType enum: 0 = Empty, 1 = Plant, 2 = Grazer
+    // little-endian RGBA words
+    const sepColor32 = 0x1AFFFFFF; // rgba(255,255,255,26) — separator lines
+    const bgColor32  = 0x40000000; // rgba(0,0,0,64)       — empty cells
 
-    // 3. Draw empty and plant cells
-    // Plants (type 1) use saturation (0–10) to control opacity
-    for (let i = 0; i < gridWidth * gridHeight; i++) {
+    // Fill entire canvas with separator colour; cell pixels are painted over below.
+    pixels32.fill(gap > 0 ? sepColor32 : bgColor32);
+
+    // Reset per-frame drawn flags
+    drawn.fill(0);
+
+    for (let i = 0; i < cellCount; i++) {
         const cellType = frameData[i] || 0;
-        if (cellType === 2) continue; // grazers drawn in pass 4
+
+        // Skip grazer cells already covered by a 2×2 block painted from its top-left
+        if (cellType === 2 && drawn[i]) continue;
+
         const col = i % gridWidth;
         const row = (i - col) / gridWidth;
-        if (cellType === 1) {
-            const alpha = (saturationData[i] || 0) / 10;
-            ctx.fillStyle = `rgba(0,187,51,${alpha})`;
+        const px  = gap + col * step;
+        const py  = gap + row * step;
+
+        if (cellType === 2) {
+            const color32 = grazerPaletteU32[Math.min(7, (saturationData[i] || 0) & 0xFF)];
+
+            // Detect top-left corner of a 2×2 grazer block.
+            // Paint the whole block solid (covers internal gap) so the grazer
+            // looks like one piece. Borders toward other grazers are untouched.
+            const rIdx = i + 1;
+            const bIdx = i + gridWidth;
+            const dIdx = i + gridWidth + 1;
+
+            if (col + 1 < gridWidth && row + 1 < gridHeight &&
+                (frameData[rIdx] || 0) === 2 &&
+                (frameData[bIdx] || 0) === 2 &&
+                (frameData[dIdx] || 0) === 2) {
+
+                const blockSize = 2 * cellSize + gap; // covers 2 cells + the gap between them
+                for (let dy = 0; dy < blockSize; dy++) {
+                    const rowBase = (py + dy) * totalWidth + px;
+                    for (let dx = 0; dx < blockSize; dx++) {
+                        pixels32[rowBase + dx] = color32;
+                    }
+                }
+                drawn[i] = drawn[rIdx] = drawn[bIdx] = drawn[dIdx] = 1;
+
+            } else {
+                // Orphan / edge grazer cell — paint as single cell
+                for (let dy = 0; dy < cellSize; dy++) {
+                    const rowBase = (py + dy) * totalWidth + px;
+                    for (let dx = 0; dx < cellSize; dx++) {
+                        pixels32[rowBase + dx] = color32;
+                    }
+                }
+            }
+
+        } else if (cellType === 1) {
+            // Plant: rgba(0,187,51,alpha) — saturation 0-8 → alpha 0-255
+            const sat    = saturationData[i] || 0;
+            const alpha  = sat >= 8 ? 255 : Math.round((sat / 8) * 255);
+            const color32 = ((alpha << 24) | (51 << 16) | (187 << 8)) >>> 0;
+            for (let dy = 0; dy < cellSize; dy++) {
+                const rowBase = (py + dy) * totalWidth + px;
+                for (let dx = 0; dx < cellSize; dx++) {
+                    pixels32[rowBase + dx] = color32;
+                }
+            }
+
         } else {
-            ctx.fillStyle = "rgba(0,0,0,0.25)";
-        }
-        ctx.fillRect(gap + col * step, gap + row * step, cellSize, cellSize);
-    }
-
-    // 4. Draw solid 2x2 grazers (type 2) — fills internal gap between the 4 cells
-    const drawn = new Uint8Array(gridWidth * gridHeight);
-    const bigSize = cellSize * 2 + gap;
-
-    for (let row = 0; row < gridHeight - 1; row++) {
-        for (let col = 0; col < gridWidth - 1; col++) {
-            const i = row * gridWidth + col;
-            if (drawn[i] || (frameData[i] || 0) !== 2) continue;
-            const r = i + 1;
-            const b = i + gridWidth;
-            const d = i + gridWidth + 1;
-            if ((frameData[r] || 0) === 2 &&
-                (frameData[b] || 0) === 2 &&
-                (frameData[d] || 0) === 2) {
-                
-                ctx.fillStyle = grazerColorFromVariant(saturationData[i] || 0);
-                ctx.fillRect(gap + col * step, gap + row * step, bigSize, bigSize);
-                drawn[i] = drawn[r] = drawn[b] = drawn[d] = 1;
+            // Empty cell: overwrite separator colour at this cell's position
+            for (let dy = 0; dy < cellSize; dy++) {
+                const rowBase = (py + dy) * totalWidth + px;
+                for (let dx = 0; dx < cellSize; dx++) {
+                    pixels32[rowBase + dx] = bgColor32;
+                }
             }
         }
     }
-    // Leftover grazer cells not part of a full 2x2 block
-    for (let i = 0; i < gridWidth * gridHeight; i++) {
-        if (drawn[i] || (frameData[i] || 0) !== 2) continue;
-        const col = i % gridWidth;
-        const row = (i - col) / gridWidth;
-        ctx.fillStyle = grazerColorFromVariant(saturationData[i] || 0);
-        ctx.fillRect(gap + col * step, gap + row * step, cellSize, cellSize);
-    }
+
+    // One GPU upload per frame
+    ctx.putImageData(config.imageData, 0, 0);
 }
 
 function drawEmpty(config) {
@@ -194,14 +220,21 @@ function tickPlayer(canvasId) {
     const player = players.get(canvasId);
     if (!config || !player) return;
 
-    const stepEl = document.getElementById("stat-step");
-    const plantEl = document.getElementById("stat-plants");
-    const grazerEl = document.getElementById("stat-grazers");
-    const scoreEl = document.getElementById("stat-score");
-    const saturationEls = new Array(8);
-    for (let saturation = 0; saturation < saturationEls.length; saturation++) {
-        saturationEls[saturation] = document.getElementById(`stat-grazer-${saturation}`);
+    // Resolve stat elements once and cache them on the player object
+    if (!player.statEls) {
+        const saturationEls = new Array(8);
+        for (let s = 0; s < 8; s++) {
+            saturationEls[s] = document.getElementById(`stat-grazer-${s}`);
+        }
+        player.statEls = {
+            step:       document.getElementById('stat-step'),
+            plant:      document.getElementById('stat-plants'),
+            grazer:     document.getElementById('stat-grazers'),
+            score:      document.getElementById('stat-score'),
+            saturation: saturationEls,
+        };
     }
+    const { step: stepEl, plant: plantEl, grazer: grazerEl, score: scoreEl, saturation: saturationEls } = player.statEls;
 
     if (!player.currentBatch) {
         player.currentBatch = player.queue.shift() || null;
@@ -232,11 +265,11 @@ function tickPlayer(canvasId) {
     if (grazerEl) grazerEl.textContent = batch.grazerCounts[frame];
     if (scoreEl) scoreEl.textContent = batch.score[frame];
 
-    for (let saturation = 0; saturation < saturationEls.length; saturation++) {
-        const saturationEl = saturationEls[saturation];
+    for (let s = 0; s < saturationEls.length; s++) {
+        const saturationEl = saturationEls[s];
         if (!saturationEl) continue;
 
-        const saturationSeries = batch.grazerSaturationCounts?.[saturation];
+        const saturationSeries = batch.grazerSaturationCounts?.[s];
         const saturationCount = Array.isArray(saturationSeries) && frame < saturationSeries.length
             ? saturationSeries[frame]
             : 0;

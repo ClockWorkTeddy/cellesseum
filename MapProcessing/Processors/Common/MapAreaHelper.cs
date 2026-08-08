@@ -4,7 +4,7 @@ namespace MapProcessing
     {
         public static void FillArea(Map map, Creature creature)
         {
-            var saturation = creature is Grazer grazer ? grazer.Saturation : (byte)Math.Clamp(creature.NutritionValue, 2, 10);
+            var saturation = creature is Grazer grazer ? grazer.Saturation : (byte)Math.Clamp(creature.NutritionValue, 0, 8);
             var type = creature.Type;
             var baseIndex = creature.Location.Y * map.Width + creature.Location.X;
 

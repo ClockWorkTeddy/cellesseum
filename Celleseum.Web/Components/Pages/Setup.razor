@@ -1,0 +1,239 @@
+@page "/setup"
+@using Celleseum.Web.Components.Buttons
+@rendermode InteractiveServer
+
+<div class="entry-stack">
+    <main class="entry-card menu-card">
+        <div class="menu-header">
+            <div class="menu-back-slot">
+                <BackButton OnBack="HandleBack" />
+            </div>
+            <div class="login-title menu-title">Game setup</div>
+            <div></div>
+        </div>
+
+        <div class="login-controls menu-controls">
+            <div class="login-form menu-form w-100">
+                <div class="mb-3 text-start">
+                    <label class="form-label" for="sizeInput">Size (height and width, max: @MaxSize)</label>
+                    <InputNumber id="sizeInput" class="form-control" @bind-Value="size" />
+                </div>
+
+                <div class="mb-3 text-start">
+                    <label class="form-label" for="termsInput">Terms (iterations, max: @MaxTerms)</label>
+                    <InputNumber id="termsInput" class="form-control" @bind-Value="terms" />
+                </div>
+
+                <div class="mb-3 text-start">
+                    <label class="form-label" for="cellSizeInput">Cell size (max: @MaxCellSize)</label>
+                    <InputNumber id="cellSizeInput" class="form-control" @bind-Value="cellSize" />
+                </div>
+
+                <div class="mb-3 text-start">
+                    <label class="form-label" for="animationDelayInput">Animation delay in ms (min: @MinAnimationDelayMilliseconds)</label>
+                    <InputNumber id="animationDelayInput" class="form-control" @bind-Value="animationDelayMilliseconds" />
+                </div>
+
+                <div class="form-check mb-3 text-start">
+                    <InputCheckbox id="gapInput" class="form-check-input" @bind-Value="gapEnabled" />
+                    <label class="form-check-label" for="gapInput">Gap enabled (1px)</label>
+                </div>
+
+                <div class="hint mb-2">size × size × terms must be ≤ 1,000,000,000</div>
+                <div class="hint mb-3">size × (cell size + gap) must be ≤ 1,000</div>
+
+                @if (!string.IsNullOrWhiteSpace(CurrentValidationError))
+                {
+                    <div class="text-danger mb-3">@CurrentValidationError</div>
+                }
+
+                <button class="login-signin-btn" type="button" @onclick="LaunchPlay" disabled="@(!CanStart)">Start</button>
+            </div>
+        </div>
+    </main>
+</div>
+
+@inject NavigationManager Navigation
+
+@code {
+    private const int DefaultSize = 200;
+    private const int DefaultTerms = 100;
+    private const int DefaultCellSize = 2;
+    private const int DefaultAnimationDelayMilliseconds = 25;
+    private const int MinAnimationDelayMilliseconds = 15;
+    private const long MaxComplexity = 1_000_000_000;
+    private const int MaxCanvasPixels = 1_000;
+
+    [SupplyParameterFromQuery(Name = "mode")]
+    public string? Mode { get; set; }
+
+    [SupplyParameterFromQuery(Name = "backUrl")]
+    public string? BackUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "size")]
+    public int? Size { get; set; }
+
+    [SupplyParameterFromQuery(Name = "terms")]
+    public int? Terms { get; set; }
+
+    [SupplyParameterFromQuery(Name = "cellSize")]
+    public int? CellSize { get; set; }
+
+    [SupplyParameterFromQuery(Name = "gap")]
+    public int? Gap { get; set; }
+
+    [SupplyParameterFromQuery(Name = "animationDelayMs")]
+    public int? AnimationDelayMs { get; set; }
+
+    private int size = DefaultSize;
+    private int terms = DefaultTerms;
+    private int cellSize = DefaultCellSize;
+    private int animationDelayMilliseconds = DefaultAnimationDelayMilliseconds;
+    private bool gapEnabled = true;
+
+    private int GapSize => gapEnabled ? 1 : 0;
+
+    private int MaxTerms
+    {
+        get
+        {
+            if (size <= 0)
+            {
+                return 0;
+            }
+
+            var sizeSquared = (long)size * size;
+            return sizeSquared == 0 ? 0 : (int)(MaxComplexity / sizeSquared);
+        }
+    }
+
+    private int MaxSizeByTerms
+    {
+        get
+        {
+            if (terms <= 0)
+            {
+                return 0;
+            }
+
+            var maxSize = Math.Sqrt(MaxComplexity / (double)terms);
+            return (int)Math.Floor(maxSize);
+        }
+    }
+
+    private int MaxSizeByCanvas
+    {
+        get
+        {
+            var step = cellSize + GapSize;
+            return step <= 0 ? 0 : MaxCanvasPixels / step;
+        }
+    }
+
+    private int MaxSize => Math.Min(MaxSizeByTerms, MaxSizeByCanvas);
+
+    private int MaxCellSize
+    {
+        get
+        {
+            if (size <= 0)
+            {
+                return 0;
+            }
+
+            var maxCellSize = (MaxCanvasPixels / size) - GapSize;
+            return Math.Max(0, maxCellSize);
+        }
+    }
+
+    private bool CanStart => Validate(out _);
+
+    private string? CurrentValidationError
+    {
+        get
+        {
+            Validate(out var error);
+            return error;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        size = NormalizePositive(Size, DefaultSize);
+        terms = NormalizePositive(Terms, DefaultTerms);
+        cellSize = NormalizePositive(CellSize, DefaultCellSize);
+        animationDelayMilliseconds = NormalizePositive(AnimationDelayMs, DefaultAnimationDelayMilliseconds);
+        gapEnabled = Gap.GetValueOrDefault(1) != 0;
+    }
+
+    private void HandleBack()
+    {
+        Navigation.NavigateTo(string.IsNullOrWhiteSpace(BackUrl) ? "/?mode=Menu" : BackUrl!);
+    }
+
+    private void LaunchPlay()
+    {
+        if (!Validate(out _))
+        {
+            return;
+        }
+
+        var selectedMode = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
+            ? "mutation"
+            : "simple";
+
+        var menuBackUrl = string.IsNullOrWhiteSpace(BackUrl) ? "/?mode=Menu" : BackUrl!;
+        var returnToSetup = $"/setup?mode={selectedMode}&backUrl={Uri.EscapeDataString(menuBackUrl)}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}";
+
+        Navigation.NavigateTo($"/play?mode={selectedMode}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&backUrl={Uri.EscapeDataString(returnToSetup)}");
+    }
+
+    private bool Validate(out string? error)
+    {
+        if (size <= 0)
+        {
+            error = "Size must be greater than 0.";
+            return false;
+        }
+
+        if (terms <= 0)
+        {
+            error = "Terms must be greater than 0.";
+            return false;
+        }
+
+        if (cellSize <= 0)
+        {
+            error = "Cell size must be greater than 0.";
+            return false;
+        }
+
+        if (animationDelayMilliseconds < MinAnimationDelayMilliseconds)
+        {
+            error = $"Animation delay must be at least {MinAnimationDelayMilliseconds} ms.";
+            return false;
+        }
+
+        var complexity = (long)size * size * terms;
+        if (complexity > MaxComplexity)
+        {
+            error = "size × size × terms must be less than or equal to 1,000,000,000.";
+            return false;
+        }
+
+        var maxCanvasWidth = size * (cellSize + GapSize);
+        if (maxCanvasWidth > MaxCanvasPixels)
+        {
+            error = "size × (cell size + gap) must be less than or equal to 1,000.";
+            return false;
+        }
+
+        error = null;
+        return true;
+    }
+
+    private static int NormalizePositive(int? value, int fallback)
+    {
+        return value is > 0 ? value.Value : fallback;
+    }
+}

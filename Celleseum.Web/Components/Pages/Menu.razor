@@ -82,7 +82,7 @@
             ? "mutation"
             : "simple";
 
-        Navigation.NavigateTo($"/play?mode={selectedMode}&backUrl=%2F%3Fmode%3DMenu");
+        Navigation.NavigateTo($"/setup?mode={selectedMode}&backUrl=%2F%3Fmode%3DMenu");
     }
 
     private async Task LoadRecentResultsAsync()

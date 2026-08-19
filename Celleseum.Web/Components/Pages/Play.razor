@@ -26,6 +26,11 @@
             </div>
             <div class="col-2"></div>
         </div>
+        @if (!string.IsNullOrWhiteSpace(setupError))
+        {
+            <div class="text-danger mb-3">@setupError</div>
+        }
+
         <GameField
           CurrentStep="@currentFrame"
           PlantCount="@CurrentFrame?.PlantCount"
@@ -62,10 +67,13 @@
 
 
 @code {
-    private const int CellSize = 1;
-    private const int Gap = 0;
+    private const int DefaultSize = 200;
+    private const int DefaultTerms = 100;
+    private const int DefaultCellSize = 2;
+    private const int DefaultGap = 1;
+    private const int DefaultAnimationDelayMilliseconds = 25;
+    private const int MinAnimationDelayMilliseconds = 15;
     private const int LineEvery = 1;
-    private const int AnimationDelayMilliseconds = 40;
     private const int InitialBufferSize = 50;
     private const int BatchSize = 150;
     private const int GrazerSaturationLevelCount = 8;
@@ -76,6 +84,21 @@
 
     [SupplyParameterFromQuery(Name = "backUrl")]
     public string? BackUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "size")]
+    public int? Size { get; set; }
+
+    [SupplyParameterFromQuery(Name = "terms")]
+    public int? Terms { get; set; }
+
+    [SupplyParameterFromQuery(Name = "cellSize")]
+    public int? CellSize { get; set; }
+
+    [SupplyParameterFromQuery(Name = "gap")]
+    public int? Gap { get; set; }
+
+    [SupplyParameterFromQuery(Name = "animationDelayMs")]
+    public int? AnimationDelayMs { get; set; }
 
     private IJSObjectReference? jsModule;
     private bool gridInitialized;
@@ -92,6 +115,10 @@
     private int nextFrameStart;
     private int gridWidth;
     private int gridHeight;
+    private int cellSize;
+    private int gap;
+    private int animationDelayMilliseconds;
+    private string? setupError;
     private int[][]? plotBatch;
     private long plotBatchVersion;
     private long plotResetVersion;
@@ -135,9 +162,22 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
 
-        gridWidth = Configuration.GetValue("Grid:Width", 50);
-        gridHeight = Configuration.GetValue("Grid:Height", 50);
-        plotTerms = Configuration.GetValue("Plot:Terms", 3000);
+        var requestedSize = Size ?? Configuration.GetValue("Grid:Width", DefaultSize);
+        var requestedTerms = Terms ?? Configuration.GetValue("Plot:Terms", DefaultTerms);
+        var requestedCellSize = CellSize ?? DefaultCellSize;
+        var requestedGap = Gap.GetValueOrDefault(DefaultGap) == 0 ? 0 : 1;
+        var requestedAnimationDelay = AnimationDelayMs ?? DefaultAnimationDelayMilliseconds;
+
+        if (!TryApplySetup(requestedSize, requestedTerms, requestedCellSize, requestedGap, requestedAnimationDelay, out var validationError))
+        {
+            setupError = validationError;
+            gridWidth = DefaultSize;
+            gridHeight = DefaultSize;
+            plotTerms = DefaultTerms;
+            cellSize = DefaultCellSize;
+            gap = DefaultGap;
+            animationDelayMilliseconds = DefaultAnimationDelayMilliseconds;
+        }
 
         var legacyPlotWindowSize = Configuration.GetValue<int?>("Plot:WindowSize");
         grazerPlotWindowSize = Configuration.GetValue<int?>("Plot:GrazersWindowSize") ?? legacyPlotWindowSize;
@@ -152,13 +192,13 @@
 
         if (!gridInitialized && jsModule is not null)
         {
-            gridInitialized = await jsModule.InvokeAsync<bool>("initCanvas", "cellCanvas", gridWidth, gridHeight, CellSize, Gap, LineEvery);
+            gridInitialized = await jsModule.InvokeAsync<bool>("initCanvas", "cellCanvas", gridWidth, gridHeight, cellSize, gap, LineEvery);
         }
     }
 
     private async Task GetData()
     {
-        if (isAnimating || jsModule is null || !gridInitialized)
+        if (isAnimating || jsModule is null || !gridInitialized || !string.IsNullOrWhiteSpace(setupError))
         {
             return;
         }
@@ -167,6 +207,7 @@
         isLoading = true;
         loadedFrames = 0;
         isCompleted = false;
+        isPaused = false;
 
         data.Clear();
         currentFrame = 0;
@@ -218,7 +259,7 @@
             playbackCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dotNetRef ??= DotNetObjectReference.Create(this);
 
-            await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", AnimationDelayMilliseconds, dotNetRef);
+            await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", animationDelayMilliseconds, dotNetRef);
 
             for (var i = 0; i < data.Count; i += BatchSize)
             {
@@ -354,6 +395,62 @@
         plotBatch = unifiedPlotBatch;
         plotBatchVersion++;
         await InvokeAsync(StateHasChanged);
+    }
+
+    private bool TryApplySetup(int requestedSize, int requestedTerms, int requestedCellSize, int requestedGap, int requestedAnimationDelay, out string? error)
+    {
+        if (requestedSize <= 0)
+        {
+            error = "Size must be greater than 0.";
+            return false;
+        }
+
+        if (requestedTerms <= 0)
+        {
+            error = "Terms must be greater than 0.";
+            return false;
+        }
+
+        if (requestedCellSize <= 0)
+        {
+            error = "Cell size must be greater than 0.";
+            return false;
+        }
+
+        if (requestedGap is not 0 and not 1)
+        {
+            error = "Gap must be 0 or 1.";
+            return false;
+        }
+
+        if (requestedAnimationDelay < MinAnimationDelayMilliseconds)
+        {
+            error = $"Animation delay must be at least {MinAnimationDelayMilliseconds} ms.";
+            return false;
+        }
+
+        var complexity = (long)requestedSize * requestedSize * requestedTerms;
+        if (complexity > 1_000_000_000)
+        {
+            error = "size × size × terms must be less than or equal to 1,000,000,000.";
+            return false;
+        }
+
+        var maxCanvasWidth = requestedSize * (requestedCellSize + requestedGap);
+        if (maxCanvasWidth > 1_000)
+        {
+            error = "size × (cell size + gap) must be less than or equal to 1,000.";
+            return false;
+        }
+
+        gridWidth = requestedSize;
+        gridHeight = requestedSize;
+        plotTerms = requestedTerms;
+        cellSize = requestedCellSize;
+        gap = requestedGap;
+        animationDelayMilliseconds = requestedAnimationDelay;
+        error = null;
+        return true;
     }
 
     private async Task SaveResultAsync()

@@ -178,6 +178,7 @@ export function startPlayback(canvasId, delay, dotNetRef) {
         isPlaying: false,
         isPaused: false,
         isCompleted: false,
+        isBuffering: true,
         timerId: null
     });
 }
@@ -199,7 +200,7 @@ export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, gr
         cellCount: config.gridWidth * config.gridHeight
     });
 
-    if (!player.isPaused && !player.isPlaying) {
+    if (!player.isBuffering && !player.isPaused && !player.isPlaying) {
         player.isPlaying = true;
         tickPlayer(canvasId);
     }
@@ -210,6 +211,14 @@ export function completePlayback(canvasId) {
     if (!player) return;
 
     player.isCompleted = true;
+    player.isBuffering = false;
+
+    if (!player.isPaused && !player.isPlaying && (player.currentBatch || player.queue.length > 0)) {
+        player.isPlaying = true;
+        tickPlayer(canvasId);
+        return;
+    }
+
     if (!player.isPlaying && player.queue.length === 0 && !player.currentBatch) {
         player.dotNetRef.invokeMethodAsync("OnPlaybackComplete");
     }

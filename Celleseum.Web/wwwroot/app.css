@@ -720,6 +720,11 @@ body {
     transform: translateY(-1px);
 }
 
+.login-signin-btn:disabled {
+    filter: brightness(0.5);
+    transform: translateY(-1px);
+}
+
 .login-register-zone {
     display: flex;
     flex-direction: row;
@@ -1093,4 +1098,177 @@ h1:focus { outline: none; }
     .info-card {
         max-width: 100%;
     }
+}
+
+/* ── Game Setup (Figma) ── */
+.setup-form {
+    gap: 15px;
+}
+
+.setup-field-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    width: 280px;
+}
+
+.setup-field-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0px 5px;
+    gap: 15px;
+    width: 280px;
+    height: 30px;
+    border-radius: 12px;
+}
+
+.setup-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+}
+
+.setup-input-wrap {
+    position: relative;
+    width: 230px;
+    height: 30px;
+    flex: none;
+}
+
+/* Paint over Chrome's injected credentials/autofill button */
+.setup-input-wrap::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    width: 28px;
+    background: rgb(12, 21, 36, 0.95);
+    border-radius: 0 4px 4px 0;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.setup-input {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    width: 100%;
+    height: 30px;
+    background: rgba(12, 21, 36, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    font-family: 'SF Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-style: italic;
+    font-weight: 276;
+    font-size: 14px;
+    line-height: 17px;
+    color: rgba(255, 255, 255, 0.85);
+    outline: none;
+    transition: border-color .15s ease;
+}
+
+.setup-input::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+    font-style: italic;
+}
+
+/* Hide browser-injected autofill/save buttons */
+.setup-input::-ms-reveal,
+.setup-input::-ms-clear,
+.setup-input::-webkit-contacts-auto-fill-button,
+.setup-input::-webkit-credentials-auto-fill-button {
+    display: none !important;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.setup-input:focus {
+    border-color: rgba(124, 92, 255, 0.7);
+}
+
+.setup-hint-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    padding: 0px 50px;
+    width: 210px;
+    height: 14px;
+}
+
+.setup-hint {
+    font-family: 'SF Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-style: italic;
+    font-weight: 276;
+    font-size: 12px;
+    line-height: 14px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Checkbox row */
+.setup-checkbox-row {
+    justify-content: flex-start;
+    gap: 16px;
+}
+
+.setup-checkbox {
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    background: rgba(12, 21, 36, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    flex: none;
+    cursor: pointer;
+    accent-color: rgba(124, 92, 255, 0.8);
+}
+
+.setup-checkbox-label {
+    font-family: 'SF Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-style: italic;
+    font-weight: 276;
+    font-size: 12px;
+    line-height: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+}
+
+/* Constraint formulas */
+.setup-constraints {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 10px;
+    gap: 5px;
+    width: 280px;
+}
+
+    .setup-constraints span {
+        font-family: 'SF Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-style: italic;
+        font-weight: 400;
+        font-size: 11px;
+        line-height: 12px;
+        color: rgba(124, 92, 255, 0.7);
+        transition: color .15s ease;
+    }
+
+.setup-constraint-error {
+    color: rgba(255, 80, 80, 0.9) !important;
+}
+
+/* Validation error */
+.setup-validation-error {
+    font-size: 12px;
+    color: rgba(255, 100, 100, 0.9);
+    padding: 0 10px;
 }

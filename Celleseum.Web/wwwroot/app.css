@@ -143,7 +143,7 @@ body {
 }
 
 .hint { 
-    margin-top: 16px;
+    margin-top: 0px;
     color: rgba(233,238,252,.55);
     font-size: 13px;
 }
@@ -207,6 +207,13 @@ body {
     flex: 1;
     height: 100px;
     width: 100%;
+}
+
+.plot-canvas-grazers {
+    --plot-series-color: #80bb00;
+    --plot-grid-color: #80bb0022;
+    --plot-series-colors: rgb(128, 255, 0)|rgb(219, 255, 0)|rgb(255, 146, 0)|rgb(255, 0, 36)|rgb(255, 0, 219)|rgb(109, 0, 255)|rgb(0, 73, 219)|rgb(0, 255, 128);
+    border: 1px solid #ffffff22;
 }
 
 .plot-card {
@@ -412,13 +419,6 @@ body {
 }
 
 /*Nice*/
-
-.plot-canvas-grazers {
-    --plot-series-color: #80bb00;
-    --plot-grid-color: #80bb0022;
-    --plot-series-colors: rgb(128, 255, 0)|rgb(219, 255, 0)|rgb(255, 146, 0)|rgb(255, 0, 36)|rgb(255, 0, 219)|rgb(109, 0, 255)|rgb(0, 73, 219)|rgb(0, 255, 128);
-    border: 1px solid #ffffff22;
-}
 
 .plot-canvas-plants {
     --plot-series-color: #00bb00;

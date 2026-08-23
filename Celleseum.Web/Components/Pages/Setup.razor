@@ -2,7 +2,7 @@
 @using Celleseum.Web.Components.Buttons
 @rendermode InteractiveServer
 
-<div class="entry-stack">
+<div class="entry-stack home-entry-stack">
     <main class="entry-card menu-card">
         <div class="menu-header">
             <div class="menu-back-slot">
@@ -14,37 +14,37 @@
 
         <div class="login-controls menu-controls">
             <div class="login-form menu-form w-100">
-                <div class="mb-3 text-start">
-                    <label class="form-label" for="sizeInput">Size (height and width, max: @MaxSize)</label>
+                <div class="text-start d-flex">
+                    <label class="hint" for="sizeInput">Size (height and width, max: @MaxSize)</label>
                     <InputNumber id="sizeInput" class="form-control" @bind-Value="size" />
                 </div>
 
-                <div class="mb-3 text-start">
-                    <label class="form-label" for="termsInput">Terms (iterations, max: @MaxTerms)</label>
+                <div class="text-start">
+                    <label class="hint" for="termsInput">Terms (iterations, max: @MaxTerms)</label>
                     <InputNumber id="termsInput" class="form-control" @bind-Value="terms" />
                 </div>
 
-                <div class="mb-3 text-start">
-                    <label class="form-label" for="cellSizeInput">Cell size (max: @MaxCellSize)</label>
+                <div class="text-start">
+                    <label class="hint" for="cellSizeInput">Cell size (max: @MaxCellSize)</label>
                     <InputNumber id="cellSizeInput" class="form-control" @bind-Value="cellSize" />
                 </div>
 
-                <div class="mb-3 text-start">
-                    <label class="form-label" for="animationDelayInput">Animation delay in ms (min: @MinAnimationDelayMilliseconds)</label>
+                <div class="text-start">
+                    <label class="hint" for="animationDelayInput">Animation delay in ms (min: @MinAnimationDelayMilliseconds)</label>
                     <InputNumber id="animationDelayInput" class="form-control" @bind-Value="animationDelayMilliseconds" />
                 </div>
 
-                <div class="form-check mb-3 text-start">
+                <div class="form-check mb-0 text-start">
                     <InputCheckbox id="gapInput" class="form-check-input" @bind-Value="gapEnabled" />
                     <label class="form-check-label" for="gapInput">Gap enabled (1px)</label>
                 </div>
 
-                <div class="hint mb-2">size × size × terms must be ≤ 1,000,000,000</div>
-                <div class="hint mb-3">size × (cell size + gap) must be ≤ 1,000</div>
+                <div class="hint mb-1">size × size × terms must be ≤ 1,000,000,000</div>
+                <div class="hint mb-1">size × (cell size + gap) must be ≤ 1,000</div>
 
                 @if (!string.IsNullOrWhiteSpace(CurrentValidationError))
                 {
-                    <div class="text-danger mb-3">@CurrentValidationError</div>
+                    <div class="text-danger mb-1">@CurrentValidationError</div>
                 }
 
                 <button class="login-signin-btn" type="button" @onclick="LaunchPlay" disabled="@(!CanStart)">Start</button>

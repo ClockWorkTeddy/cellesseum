@@ -7,6 +7,13 @@ namespace MapProcessing
     /// </summary>
     public class MoveProcessor : IProcessor
     {
+        private readonly bool smartGrazer;
+
+        public MoveProcessor(bool smartGrazer = false)
+        {
+            this.smartGrazer = smartGrazer;
+        }
+
         public void Execute(Map map)
         {
             var grazers = map.GetGrazers();
@@ -73,11 +80,22 @@ namespace MapProcessing
 
         private Point GetNewPositionNearParent(Map map, Creature creature)
         {
-            var random = map.GetRandom();
+            var candidates = GetValidNeighborPositions(map, creature);
+            if (candidates.Count == 0)
+            {
+                return creature.Location;
+            }
+
+            return smartGrazer
+                ? GetBestPlantSeekingPosition(map, creature, candidates)
+                : GetRandomPosition(map, candidates);
+        }
+
+        private static List<Point> GetValidNeighborPositions(Map map, Creature creature)
+        {
             var maxX = map.Width - creature.Size;
             var maxY = map.Height - creature.Size;
-            var chosen = creature.Location;
-            var freeCount = 0;
+            var candidates = new List<Point>(8);
 
             for (int directionY = -1; directionY <= 1; directionY++)
             {
@@ -96,7 +114,6 @@ namespace MapProcessing
                         continue;
                     }
 
-                    // Don't go back to where we just came from
                     if (newX == creature.PreviousLocation.X && newY == creature.PreviousLocation.Y)
                     {
                         continue;
@@ -107,15 +124,70 @@ namespace MapProcessing
                         continue;
                     }
 
-                    freeCount++;
-                    if (random.Next(freeCount) == 0)
+                    candidates.Add(new Point(newX, newY));
+                }
+            }
+
+            return candidates;
+        }
+
+        private static Point GetRandomPosition(Map map, List<Point> candidates)
+        {
+            var random = map.GetRandom();
+            return candidates[random.Next(candidates.Count)];
+        }
+
+        private static Point GetBestPlantSeekingPosition(Map map, Creature creature, List<Point> candidates)
+        {
+            var random = map.GetRandom();
+            var chosen = candidates[0];
+            var bestScore = -1;
+            var bestCount = 0;
+
+            foreach (var candidate in candidates)
+            {
+                var score = ScorePosition(map, creature, candidate.X, candidate.Y);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestCount = 1;
+                    chosen = candidate;
+                }
+                else if (score == bestScore)
+                {
+                    bestCount++;
+                    if (random.Next(bestCount) == 0)
                     {
-                        chosen = new Point(newX, newY);
+                        chosen = candidate;
                     }
                 }
             }
 
             return chosen;
+        }
+
+        private static int ScorePosition(Map map, Creature creature, int newX, int newY)
+        {
+            var score = 0;
+            var cellCount = map.Width * map.Height;
+
+            for (int y = 0; y < creature.Size; y++)
+            {
+                for (int x = 0; x < creature.Size; x++)
+                {
+                    var cellIndex = (newY + y) * map.Width + newX + x;
+                    if ((uint)cellIndex < (uint)cellCount)
+                    {
+                        var plant = map.GetPlantAt(cellIndex);
+                        if (plant != null)
+                        {
+                            score += plant.NutritionValue;
+                        }
+                    }
+                }
+            }
+
+            return score;
         }
 
     }

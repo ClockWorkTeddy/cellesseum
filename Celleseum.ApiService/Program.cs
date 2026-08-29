@@ -40,7 +40,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/turn/{width}/{height}", (int width, int height, string? mode, int terms = 3000) =>
+app.MapGet("/turn/{width}/{height}", (int width, int height, string? mode, int terms = 3000, int smartGrazer = 0) =>
 {
     var map = new Map(width, height);
 
@@ -48,7 +48,7 @@ app.MapGet("/turn/{width}/{height}", (int width, int height, string? mode, int t
         ? Proccessor.GameMode.Mutation
         : Proccessor.GameMode.Simple;
 
-    return Proccessor.ProcessMapFrames(map, terms, selectedMode);
+    return Proccessor.ProcessMapFrames(map, terms, selectedMode, smartGrazer != 0);
 })
 .WithName("NextTurn");
 

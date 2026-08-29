@@ -105,13 +105,23 @@
                         <InputCheckbox id="gapInput" class="setup-checkbox" @bind-Value="gapEnabled" />
                     </div>
                     <div class="setup-checkbox-pair">
-                        <span class="setup-icon" aria-hidden="true" data-label="Dynamic delay">
+                        <span class="setup-icon" aria-hidden="true" data-label="Speed up">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                                 <path d="M0 0h24v24H0z" fill="none" />
                                 <path fill="none" stroke="rgba(255,255,255,0.75)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m12 14l4-4M3.34 19a10 10 0 1 1 17.32 0" />
                             </svg>
                         </span>
                         <InputCheckbox id="dynamicDelayInput" class="setup-checkbox" @bind-Value="dynamicDelayEnabled" />
+                    </div>
+                    <div class="setup-checkbox-pair">
+                        <span class="setup-icon" aria-hidden="true" data-label="Smart grazers">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>
+                                <path d="M8 12h4" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M12 8l4 4-4 4" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <InputCheckbox id="smartGrazerInput" class="setup-checkbox" @bind-Value="smartGrazerEnabled" />
                     </div>
                 </div>
 
@@ -135,7 +145,7 @@
     private const int DefaultCellSize = 2;
     private const int DefaultAnimationDelayMilliseconds = 25;
     private const int MinAnimationDelayMilliseconds = 15;
-    private const long MaxComplexity = 1_000_000_000;
+    private const long MaxComplexity = 5_000_000_000;
     private const int MaxCanvasPixels = 1_000;
 
     [SupplyParameterFromQuery(Name = "mode")]
@@ -162,12 +172,16 @@
     [SupplyParameterFromQuery(Name = "dynamicDelay")]
     public int? DynamicDelay { get; set; }
 
+    [SupplyParameterFromQuery(Name = "smartGrazer")]
+    public int? SmartGrazer { get; set; }
+
     private int size = DefaultSize;
     private int terms = DefaultTerms;
     private int cellSize = DefaultCellSize;
     private int animationDelayMilliseconds = DefaultAnimationDelayMilliseconds;
     private bool gapEnabled = true;
     private bool dynamicDelayEnabled = true;
+    private bool smartGrazerEnabled;
 
     private int GapSize => gapEnabled ? 1 : 0;
 
@@ -246,6 +260,7 @@
         animationDelayMilliseconds = NormalizePositive(AnimationDelayMs, DefaultAnimationDelayMilliseconds);
         gapEnabled = Gap.GetValueOrDefault(1) != 0;
         dynamicDelayEnabled = DynamicDelay.GetValueOrDefault(1) != 0;
+        smartGrazerEnabled = SmartGrazer.GetValueOrDefault(0) != 0;
     }
 
     private void HandleBack()
@@ -265,9 +280,9 @@
             : "simple";
 
         var menuBackUrl = string.IsNullOrWhiteSpace(BackUrl) ? "/?mode=Menu" : BackUrl!;
-        var returnToSetup = $"/setup?mode={selectedMode}&backUrl={Uri.EscapeDataString(menuBackUrl)}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={( dynamicDelayEnabled ? 1 : 0)}";
+        var returnToSetup = $"/setup?mode={selectedMode}&backUrl={Uri.EscapeDataString(menuBackUrl)}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={( dynamicDelayEnabled ? 1 : 0)}&smartGrazer={(smartGrazerEnabled ? 1 : 0)}";
 
-        Navigation.NavigateTo($"/play?mode={selectedMode}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={(dynamicDelayEnabled ? 1 : 0)}&backUrl={Uri.EscapeDataString(returnToSetup)}");
+        Navigation.NavigateTo($"/play?mode={selectedMode}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={(dynamicDelayEnabled ? 1 : 0)}&smartGrazer={(smartGrazerEnabled ? 1 : 0)}&backUrl={Uri.EscapeDataString(returnToSetup)}");
     }
 
     private bool Validate(out string? error)

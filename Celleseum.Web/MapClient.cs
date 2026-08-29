@@ -5,10 +5,10 @@ namespace Celleseum.Web;
 
 public class MapClient(HttpClient httpClient)
 {
-    public async Task<List<AreaData>> GetMap(int width, int height, string mode = "simple", int terms = 3000, CancellationToken cancellationToken = default)
+    public async Task<List<AreaData>> GetMap(int width, int height, string mode = "simple", int terms = 3000, bool smartGrazer = false, CancellationToken cancellationToken = default)
     {
         var data = new List<AreaData>();
-        await foreach (var frame in GetMapStream(width, height, mode, terms, cancellationToken))
+        await foreach (var frame in GetMapStream(width, height, mode, terms, smartGrazer, cancellationToken))
         {
             data.Add(frame);
         }
@@ -16,10 +16,10 @@ public class MapClient(HttpClient httpClient)
         return data;
     }
 
-    public async IAsyncEnumerable<AreaData> GetMapStream(int width, int height, string mode = "simple", int terms = 3000, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<AreaData> GetMapStream(int width, int height, string mode = "simple", int terms = 3000, bool smartGrazer = false, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var encodedMode = Uri.EscapeDataString(mode);
-        var stream = httpClient.GetFromJsonAsAsyncEnumerable<AreaData>($"/turn/{width}/{height}?mode={encodedMode}&terms={terms}", cancellationToken);
+        var stream = httpClient.GetFromJsonAsAsyncEnumerable<AreaData>($"/turn/{width}/{height}?mode={encodedMode}&terms={terms}&smartGrazer={(smartGrazer ? 1 : 0)}", cancellationToken);
         await foreach (var frame in stream.WithCancellation(cancellationToken))
         {
             if (frame is not null)

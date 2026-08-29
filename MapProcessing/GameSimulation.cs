@@ -9,13 +9,14 @@ namespace MapProcessing
         protected readonly BreedProcessor breedProcessor;
         protected readonly InitialPopulationProcessor initialPopulationProcessor = new();
         protected readonly PlantSpawnerProcessor plantSpawner = new();
-        protected readonly MoveProcessor moveProcessor = new();
+        protected readonly MoveProcessor moveProcessor;
         protected readonly CleanupProcessor cleanupProcessor = new();
         protected readonly AgingProcessor agingProcessor = new();
 
-        protected GameSimulation(BreedProcessor breedProcessor)
+        protected GameSimulation(BreedProcessor breedProcessor, bool smartGrazer)
         {
             this.breedProcessor = breedProcessor;
+            moveProcessor = new MoveProcessor(smartGrazer);
         }
 
         protected virtual bool IncludeGrazerCountsBySaturation => true;

@@ -17,22 +17,22 @@ namespace MapProcessing
         /// <summary>
         /// Process the map simulation as a lazy enumerable (yields frames as generated).
         /// </summary>
-        public static IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 3000, GameMode mode = GameMode.Simple)
+        public static IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 3000, GameMode mode = GameMode.Simple, bool smartGrazer = false)
         {
-            var simulation = CreateSimulation(mode);
+            var simulation = CreateSimulation(mode, smartGrazer);
             return simulation.GenerateFrames(map, term);
         }
 
         /// <summary>
         /// Create the appropriate simulation strategy for the given game mode.
         /// </summary>
-        private static GameSimulation CreateSimulation(GameMode mode)
+        private static GameSimulation CreateSimulation(GameMode mode, bool smartGrazer)
         {
             return mode switch
             {
-                GameMode.Simple => new SimpleGameSimulation(),
-                GameMode.Mutation => new MutationGameSimulation(),
-                _ => new SimpleGameSimulation()
+                GameMode.Simple => new SimpleGameSimulation(smartGrazer),
+                GameMode.Mutation => new MutationGameSimulation(smartGrazer),
+                _ => new SimpleGameSimulation(smartGrazer)
             };
         }
     }

@@ -103,6 +103,9 @@
     [SupplyParameterFromQuery(Name = "dynamicDelay")]
     public int? DynamicDelay { get; set; }
 
+    [SupplyParameterFromQuery(Name = "smartGrazer")]
+    public int? SmartGrazer { get; set; }
+
     private IJSObjectReference? jsModule;
     private bool gridInitialized;
     private DotNetObjectReference<Play>? dotNetRef;
@@ -122,6 +125,7 @@
     private int gap;
     private int animationDelayMilliseconds;
     private bool dynamicDelayEnabled;
+    private bool smartGrazerEnabled;
     private string? setupError;
     private int[][]? plotBatch;
     private long plotBatchVersion;
@@ -172,6 +176,7 @@
         var requestedGap = Gap.GetValueOrDefault(DefaultGap) == 0 ? 0 : 1;
         var requestedAnimationDelay = AnimationDelayMs ?? DefaultAnimationDelayMilliseconds;
         dynamicDelayEnabled = DynamicDelay.GetValueOrDefault(1) != 0;
+        smartGrazerEnabled = SmartGrazer.GetValueOrDefault(0) != 0;
 
         if (!TryApplySetup(requestedSize, requestedTerms, requestedCellSize, requestedGap, requestedAnimationDelay, out var validationError))
         {
@@ -236,7 +241,7 @@
 
             // Phase 1: stream all frames from the server as they are computed,
             // updating the progress overlay every 50 frames so the user sees activity immediately.
-            await foreach (var frame in MapApi.GetMapStream(gridWidth, gridHeight, simulationMode, plotTerms))
+            await foreach (var frame in MapApi.GetMapStream(gridWidth, gridHeight, simulationMode, plotTerms, smartGrazerEnabled))
             {
                 data.Add(frame);
                 loadedFrames = data.Count;
@@ -435,7 +440,7 @@
         }
 
         var complexity = (long)requestedSize * requestedSize * requestedTerms;
-        if (complexity > 1_000_000_000)
+        if (complexity > 5_000_000_000)
         {
             error = "size × size × terms must be less than or equal to 1,000,000,000.";
             return false;

@@ -8,6 +8,7 @@ namespace MapProcessing
         {
             Id = guid;
             Location = location;
+            PreviousLocation = location;
             Type = type;
         }
 
@@ -16,6 +17,7 @@ namespace MapProcessing
         public int Size { get; protected set; }
         public virtual int NutritionValue { get; protected set; }
         public Point Location { get; set; }
+        public Point PreviousLocation { get; set; }
         public int Speed { get; set; }
         public int Age { get; set; }
         public bool Dead => Age > LifeSpan || Satiety <= 0;

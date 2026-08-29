@@ -168,9 +168,10 @@ function drawEmpty(config) {
 
 const players = new Map();
 
-export function startPlayback(canvasId, delay, dotNetRef) {
+export function startPlayback(canvasId, delay, dynamicDelay, dotNetRef) {
     players.set(canvasId, {
-        delay,
+        baseDelay: delay,
+        dynamicDelay,
         dotNetRef,
         queue: [],
         currentBatch: null,
@@ -291,7 +292,16 @@ function tickPlayer(canvasId) {
         player.frameInBatch = 0;
     }
 
-    player.timerId = setTimeout(() => tickPlayer(canvasId), player.delay);
+    const grazerCount = batch.grazerCounts[frame] || 1;
+    let frameDelay;
+    if (player.dynamicDelay) {
+        const maxGrazers = config.gridWidth * config.gridHeight / 100;
+        const t = Math.min(1, Math.max(0, (grazerCount - 1) / Math.max(1, maxGrazers - 1)));
+        frameDelay = Math.round(player.baseDelay + t * (15 - player.baseDelay));
+    } else {
+        frameDelay = player.baseDelay;
+    }
+    player.timerId = setTimeout(() => tickPlayer(canvasId), frameDelay);
 }
 
 export function pausePlayback(canvasId) {

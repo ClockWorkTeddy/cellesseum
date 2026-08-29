@@ -18,7 +18,7 @@
                 @* Field size *@
                 <div class="setup-field-group">
                     <div class="setup-field-row">
-                        <span class="setup-icon" aria-hidden="true">
+                        <span class="setup-icon" aria-hidden="true" data-label="Field size">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <rect x="3" y="3" width="7" height="7" rx="1" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>
                                 <rect x="14" y="3" width="7" height="7" rx="1" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>
@@ -39,7 +39,7 @@
                 @* Steps quantity *@
                 <div class="setup-field-group">
                     <div class="setup-field-row">
-                        <span class="setup-icon" aria-hidden="true">
+                        <span class="setup-icon" aria-hidden="true" data-label="Steps">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="rgba(255,255,255,0.75)" class="size-6">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3" />
                             </svg>
@@ -57,7 +57,7 @@
                 @* Cell size *@
                 <div class="setup-field-group">
                     <div class="setup-field-row">
-                        <span class="setup-icon" aria-hidden="true">
+                        <span class="setup-icon" aria-hidden="true" data-label="Cell size">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="rgba(255,255,255,0.75)" class="size-6">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
                             </svg>
@@ -75,7 +75,7 @@
                 @* Step delay *@
                 <div class="setup-field-group">
                     <div class="setup-field-row">
-                        <span class="setup-icon" aria-hidden="true">
+                        <span class="setup-icon" aria-hidden="true" data-label="Step delay">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>
                                 <polyline points="12,7 12,12 15.5,15.5" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -104,6 +104,21 @@
                         </span>
                         <InputCheckbox id="gapInput" class="setup-checkbox" @bind-Value="gapEnabled" />
                         <label class="setup-checkbox-label" for="gapInput">Use gridlines (1px/0px)</label>
+                    </div>
+                </div>
+
+                @* Dynamic delay *@
+                <div class="setup-field-group">
+                    <div class="setup-field-row setup-checkbox-row">
+                        <span class="setup-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>
+                                <polyline points="12,7 12,12 15.5,15.5" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M16 6 L18 4 M8 6 L6 4" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <InputCheckbox id="dynamicDelayInput" class="setup-checkbox" @bind-Value="dynamicDelayEnabled" />
+                        <label class="setup-checkbox-label" for="dynamicDelayInput">Dynamic delay</label>
                     </div>
                 </div>
 
@@ -151,11 +166,15 @@
     [SupplyParameterFromQuery(Name = "animationDelayMs")]
     public int? AnimationDelayMs { get; set; }
 
+    [SupplyParameterFromQuery(Name = "dynamicDelay")]
+    public int? DynamicDelay { get; set; }
+
     private int size = DefaultSize;
     private int terms = DefaultTerms;
     private int cellSize = DefaultCellSize;
     private int animationDelayMilliseconds = DefaultAnimationDelayMilliseconds;
     private bool gapEnabled = true;
+    private bool dynamicDelayEnabled = true;
 
     private int GapSize => gapEnabled ? 1 : 0;
 
@@ -233,6 +252,7 @@
         cellSize = NormalizePositive(CellSize, DefaultCellSize);
         animationDelayMilliseconds = NormalizePositive(AnimationDelayMs, DefaultAnimationDelayMilliseconds);
         gapEnabled = Gap.GetValueOrDefault(1) != 0;
+        dynamicDelayEnabled = DynamicDelay.GetValueOrDefault(1) != 0;
     }
 
     private void HandleBack()
@@ -252,9 +272,9 @@
             : "simple";
 
         var menuBackUrl = string.IsNullOrWhiteSpace(BackUrl) ? "/?mode=Menu" : BackUrl!;
-        var returnToSetup = $"/setup?mode={selectedMode}&backUrl={Uri.EscapeDataString(menuBackUrl)}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}";
+        var returnToSetup = $"/setup?mode={selectedMode}&backUrl={Uri.EscapeDataString(menuBackUrl)}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={( dynamicDelayEnabled ? 1 : 0)}";
 
-        Navigation.NavigateTo($"/play?mode={selectedMode}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&backUrl={Uri.EscapeDataString(returnToSetup)}");
+        Navigation.NavigateTo($"/play?mode={selectedMode}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={(dynamicDelayEnabled ? 1 : 0)}&backUrl={Uri.EscapeDataString(returnToSetup)}");
     }
 
     private bool Validate(out string? error)

@@ -36,6 +36,9 @@ namespace MapProcessing
             // Only clear the old area
             MapAreaHelper.ClearArea(map, creature);
 
+            // Remember where we came from before updating location
+            creature.PreviousLocation = oldLocation;
+
             // Update location and fill new area
             creature.Location = newLocation;
             if (creature is Grazer grazer2)
@@ -89,6 +92,12 @@ namespace MapProcessing
                     var newY = creature.Location.Y + directionY * creature.Speed;
 
                     if ((uint)newX > (uint)maxX || (uint)newY > (uint)maxY)
+                    {
+                        continue;
+                    }
+
+                    // Don't go back to where we just came from
+                    if (newX == creature.PreviousLocation.X && newY == creature.PreviousLocation.Y)
                     {
                         continue;
                     }

@@ -14,9 +14,13 @@
 }
 
 /* Global base */
+input, textarea, select, button {
+    font-family: inherit;
+}
+
 html, body {
     margin: 0;
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    font-family: 'SF Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
     color: var(--text);
 }
 
@@ -1123,6 +1127,7 @@ h1:focus { outline: none; }
     width: 280px;
     height: 30px;
     border-radius: 12px;
+    overflow: visible;
 }
 
 .setup-icon {
@@ -1132,6 +1137,22 @@ h1:focus { outline: none; }
     flex: none;
     width: 24px;
     height: 24px;
+    position: relative;
+}
+
+.setup-icon[data-label]::after {
+    content: attr(data-label);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 3px;
+    font-size: 9px;
+    font-weight: 400;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+    pointer-events: none;
 }
 
 .setup-input-wrap {
@@ -1149,7 +1170,7 @@ h1:focus { outline: none; }
     right: 1px;
     bottom: 1px;
     width: 28px;
-    background: rgb(12, 21, 36, 0.95);
+    background: rgb(12, 21, 36, 0.99);
     border-radius: 0 4px 4px 0;
     pointer-events: none;
     z-index: 2;

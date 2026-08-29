@@ -100,6 +100,9 @@
     [SupplyParameterFromQuery(Name = "animationDelayMs")]
     public int? AnimationDelayMs { get; set; }
 
+    [SupplyParameterFromQuery(Name = "dynamicDelay")]
+    public int? DynamicDelay { get; set; }
+
     private IJSObjectReference? jsModule;
     private bool gridInitialized;
     private DotNetObjectReference<Play>? dotNetRef;
@@ -118,6 +121,7 @@
     private int cellSize;
     private int gap;
     private int animationDelayMilliseconds;
+    private bool dynamicDelayEnabled;
     private string? setupError;
     private int[][]? plotBatch;
     private long plotBatchVersion;
@@ -167,6 +171,7 @@
         var requestedCellSize = CellSize ?? DefaultCellSize;
         var requestedGap = Gap.GetValueOrDefault(DefaultGap) == 0 ? 0 : 1;
         var requestedAnimationDelay = AnimationDelayMs ?? DefaultAnimationDelayMilliseconds;
+        dynamicDelayEnabled = DynamicDelay.GetValueOrDefault(1) != 0;
 
         if (!TryApplySetup(requestedSize, requestedTerms, requestedCellSize, requestedGap, requestedAnimationDelay, out var validationError))
         {
@@ -259,7 +264,7 @@
             playbackCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dotNetRef ??= DotNetObjectReference.Create(this);
 
-            await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", animationDelayMilliseconds, dotNetRef);
+            await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", animationDelayMilliseconds, dynamicDelayEnabled, dotNetRef);
 
             for (var i = 0; i < data.Count; i += BatchSize)
             {

@@ -91,10 +91,10 @@
                     </div>
                 </div>
 
-                @* Use gridlines *@
-                <div class="setup-field-group">
-                    <div class="setup-field-row setup-checkbox-row">
-                        <span class="setup-icon" aria-hidden="true">
+                @* Checkboxes: gridlines + dynamic delay — horizontal row *@
+                <div class="setup-checkboxes-row">
+                    <div class="setup-checkbox-pair">
+                        <span class="setup-icon" aria-hidden="true" data-label="Grid lines">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <line x1="9" y1="4" x2="9" y2="20" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round"/>
                                 <line x1="15" y1="4" x2="15" y2="20" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round"/>
@@ -103,22 +103,15 @@
                             </svg>
                         </span>
                         <InputCheckbox id="gapInput" class="setup-checkbox" @bind-Value="gapEnabled" />
-                        <label class="setup-checkbox-label" for="gapInput">Use gridlines (1px/0px)</label>
                     </div>
-                </div>
-
-                @* Dynamic delay *@
-                <div class="setup-field-group">
-                    <div class="setup-field-row setup-checkbox-row">
-                        <span class="setup-icon" aria-hidden="true">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.75)" stroke-width="1.5"/>
-                                <polyline points="12,7 12,12 15.5,15.5" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M16 6 L18 4 M8 6 L6 4" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round"/>
+                    <div class="setup-checkbox-pair">
+                        <span class="setup-icon" aria-hidden="true" data-label="Dynamic delay">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                <path d="M0 0h24v24H0z" fill="none" />
+                                <path fill="none" stroke="rgba(255,255,255,0.75)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m12 14l4-4M3.34 19a10 10 0 1 1 17.32 0" />
                             </svg>
                         </span>
                         <InputCheckbox id="dynamicDelayInput" class="setup-checkbox" @bind-Value="dynamicDelayEnabled" />
-                        <label class="setup-checkbox-label" for="dynamicDelayInput">Dynamic delay</label>
                     </div>
                 </div>
 

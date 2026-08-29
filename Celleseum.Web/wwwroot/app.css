@@ -1235,6 +1235,21 @@ h1:focus { outline: none; }
 }
 
 /* Checkbox row */
+.setup-checkboxes-row {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    padding: 0 5px;
+    width: 280px;
+    flex-wrap: wrap;
+}
+
+.setup-checkbox-pair {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .setup-checkbox-row {
     justify-content: flex-start;
     gap: 16px;

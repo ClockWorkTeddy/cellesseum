@@ -1,6 +1,7 @@
 using Celleseum.ApiService;
 using Celleseum.Data;
 using MapProcessing;
+using MessagePack;
 using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +52,35 @@ app.MapGet("/turn/{width}/{height}", (int width, int height, string? mode, int t
     return Proccessor.ProcessMapFrames(map, terms, selectedMode, smartGrazer != 0);
 })
 .WithName("NextTurn");
+
+app.MapGet("/turn/{width}/{height}/download", (int width, int height, string? mode, int terms = 3000, int smartGrazer = 0) =>
+{
+    var map = new Map(width, height);
+
+    var selectedMode = string.Equals(mode, "mutation", StringComparison.OrdinalIgnoreCase)
+        ? Proccessor.GameMode.Mutation
+        : Proccessor.GameMode.Simple;
+
+    var export = new MapExport
+    {
+        Width = width,
+        Height = height,
+        Mode = selectedMode.ToString().ToLowerInvariant(),
+        Terms = terms,
+        Frames = Proccessor.ProcessMapFrames(map, terms, selectedMode, smartGrazer != 0).ToList()
+    };
+
+    var options = MessagePackSerializerOptions.Standard
+        .WithCompression(MessagePackCompression.Lz4BlockArray);
+
+    var bytes = MessagePackSerializer.Serialize(export, options);
+
+    return Results.File(
+        bytes,
+        "application/x-msgpack",
+        $"map-{width}x{height}-{DateTime.UtcNow:yyyyMMddHHmmss}.mpk");
+})
+.WithName("DownloadTurn");
 
 app.MapDefaultEndpoints();
 

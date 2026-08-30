@@ -354,4 +354,36 @@ app.MapGet("/Account/Logout", async (HttpContext context, SignInManager<Applicat
     return Results.Redirect(target);
 });
 
+app.MapGet("/turn/{width:int}/{height:int}/download", async (int width, int height, string? mode, MapClient mapClient, CancellationToken cancellationToken, int terms = 3000, int smartGrazer = 0) =>
+{
+    var simulationMode = string.Equals(mode, "mutation", StringComparison.OrdinalIgnoreCase)
+        ? "mutation"
+        : "simple";
+
+    HttpResponseMessage response;
+    try
+    {
+        response = await mapClient.GetMapDownloadResponse(width, height, simulationMode, terms, smartGrazer != 0, cancellationToken);
+    }
+    catch (HttpRequestException)
+    {
+        return Results.StatusCode(StatusCodes.Status502BadGateway);
+    }
+
+    using var _ = response;
+
+    if (!response.IsSuccessStatusCode)
+    {
+        return Results.StatusCode((int)response.StatusCode);
+    }
+
+    var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+    var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+        ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+        ?? $"map-{width}x{height}.mpk";
+
+    var payload = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    return Results.File(payload, contentType, fileName);
+});
+
 await app.RunAsync();

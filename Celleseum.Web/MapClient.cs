@@ -28,6 +28,18 @@ public class MapClient(HttpClient httpClient)
             }
         }
     }
+
+    public string GetDownloadUrl(int width, int height, string mode = "simple", int terms = 3000, bool smartGrazer = false)
+    {
+        var encodedMode = Uri.EscapeDataString(mode);
+        return $"/turn/{width}/{height}/download?mode={encodedMode}&terms={terms}&smartGrazer={(smartGrazer ? 1 : 0)}";
+    }
+
+    public Task<HttpResponseMessage> GetMapDownloadResponse(int width, int height, string mode = "simple", int terms = 3000, bool smartGrazer = false, CancellationToken cancellationToken = default)
+    {
+        var url = GetDownloadUrl(width, height, mode, terms, smartGrazer);
+        return httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+    }
 }
 
 public record NumberSet

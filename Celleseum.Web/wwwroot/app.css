@@ -340,6 +340,12 @@ body {
     border-radius: 7px;
 }
 
+.service-button-extra-small {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+}
+
 .service-button-small svg {
     width: 16px;
     height: 16px;

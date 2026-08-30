@@ -35,7 +35,8 @@
           CurrentStep="@currentFrame"
           PlantCount="@CurrentFrame?.PlantCount"
           GrazerCount="@CurrentFrame?.GrazerCount"
-          NormalizedScore="@CurrentFrame?.NormalizedScore" />
+          NormalizedScore="@CurrentFrame?.NormalizedScore"
+          DownloadUrl="@(showDownloadButton ? downloadUrl : null)" />
         @if (isLoading)
         {
             <div class="sim-loading-overlay">
@@ -116,6 +117,8 @@
     private bool isAnimating;
     private bool isPaused;
     private bool isCompleted;
+    private bool showDownloadButton;
+    private string? downloadUrl;
     private readonly List<AreaData> data = new();
     private int currentFrame;
     private int nextFrameStart;
@@ -218,6 +221,8 @@
         loadedFrames = 0;
         isCompleted = false;
         isPaused = false;
+        showDownloadButton = false;
+        downloadUrl = null;
 
         data.Clear();
         currentFrame = 0;
@@ -269,7 +274,10 @@
             playbackCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dotNetRef ??= DotNetObjectReference.Create(this);
 
+            downloadUrl = MapApi.GetDownloadUrl(gridWidth, gridHeight, simulationMode, plotTerms, smartGrazerEnabled);
             await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", animationDelayMilliseconds, dynamicDelayEnabled, dotNetRef);
+            showDownloadButton = isAnimating;
+            await InvokeAsync(StateHasChanged);
 
             for (var i = 0; i < data.Count; i += BatchSize)
             {

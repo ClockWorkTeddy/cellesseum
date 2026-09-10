@@ -6,6 +6,12 @@ namespace MapProcessing
     public class MutationBreedProcessor : BreedProcessor
     {
         private readonly Random _random = new Random();
+        private readonly byte _maxSaturation;
+
+        public MutationBreedProcessor(int generations)
+        {
+            _maxSaturation = (byte)Math.Clamp(generations, 1, byte.MaxValue - 1);
+        }
 
         public override (byte saturation, sbyte direction) GetMutationValues(Grazer parent)
         {
@@ -13,9 +19,9 @@ namespace MapProcessing
             sbyte direction = parent.SaturationDirection;
 
             var randomValue = _random.Next(0, 100);
-            if (randomValue > 94)  // 3% mutation chance
+            if (randomValue > 90)
             {
-                if (saturation == 7)
+                if (saturation >= _maxSaturation)
                 {
                     direction = 0;
                 }

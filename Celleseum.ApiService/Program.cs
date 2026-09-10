@@ -41,7 +41,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/turn/{width}/{height}", (int width, int height, string? mode, int terms = 3000, int smartGrazer = 0) =>
+app.MapGet("/turn/{width}/{height}", (int width, int height, string? mode, int terms = 3000, int smartGrazer = 0, int generations = 2) =>
 {
     var map = new Map(width, height);
 
@@ -49,11 +49,11 @@ app.MapGet("/turn/{width}/{height}", (int width, int height, string? mode, int t
         ? Proccessor.GameMode.Mutation
         : Proccessor.GameMode.Simple;
 
-    return Proccessor.ProcessMapFrames(map, terms, selectedMode, smartGrazer != 0);
+    return Proccessor.ProcessMapFrames(map, terms, selectedMode, smartGrazer != 0, generations);
 })
 .WithName("NextTurn");
 
-app.MapGet("/turn/{width}/{height}/download", (int width, int height, string? mode, int terms = 3000, int smartGrazer = 0) =>
+app.MapGet("/turn/{width}/{height}/download", (int width, int height, string? mode, int terms = 3000, int smartGrazer = 0, int generations = 2) =>
 {
     var map = new Map(width, height);
 
@@ -67,7 +67,7 @@ app.MapGet("/turn/{width}/{height}/download", (int width, int height, string? mo
         Height = height,
         Mode = selectedMode.ToString().ToLowerInvariant(),
         Terms = terms,
-        Frames = Proccessor.ProcessMapFrames(map, terms, selectedMode, smartGrazer != 0).ToList()
+        Frames = Proccessor.ProcessMapFrames(map, terms, selectedMode, smartGrazer != 0, generations).ToList()
     };
 
     var options = MessagePackSerializerOptions.Standard

@@ -54,6 +54,26 @@
                     </div>
                 </div>
 
+                @if (string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase))
+                {
+                    <div class="setup-field-group">
+                        <div class="setup-field-row">
+                            <span class="setup-icon" aria-hidden="true" data-label="Generations">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="rgba(255,255,255,0.75)" class="size-6">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 8.25h18M4.5 21h15a1.5 1.5 0 0 0 1.5-1.5V8.25H3v11.25A1.5 1.5 0 0 0 4.5 21ZM9 12h6m-6 3h6" />
+                                </svg>
+                            </span>
+                            <div class="setup-input-wrap">
+                                <input id="generationsInput" type="number" class="setup-input" placeholder="Generations" autocomplete="off"
+                                       value="@generations" @oninput="e => { if (int.TryParse(e.Value?.ToString(), out var v)) generations = v; }" />
+                            </div>
+                        </div>
+                        <div class="setup-hint-row">
+                            <span class="setup-hint">Max grazer saturation level</span>
+                        </div>
+                    </div>
+                }
+
                 @* Cell size *@
                 <div class="setup-field-group">
                     <div class="setup-field-row">
@@ -143,6 +163,7 @@
     private const int DefaultSize = 200;
     private const int DefaultTerms = 100;
     private const int DefaultCellSize = 2;
+    private const int DefaultGenerations = 2;
     private const int DefaultAnimationDelayMilliseconds = 25;
     private const int MinAnimationDelayMilliseconds = 15;
     private const long MaxComplexity = 5_000_000_000;
@@ -175,9 +196,13 @@
     [SupplyParameterFromQuery(Name = "smartGrazer")]
     public int? SmartGrazer { get; set; }
 
+    [SupplyParameterFromQuery(Name = "generations")]
+    public int? Generations { get; set; }
+
     private int size = DefaultSize;
     private int terms = DefaultTerms;
     private int cellSize = DefaultCellSize;
+    private int generations = DefaultGenerations;
     private int animationDelayMilliseconds = DefaultAnimationDelayMilliseconds;
     private bool gapEnabled = true;
     private bool dynamicDelayEnabled = true;
@@ -257,6 +282,7 @@
         size = NormalizePositive(Size, DefaultSize);
         terms = NormalizePositive(Terms, DefaultTerms);
         cellSize = NormalizePositive(CellSize, DefaultCellSize);
+        generations = NormalizePositive(Generations, DefaultGenerations);
         animationDelayMilliseconds = NormalizePositive(AnimationDelayMs, DefaultAnimationDelayMilliseconds);
         gapEnabled = Gap.GetValueOrDefault(1) != 0;
         dynamicDelayEnabled = DynamicDelay.GetValueOrDefault(1) != 0;
@@ -280,9 +306,9 @@
             : "simple";
 
         var menuBackUrl = string.IsNullOrWhiteSpace(BackUrl) ? "/?mode=Menu" : BackUrl!;
-        var returnToSetup = $"/setup?mode={selectedMode}&backUrl={Uri.EscapeDataString(menuBackUrl)}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={( dynamicDelayEnabled ? 1 : 0)}&smartGrazer={(smartGrazerEnabled ? 1 : 0)}";
+        var returnToSetup = $"/setup?mode={selectedMode}&backUrl={Uri.EscapeDataString(menuBackUrl)}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={( dynamicDelayEnabled ? 1 : 0)}&smartGrazer={(smartGrazerEnabled ? 1 : 0)}&generations={generations}";
 
-        Navigation.NavigateTo($"/play?mode={selectedMode}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={(dynamicDelayEnabled ? 1 : 0)}&smartGrazer={(smartGrazerEnabled ? 1 : 0)}&backUrl={Uri.EscapeDataString(returnToSetup)}");
+        Navigation.NavigateTo($"/play?mode={selectedMode}&size={size}&terms={terms}&cellSize={cellSize}&gap={GapSize}&animationDelayMs={animationDelayMilliseconds}&dynamicDelay={(dynamicDelayEnabled ? 1 : 0)}&smartGrazer={(smartGrazerEnabled ? 1 : 0)}&generations={generations}&backUrl={Uri.EscapeDataString(returnToSetup)}");
     }
 
     private bool Validate(out string? error)
@@ -302,6 +328,12 @@
         if (cellSize <= 0)
         {
             error = "Cell size must be greater than 0.";
+            return false;
+        }
+
+        if (string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase) && generations <= 0)
+        {
+            error = "Generations must be greater than 0.";
             return false;
         }
 

@@ -354,7 +354,7 @@ app.MapGet("/Account/Logout", async (HttpContext context, SignInManager<Applicat
     return Results.Redirect(target);
 });
 
-app.MapGet("/turn/{width:int}/{height:int}/download", async (int width, int height, string? mode, MapClient mapClient, CancellationToken cancellationToken, int terms = 3000, int smartGrazer = 0) =>
+app.MapGet("/turn/{width:int}/{height:int}/download", async (int width, int height, string? mode, MapClient mapClient, CancellationToken cancellationToken, int terms = 3000, int smartGrazer = 0, int generations = 2) =>
 {
     var simulationMode = string.Equals(mode, "mutation", StringComparison.OrdinalIgnoreCase)
         ? "mutation"
@@ -363,7 +363,7 @@ app.MapGet("/turn/{width:int}/{height:int}/download", async (int width, int heig
     HttpResponseMessage response;
     try
     {
-        response = await mapClient.GetMapDownloadResponse(width, height, simulationMode, terms, smartGrazer != 0, cancellationToken);
+        response = await mapClient.GetMapDownloadResponse(width, height, simulationMode, terms, smartGrazer != 0, generations, cancellationToken);
     }
     catch (HttpRequestException)
     {

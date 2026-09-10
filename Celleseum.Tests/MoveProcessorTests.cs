@@ -32,12 +32,12 @@ public class MoveProcessorTests
     }
 
     [Fact]
-    public void MutationSmartMovementIsOnlyEnabledForSaturationSeven()
+    public void MutationSmartMovementUsesGenerationAwareThreshold()
     {
         var mutationMoveProcessor = new TestableMutationMoveProcessor(smartGrazer: true);
 
-        Assert.False(mutationMoveProcessor.ShouldUseSmartMovementFor(new Grazer(new Point(0, 0), Guid.NewGuid(), saturation: 6)));
-        Assert.True(mutationMoveProcessor.ShouldUseSmartMovementFor(new Grazer(new Point(0, 0), Guid.NewGuid(), saturation: 7)));
+        Assert.False(mutationMoveProcessor.ShouldUseSmartMovementFor(new Grazer(new Point(0, 0), Guid.NewGuid(), saturation: 0)));
+        Assert.True(mutationMoveProcessor.ShouldUseSmartMovementFor(new Grazer(new Point(0, 0), Guid.NewGuid(), saturation: 1)));
     }
 
     [Fact]

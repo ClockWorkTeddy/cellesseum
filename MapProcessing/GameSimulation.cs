@@ -20,6 +20,7 @@ namespace MapProcessing
         }
 
         protected virtual bool IncludeGrazerCountsBySaturation => true;
+        protected virtual int GrazerSaturationLevelCount => 8;
 
         /// <summary>
         /// Generate simulation frames over the specified number of epochs.
@@ -31,7 +32,7 @@ namespace MapProcessing
             for (int i = 0; i < term && map.HasGrazers(); i++)
             {
                 ExecuteEpoch(map);
-                yield return map.SnapShotArea(IncludeGrazerCountsBySaturation);
+                yield return map.SnapShotArea(IncludeGrazerCountsBySaturation, GrazerSaturationLevelCount);
                 map.IncrementEpoch();
             }
         }

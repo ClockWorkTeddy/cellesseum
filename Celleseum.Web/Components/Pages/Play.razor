@@ -57,15 +57,16 @@
           OnTogglePause="TogglePause"
           OnStepPlayback="StepPlayback" />
         <Telemetry
-          IsAnimating="@isAnimating"
-          IsCompleted="@isCompleted"
-          GameMode="@CurrentGameMode"
-          PlotBatch="@plotBatch"
-          PlotBatchVersion="@plotBatchVersion"
-          PlotResetVersion="@plotResetVersion"
-          GrazerPlotWindowSize="@grazerPlotWindowSize"
-          GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
-          Terms="@plotTerms" />
+         IsAnimating="@isAnimating"
+         IsCompleted="@isCompleted"
+         GameMode="@CurrentGameMode"
+         PlotBatch="@plotBatch"
+         PlotBatchVersion="@plotBatchVersion"
+         PlotResetVersion="@plotResetVersion"
+         GrazerPlotWindowSize="@grazerPlotWindowSize"
+         GrazerCountsBySaturation="@CurrentFrame?.GrazerCountsBySaturation"
+         GrazerSaturationLevelCount="@GrazerSaturationLevelCount"
+         Terms="@plotTerms" />
     </main>
 </div>
 
@@ -76,11 +77,11 @@
     private const int DefaultCellSize = 2;
     private const int DefaultGap = 1;
     private const int DefaultAnimationDelayMilliseconds = 25;
+    private const int DefaultGenerations = 2;
     private const int MinAnimationDelayMilliseconds = 15;
     private const int LineEvery = 1;
     private const int InitialBufferSize = 50;
     private const int BatchSize = 150;
-    private const int GrazerSaturationLevelCount = 8;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "mode")]
@@ -110,6 +111,9 @@
     [SupplyParameterFromQuery(Name = "smartGrazer")]
     public int? SmartGrazer { get; set; }
 
+    [SupplyParameterFromQuery(Name = "generations")]
+    public int? Generations { get; set; }
+
     private IJSObjectReference? jsModule;
     private bool gridInitialized;
     private DotNetObjectReference<Play>? dotNetRef;
@@ -133,6 +137,7 @@
     private int animationDelayMilliseconds;
     private bool dynamicDelayEnabled;
     private bool smartGrazerEnabled;
+    private int generations;
     private string? setupError;
     private int[][]? plotBatch;
     private long plotBatchVersion;
@@ -141,22 +146,35 @@
     private int? grazerPlotWindowSize;
     private readonly List<int> plantPlotHistory = new();
     private readonly List<int> grazerPlotHistory = new();
-    private readonly List<int>[] grazerSaturationPlotHistory = CreatePlotHistorySeries(GrazerSaturationLevelCount);
+    private readonly List<List<int>> grazerSaturationPlotHistory = new();
 
     private GameMode CurrentGameMode =>
         string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
             ? GameMode.Mutation
             : GameMode.Simple;
 
-    private static List<int>[] CreatePlotHistorySeries(int count)
+    private int GrazerSaturationLevelCount => CurrentGameMode == GameMode.Mutation
+        ? Math.Max(1, generations + 1)
+        : 0;
+
+    private void EnsureGrazerSaturationHistory()
     {
-        var series = new List<int>[count];
-        for (var i = 0; i < count; i++)
+        var targetCount = GrazerSaturationLevelCount;
+        if (targetCount <= 0)
         {
-            series[i] = new List<int>();
+            grazerSaturationPlotHistory.Clear();
+            return;
         }
 
-        return series;
+        while (grazerSaturationPlotHistory.Count < targetCount)
+        {
+            grazerSaturationPlotHistory.Add(new List<int>());
+        }
+
+        if (grazerSaturationPlotHistory.Count > targetCount)
+        {
+            grazerSaturationPlotHistory.RemoveRange(targetCount, grazerSaturationPlotHistory.Count - targetCount);
+        }
     }
 
     private AreaData? CurrentFrame =>
@@ -188,10 +206,11 @@
         var requestedCellSize = CellSize ?? DefaultCellSize;
         var requestedGap = Gap.GetValueOrDefault(DefaultGap) == 0 ? 0 : 1;
         var requestedAnimationDelay = AnimationDelayMs ?? DefaultAnimationDelayMilliseconds;
+        var requestedGenerations = Generations ?? DefaultGenerations;
         dynamicDelayEnabled = DynamicDelay.GetValueOrDefault(1) != 0;
         smartGrazerEnabled = SmartGrazer.GetValueOrDefault(0) != 0;
 
-        if (!TryApplySetup(requestedSize, requestedTerms, requestedCellSize, requestedGap, requestedAnimationDelay, out var validationError))
+        if (!TryApplySetup(requestedSize, requestedTerms, requestedCellSize, requestedGap, requestedAnimationDelay, requestedGenerations, out var validationError))
         {
             setupError = validationError;
             gridWidth = DefaultSize;
@@ -200,7 +219,10 @@
             cellSize = DefaultCellSize;
             gap = DefaultGap;
             animationDelayMilliseconds = DefaultAnimationDelayMilliseconds;
+            generations = DefaultGenerations;
         }
+
+        EnsureGrazerSaturationHistory();
 
         var legacyPlotWindowSize = Configuration.GetValue<int?>("Plot:WindowSize");
         grazerPlotWindowSize = Configuration.GetValue<int?>("Plot:GrazersWindowSize") ?? legacyPlotWindowSize;
@@ -239,7 +261,8 @@
         nextFrameStart = 0;
         plantPlotHistory.Clear();
         grazerPlotHistory.Clear();
-        for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
+        EnsureGrazerSaturationHistory();
+        for (var saturation = 0; saturation < grazerSaturationPlotHistory.Count; saturation++)
         {
             grazerSaturationPlotHistory[saturation].Clear();
         }
@@ -256,7 +279,7 @@
 
             // Phase 1: stream all frames from the server as they are computed,
             // updating the progress overlay every 50 frames so the user sees activity immediately.
-            await foreach (var frame in MapApi.GetMapStream(gridWidth, gridHeight, simulationMode, plotTerms, smartGrazerEnabled))
+            await foreach (var frame in MapApi.GetMapStream(gridWidth, gridHeight, simulationMode, plotTerms, smartGrazerEnabled, generations))
             {
                 data.Add(frame);
                 loadedFrames = data.Count;
@@ -286,7 +309,7 @@
             playbackCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dotNetRef ??= DotNetObjectReference.Create(this);
 
-            await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", animationDelayMilliseconds, dynamicDelayEnabled, dotNetRef);
+            await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", animationDelayMilliseconds, dynamicDelayEnabled, simulationMode, generations, dotNetRef);
             await InvokeAsync(StateHasChanged);
 
             for (var i = 0; i < data.Count; i += BatchSize)
@@ -395,9 +418,10 @@
         var plantCounts = new int[batch.Count];
         var grazerCounts = new int[batch.Count];
         var score = new int[batch.Count];
-        var grazerSaturationCounts = new int[GrazerSaturationLevelCount][];
+        var saturationLevelCount = grazerSaturationPlotHistory.Count;
+        var grazerSaturationCounts = new int[saturationLevelCount][];
 
-        for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
+        for (var saturation = 0; saturation < saturationLevelCount; saturation++)
         {
             grazerSaturationCounts[saturation] = new int[batch.Count];
         }
@@ -411,7 +435,7 @@
 
             if (frame.GrazerCountsBySaturation is not null)
             {
-                var saturationCount = Math.Min(frame.GrazerCountsBySaturation.Length, GrazerSaturationLevelCount);
+                var saturationCount = Math.Min(frame.GrazerCountsBySaturation.Length, saturationLevelCount);
                 for (var saturation = 0; saturation < saturationCount; saturation++)
                 {
                     grazerSaturationCounts[saturation][i] = frame.GrazerCountsBySaturation[saturation];
@@ -432,14 +456,14 @@
 
         plantPlotHistory.AddRange(plantCounts);
         grazerPlotHistory.AddRange(grazerCounts);
-        for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
+        for (var saturation = 0; saturation < saturationLevelCount; saturation++)
         {
             grazerSaturationPlotHistory[saturation].AddRange(grazerSaturationCounts[saturation]);
         }
 
         // Build unified plot snapshot to avoid losing batches when renders are coalesced.
         var plotRowCount = CurrentGameMode == GameMode.Mutation
-            ? 2 + GrazerSaturationLevelCount
+            ? 1 + saturationLevelCount
             : 2;
         var unifiedPlotBatch = new int[plotRowCount][];
         unifiedPlotBatch[0] = plantPlotHistory.ToArray();
@@ -450,9 +474,9 @@
         }
         else
         {
-            for (var i = 0; i < GrazerSaturationLevelCount; i++)
+            for (var i = 0; i < saturationLevelCount; i++)
             {
-                unifiedPlotBatch[i + 2] = grazerSaturationPlotHistory[i].ToArray();
+                unifiedPlotBatch[i + 1] = grazerSaturationPlotHistory[i].ToArray();
             }
         }
 
@@ -461,7 +485,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private bool TryApplySetup(int requestedSize, int requestedTerms, int requestedCellSize, int requestedGap, int requestedAnimationDelay, out string? error)
+    private bool TryApplySetup(int requestedSize, int requestedTerms, int requestedCellSize, int requestedGap, int requestedAnimationDelay, int requestedGenerations, out string? error)
     {
         if (requestedSize <= 0)
         {
@@ -493,6 +517,12 @@
             return false;
         }
 
+        if (string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase) && requestedGenerations <= 0)
+        {
+            error = "Generations must be greater than 0.";
+            return false;
+        }
+
         var complexity = (long)requestedSize * requestedSize * requestedTerms;
         if (complexity > 5_000_000_000)
         {
@@ -513,6 +543,9 @@
         cellSize = requestedCellSize;
         gap = requestedGap;
         animationDelayMilliseconds = requestedAnimationDelay;
+        generations = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
+            ? requestedGenerations
+            : DefaultGenerations;
         error = null;
         return true;
     }

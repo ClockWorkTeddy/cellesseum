@@ -7,40 +7,51 @@
  */
 
 const grids = new Map();
-// Grazer palette pre-packed as Uint32 RGBA words (little-endian: 0xAABBGGRR)
-// One word per palette entry — no string allocation or CSS parsing per cell.
-const grazerPaletteU32 = (() => {
-    const anchors = [
-        [0x80, 0xFF, 0x00],
-        [0xFF, 0xFF, 0x00],
-        [0xFF, 0x00, 0x00],
-        [0xFF, 0x00, 0xFF],
-        [0x00, 0x00, 0xFF],
-        [0x00, 0xFF, 0x80]
-    ];
 
-    const palette = new Uint32Array(8);
-    const segmentCount = anchors.length - 1;
+function hueToRgbWord(hueDegrees) {
+    const h = ((hueDegrees % 360) + 360) % 360;
+    const c = 1;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
 
-    for (let i = 0; i < 8; i++) {
-        const t = i / 7;
-        const segmentFloat = t * segmentCount;
-        const segment = Math.min(segmentCount - 1, Math.floor(segmentFloat));
-        const localT = segmentFloat - segment;
+    let r1 = 0;
+    let g1 = 0;
+    let b1 = 0;
 
-        const from = anchors[segment];
-        const to   = anchors[segment + 1];
+    if (h < 60) {
+        r1 = c; g1 = x;
+    } else if (h < 120) {
+        r1 = x; g1 = c;
+    } else if (h < 180) {
+        g1 = c; b1 = x;
+    } else if (h < 240) {
+        g1 = x; b1 = c;
+    } else if (h < 300) {
+        r1 = x; b1 = c;
+    } else {
+        r1 = c; b1 = x;
+    }
 
-        const r = Math.round(from[0] + (to[0] - from[0]) * localT);
-        const g = Math.round(from[1] + (to[1] - from[1]) * localT);
-        const b = Math.round(from[2] + (to[2] - from[2]) * localT);
+    const r = Math.round(r1 * 255);
+    const g = Math.round(g1 * 255);
+    const b = Math.round(b1 * 255);
 
-        // little-endian RGBA: byte order R,G,B,A → Uint32 = A<<24 | B<<16 | G<<8 | R
-        palette[i] = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
+    // little-endian RGBA: byte order R,G,B,A → Uint32 = A<<24 | B<<16 | G<<8 | R
+    return ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
+}
+
+function buildMutationPalette(maxGeneration) {
+    const generationCount = Math.max(1, Number(maxGeneration) | 0) + 1;
+    const sections = generationCount + 1; // generations + 2 slots including plant anchor
+    const sectionAngle = 360 / sections;
+    const palette = new Uint32Array(generationCount);
+
+    for (let generation = 0; generation < generationCount; generation++) {
+        const hue = 120 - sectionAngle * (generation + 1);
+        palette[generation] = hueToRgbWord(hue);
     }
 
     return palette;
-})();
+}
 
 export function initCanvas(canvasId, gridWidth, gridHeight, cellSize, gap, lineEvery) {
     const canvas = document.getElementById(canvasId);
@@ -60,7 +71,7 @@ export function initCanvas(canvasId, gridWidth, gridHeight, cellSize, gap, lineE
     return true;
 }
 
-export function drawFrame(canvasId, frameData, saturationData) {
+export function drawFrame(canvasId, frameData, saturationData, mode = "simple", mutationPalette = null) {
     const config = grids.get(canvasId);
     if (!config) return;
 
@@ -98,7 +109,11 @@ export function drawFrame(canvasId, frameData, saturationData) {
         const py  = gap + row * step;
 
         if (cellType === 2) {
-            const color32 = grazerPaletteU32[Math.min(7, (saturationData[i] || 0) & 0xFF)];
+            const saturation = (saturationData[i] || 0) & 0xFF;
+            const color32 = mode === "mutation"
+                ? mutationPalette[Math.min(mutationPalette.length - 1, saturation)]
+                : 0xFFCC44FF; // rgba(255,68,204,255) complementary to plant green
+
 
             // Detect top-left corner of a 2×2 grazer block.
             // Paint the whole block solid (covers internal gap) so the grazer
@@ -168,10 +183,12 @@ function drawEmpty(config) {
 
 const players = new Map();
 
-export function startPlayback(canvasId, delay, dynamicDelay, dotNetRef) {
+export function startPlayback(canvasId, delay, dynamicDelay, mode, generations, dotNetRef) {
     players.set(canvasId, {
         baseDelay: delay,
         dynamicDelay,
+        mode,
+        mutationPalette: buildMutationPalette(generations),
         dotNetRef,
         queue: [],
         currentBatch: null,
@@ -233,10 +250,13 @@ function tickPlayer(canvasId) {
 
     // Resolve stat elements once and cache them on the player object
     if (!player.statEls) {
-        const saturationEls = new Array(8);
-        for (let s = 0; s < 8; s++) {
-            saturationEls[s] = document.getElementById(`stat-grazer-${s}`);
-        }
+        const saturationEls = Array.from(document.querySelectorAll('[id^="stat-grazer-"]'))
+            .sort((a, b) => {
+                const aIndex = Number.parseInt(a.id.replace('stat-grazer-', ''), 10);
+                const bIndex = Number.parseInt(b.id.replace('stat-grazer-', ''), 10);
+                return aIndex - bIndex;
+            });
+
         player.statEls = {
             step:       document.getElementById('stat-step'),
             plant:      document.getElementById('stat-plants'),
@@ -266,7 +286,7 @@ function tickPlayer(canvasId) {
     const types = batch.allTypes.subarray(offset, offset + batch.cellCount);
     const saturation = batch.allSaturation.subarray(offset, offset + batch.cellCount);
 
-    drawFrame(canvasId, types, saturation);
+    drawFrame(canvasId, types, saturation, player.mode, player.mutationPalette);
 
     if (!player.hasNotifiedStart) {
         player.hasNotifiedStart = true;

@@ -2,7 +2,7 @@
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 
-<canvas id="@CanvasId" class="@CanvasClass"></canvas>
+<canvas id="@CanvasId" class="@CanvasClass" style="@CanvasStyle"></canvas>
 
 @code {
     private IJSObjectReference? plotModule;
@@ -39,6 +39,9 @@
 
     [Parameter]
     public int Terms { get; set; } = 3000;
+
+    [Parameter]
+    public string? CanvasStyle { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

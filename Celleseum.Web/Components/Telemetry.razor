@@ -1,4 +1,5 @@
 @using Celleseum.Web.Components.Enums
+@using System.Linq
 
 <div class="@(IsCompleted || IsAnimating ? "plot-section" : "plot-section plot-section-hidden")">
     <div class="plot-row">
@@ -32,17 +33,19 @@
             }
             else
             {
-                <div class="saturation-badges saturation-badges-plot">
+                <div class="saturation-badges saturation-badges-plot" style="--saturation-count:@Math.Max(1, GrazerSaturationLevelCount);">
                     @for (var saturation = 0; saturation < GrazerSaturationLevelCount; saturation++)
                     {
                         <strong class="saturation-badge saturation-badge-@saturation"
                                 id="@($"stat-grazer-{saturation}")"
-                                title="@($"Saturation {saturation}")">@GetGrazerCountBySaturation(saturation)</strong>
+                                title="@($"Saturation {saturation}")"
+                                style="@GetSaturationColorStyle(saturation)">@GetGrazerCountBySaturation(saturation)</strong>
                     }
                 </div>
                 <PlotChart
                     CanvasId="plotGrazers"
                     CanvasClass="plot-canvas plot-canvas-grazers"
+                    CanvasStyle="@MutationGrazerPlotStyle"
                     Label="Grazers"
                     PlotBatch="@GrazerPlotBatch"
                     PlotBatchVersion="@PlotBatchVersion"
@@ -58,8 +61,6 @@
 </div>
 
 @code {
-    private const int GrazerSaturationLevelCount = 8;
-
     [Parameter]
     public bool IsAnimating { get; set; }
 
@@ -83,6 +84,9 @@
 
     [Parameter]
     public int[]? GrazerCountsBySaturation { get; set; }
+
+    [Parameter]
+    public int GrazerSaturationLevelCount { get; set; }
 
     [Parameter]
     public int Terms { get; set; } = 3000;
@@ -115,5 +119,59 @@
         }
 
         return GrazerCountsBySaturation[saturation];
+    }
+
+    private string MutationGrazerPlotStyle
+    {
+        get
+        {
+            if (GameMode != GameMode.Mutation || GrazerSaturationLevelCount <= 0)
+            {
+                return string.Empty;
+            }
+
+            var primary = GetSaturationColorCss(0);
+            var secondary = string.Join("|", Enumerable.Range(1, Math.Max(0, GrazerSaturationLevelCount - 1)).Select(GetSaturationColorCss));
+            return $"--plot-series-color: {primary}; --plot-series-colors: {secondary};";
+        }
+    }
+
+    private string GetSaturationColorStyle(int saturation)
+    {
+        if (GameMode != GameMode.Mutation || GrazerSaturationLevelCount <= 0)
+        {
+            return string.Empty;
+        }
+
+        return $"color: {GetSaturationColorCss(saturation)};";
+    }
+
+    private string GetSaturationColorCss(int saturation)
+    {
+        var sectionCount = GrazerSaturationLevelCount + 1d;
+        var hue = 120d - (360d / sectionCount) * (saturation + 1d);
+        while (hue < 0d)
+        {
+            hue += 360d;
+        }
+
+        var h = hue % 360d;
+        var x = 1d - Math.Abs((h / 60d % 2d) - 1d);
+
+        var (r1, g1, b1) = h switch
+        {
+            < 60d => (1d, x, 0d),
+            < 120d => (x, 1d, 0d),
+            < 180d => (0d, 1d, x),
+            < 240d => (0d, x, 1d),
+            < 300d => (x, 0d, 1d),
+            _ => (1d, 0d, x)
+        };
+
+        var r = (int)Math.Round(r1 * 255d);
+        var g = (int)Math.Round(g1 * 255d);
+        var b = (int)Math.Round(b1 * 255d);
+
+        return $"rgb({r}, {g}, {b})";
     }
 }

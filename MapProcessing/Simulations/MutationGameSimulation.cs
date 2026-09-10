@@ -5,8 +5,13 @@ namespace MapProcessing.Simulations
     /// </summary>
     public class MutationGameSimulation : GameSimulation
     {
-        public MutationGameSimulation(bool smartGrazer) : base(new MutationBreedProcessor(), new MutationMoveProcessor(smartGrazer))
+        private readonly int _grazerSaturationLevelCount;
+
+        protected override int GrazerSaturationLevelCount => _grazerSaturationLevelCount;
+
+        public MutationGameSimulation(bool smartGrazer, int generations) : base(new MutationBreedProcessor(generations), new MutationMoveProcessor(smartGrazer, generations))
         {
+            _grazerSaturationLevelCount = Math.Max(1, generations + 1);
         }
     }
 }

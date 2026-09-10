@@ -235,8 +235,16 @@ body {
 }
 
 .plot-card > .saturation-badges-plot {
-    width: fit-content;
+    width: 100%;
     margin: 0 auto var(--plot-badge-gap);
+    display: grid;
+    grid-template-columns: repeat(var(--saturation-count, 1), minmax(0, 1fr));
+    gap: 4px;
+}
+
+.plot-card > .saturation-badges-plot > .saturation-badge {
+    width: 100%;
+    min-width: 0;
 }
 
 .plot-card > .saturation-badge + .plot-canvas {

@@ -19,19 +19,19 @@ namespace MapProcessing
         /// </summary>
         public static IEnumerable<AreaData> ProcessMapFrames(Map map, int term = 3000, GameMode mode = GameMode.Simple, bool smartGrazer = false, int generations = 2)
         {
-            var simulation = CreateSimulation(mode, smartGrazer, generations);
+            var simulation = CreateSimulation(mode, smartGrazer, generations, map.Width);
             return simulation.GenerateFrames(map, term);
         }
 
         /// <summary>
         /// Create the appropriate simulation strategy for the given game mode.
         /// </summary>
-        private static GameSimulation CreateSimulation(GameMode mode, bool smartGrazer, int generations)
+        private static GameSimulation CreateSimulation(GameMode mode, bool smartGrazer, int generations, int size)
         {
             return mode switch
             {
                 GameMode.Simple => new SimpleGameSimulation(smartGrazer),
-                GameMode.Mutation => new MutationGameSimulation(smartGrazer, generations),
+                GameMode.Mutation => new MutationGameSimulation(smartGrazer, generations, size),
                 _ => new SimpleGameSimulation(smartGrazer)
             };
         }

@@ -27,10 +27,13 @@ namespace MapProcessing
         /// </summary>
         public IEnumerable<AreaData> GenerateFrames(Map map, int term)
         {
-            initialPopulationProcessor.Execute(map);
+            const int spawnThreshold = 1;
 
-            for (int i = 0; i < term && map.HasGrazers(); i++)
+            for (int i = 0; i < term && (i <= spawnThreshold || map.HasGrazers()); i++)
             {
+                if (i == spawnThreshold)
+                    initialPopulationProcessor.Execute(map);
+
                 ExecuteEpoch(map);
                 yield return map.SnapShotArea(IncludeGrazerCountsBySaturation, GrazerSaturationLevelCount);
                 map.IncrementEpoch();

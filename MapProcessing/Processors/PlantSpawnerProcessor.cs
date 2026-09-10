@@ -10,7 +10,7 @@ namespace MapProcessing
         public void Execute(Map map)
         {
             var random = map.GetRandom();
-            var amplifier = 0.025;
+            var amplifier = 0.05;
             var grazers = map.GetGrazers();
             var plants = map.GetPlants();
 

@@ -80,6 +80,7 @@ body {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     margin: 20px auto 20px;
+    background: #000000 
 }
 
 /* Simulation progress overlay — shown while frames are being loaded from the server */

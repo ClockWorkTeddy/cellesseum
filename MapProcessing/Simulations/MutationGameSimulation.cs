@@ -9,7 +9,7 @@ namespace MapProcessing.Simulations
 
         protected override int GrazerSaturationLevelCount => _grazerSaturationLevelCount;
 
-        public MutationGameSimulation(bool smartGrazer, int generations) : base(new MutationBreedProcessor(generations), new MutationMoveProcessor(smartGrazer, generations))
+        public MutationGameSimulation(bool smartGrazer, int generations, int size) : base(new MutationBreedProcessor(generations, size), new MutationMoveProcessor(smartGrazer, generations))
         {
             _grazerSaturationLevelCount = Math.Max(1, generations + 1);
         }

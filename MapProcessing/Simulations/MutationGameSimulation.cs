@@ -5,7 +5,7 @@ namespace MapProcessing.Simulations
     /// </summary>
     public class MutationGameSimulation : GameSimulation
     {
-        public MutationGameSimulation(bool smartGrazer) : base(new MutationBreedProcessor(), smartGrazer)
+        public MutationGameSimulation(bool smartGrazer) : base(new MutationBreedProcessor(), new MutationMoveProcessor(smartGrazer))
         {
         }
     }

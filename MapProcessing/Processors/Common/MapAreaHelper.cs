@@ -42,7 +42,29 @@ namespace MapProcessing
 
         public static bool IsCellFreeFor(Map map, int index, CellType cellType)
         {
-            return !((uint)index < (uint)(map.Width * map.Height) && map.GetCellType(index) == cellType);
+            return !((uint)index < (uint)(map.Width * map.Height) && (int)map.GetCellType(index) >= (int)cellType);
+        }
+
+        public static bool IsAreaFreeFor(Map map, int x, int y, int size, CellType cellType)
+        {
+            if (x < 0 || y < 0 || x + size > map.Width || y + size > map.Height)
+            {
+                return false;
+            }
+
+            for (int offsetY = 0; offsetY < size; offsetY++)
+            {
+                for (int offsetX = 0; offsetX < size; offsetX++)
+                {
+                    var index = (y + offsetY) * map.Width + x + offsetX;
+                    if (!IsCellFreeFor(map, index, cellType))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
     }
 }

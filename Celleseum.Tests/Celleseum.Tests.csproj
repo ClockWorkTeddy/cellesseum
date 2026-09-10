@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Celleseum.AppHost\Celleseum.AppHost.csproj" />
+    <ProjectReference Include="..\MapProcessing\MapProcessing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

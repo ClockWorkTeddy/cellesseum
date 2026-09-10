@@ -180,6 +180,7 @@ export function startPlayback(canvasId, delay, dynamicDelay, dotNetRef) {
         isPaused: false,
         isCompleted: false,
         isBuffering: true,
+        hasNotifiedStart: false,
         timerId: null
     });
 }
@@ -267,6 +268,11 @@ function tickPlayer(canvasId) {
 
     drawFrame(canvasId, types, saturation);
 
+    if (!player.hasNotifiedStart) {
+        player.hasNotifiedStart = true;
+        player.dotNetRef.invokeMethodAsync("OnPlaybackStarted");
+    }
+
     const absoluteFrame = batch.startFrame + frame;
     window.dispatchEvent(new CustomEvent('celleseum:frame', { detail: { frame: absoluteFrame } }));
 
@@ -332,6 +338,17 @@ export function stepPlayback(canvasId) {
         clearTimeout(player.timerId);
         player.timerId = null;
     }
+}
+
+export async function downloadFileFromStream(fileName, contentStreamReference) {
+    const arrayBuffer = await contentStreamReference.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: "application/x-msgpack" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
 }
 
 export function dispose(canvasId) {

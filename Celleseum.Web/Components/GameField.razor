@@ -3,28 +3,28 @@
     <div class="stats-bar">
         <span class="stats-item">
             <span class="stats-label">Step:</span>
-            <span class="saturation-badge" id="stat-step">@CurrentStep</span>
+            <span class="saturation-badge" id="stat-step">@displayedStep</span>
         </span>
         <span class="stats-item">
             <span class="stats-label">Plants:</span>
-            <strong class="saturation-badge lbl-green" id="stat-plants">@(PlantCount ?? 0)</strong>
+            <strong class="saturation-badge lbl-green" id="stat-plants">@displayedPlantCount</strong>
         </span>
         <span class="stats-item">
             <span class="stats-label">Grazers:</span>
-            <strong class="saturation-badge lbl-yellow" id="stat-grazers">@(GrazerCount ?? 0)</strong>
+            <strong class="saturation-badge lbl-yellow" id="stat-grazers">@displayedGrazerCount</strong>
         </span>
         <span class="stats-item">
             <span class="stats-label">Score:</span>
-            <strong class="saturation-badge lbl-orange" id="stat-score">@(NormalizedScore ?? 0)</strong>
+            <strong class="saturation-badge lbl-orange" id="stat-score">@displayedScore</strong>
         </span>
-    @if (!string.IsNullOrWhiteSpace(DownloadUrl))
+    @if (CanDownload)
     {
         <span class="stats-item">
-            <a class="service-button service-button-extra-small" href="@DownloadUrl" download>
+            <button class="service-button service-button-extra-small" type="button" @onclick="OnDownload">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
-            </a>
+            </button>
         </span>
     }
     </div>
@@ -32,11 +32,22 @@
 </div>
 
 @code {
+    private int displayedStep;
+    private int displayedPlantCount;
+    private int displayedGrazerCount;
+    private int displayedScore;
+
+    [Parameter]
+    public bool IsAnimating { get; set; }
+
     [Parameter]
     public int CurrentStep { get; set; }
 
     [Parameter]
-    public string? DownloadUrl { get; set; }
+    public bool CanDownload { get; set; }
+
+    [Parameter]
+    public EventCallback OnDownload { get; set; }
 
     [Parameter]
     public int? PlantCount { get; set; }
@@ -46,4 +57,17 @@
 
     [Parameter]
     public int? NormalizedScore { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (!IsAnimating)
+        {
+            return;
+        }
+
+        displayedStep = CurrentStep;
+        displayedPlantCount = PlantCount ?? 0;
+        displayedGrazerCount = GrazerCount ?? 0;
+        displayedScore = NormalizedScore ?? 0;
+    }
 }

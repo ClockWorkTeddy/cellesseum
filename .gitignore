@@ -85,3 +85,5 @@ obj/
 /Celleseum.Web/appsettings.Development.json
 /Celleseum.Web/obj/Debug/net10.0/Celleseum.Web.GeneratedMSBuildEditorConfig.editorconfig
 /Celleseum.Web/obj/Debug/net10.0/staticwebassets.removed.txt
+/Celleseum.Tests/bin/Debug/net10.0/.msCoverageSourceRootsMapping_Celleseum.Tests
+/Celleseum.Tests/bin/Debug/net10.0/CoverletSourceRootsMapping_Celleseum.Tests

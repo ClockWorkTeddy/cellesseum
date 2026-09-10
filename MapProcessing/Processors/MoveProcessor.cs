@@ -7,7 +7,7 @@ namespace MapProcessing
     /// </summary>
     public class MoveProcessor : IProcessor
     {
-        private readonly bool smartGrazer;
+        protected readonly bool smartGrazer;
 
         public MoveProcessor(bool smartGrazer = false)
         {
@@ -86,9 +86,14 @@ namespace MapProcessing
                 return creature.Location;
             }
 
-            return smartGrazer
+            return ShouldUseSmartMovement(creature)
                 ? GetBestPlantSeekingPosition(map, creature, candidates)
                 : GetRandomPosition(map, candidates);
+        }
+
+        protected virtual bool ShouldUseSmartMovement(Creature creature)
+        {
+            return smartGrazer;
         }
 
         private static List<Point> GetValidNeighborPositions(Map map, Creature creature)
@@ -119,7 +124,7 @@ namespace MapProcessing
                         continue;
                     }
 
-                    if (!MapAreaHelper.IsCellFreeFor(map, newY * map.Width + newX, CellType.Grazer))
+                    if (!MapAreaHelper.IsAreaFreeFor(map, newX, newY, creature.Size, CellType.Grazer))
                     {
                         continue;
                     }

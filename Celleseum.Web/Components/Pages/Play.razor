@@ -2,6 +2,7 @@
 @using Celleseum.Data
 @using Celleseum.Web.Components.Buttons
 @using MapProcessing
+@using MessagePack
 @using Celleseum.Web.Components.Enums
 @using System.Security.Claims
 @rendermode InteractiveServer
@@ -32,19 +33,21 @@
         }
 
         <GameField
+          IsAnimating="@isAnimating"
           CurrentStep="@currentFrame"
           PlantCount="@CurrentFrame?.PlantCount"
           GrazerCount="@CurrentFrame?.GrazerCount"
           NormalizedScore="@CurrentFrame?.NormalizedScore"
-          DownloadUrl="@(showDownloadButton ? downloadUrl : null)" />
-        @if (isLoading)
+          CanDownload="@showDownloadButton"
+          OnDownload="DownloadPlayedMapAsync" />
+        @if (isLoading || isTransferring)
         {
             <div class="sim-loading-overlay">
-                <div class="sim-loading-label">Simulating…</div>
+                <div class="sim-loading-label">@(isLoading ? "Simulating..." : "Transferring to browser...")</div>
                 <div class="sim-progress-track">
-                    <div class="sim-progress-fill" style="width:@(loadedFrames * 100 / Math.Max(1, plotTerms))%"></div>
+                    <div class="sim-progress-fill" style="width:@ProgressPercent%"></div>
                 </div>
-                <div class="sim-loading-counter">@loadedFrames / @plotTerms frames</div>
+                <div class="sim-loading-counter">@ProgressCurrent / @ProgressTotal frames</div>
             </div>
         }
         <PlaybackControls
@@ -114,11 +117,12 @@
     private bool isAuthenticated;
     private bool isLoading;
     private int loadedFrames;
+    private bool isTransferring;
+    private int transferredFrames;
     private bool isAnimating;
     private bool isPaused;
     private bool isCompleted;
     private bool showDownloadButton;
-    private string? downloadUrl;
     private readonly List<AreaData> data = new();
     private int currentFrame;
     private int nextFrameStart;
@@ -159,6 +163,12 @@
         data.Count > 0 && currentFrame >= 0 && currentFrame < data.Count
             ? data[currentFrame]
             : null;
+
+    private int ProgressCurrent => isLoading ? loadedFrames : transferredFrames;
+
+    private int ProgressTotal => Math.Max(1, isLoading ? plotTerms : data.Count);
+
+    private int ProgressPercent => Math.Min(100, ProgressCurrent * 100 / ProgressTotal);
 
     private async Task HandleBackAsync()
     {
@@ -211,18 +221,18 @@
 
     private async Task GetData()
     {
-        if (isAnimating || jsModule is null || !gridInitialized || !string.IsNullOrWhiteSpace(setupError))
+        if (isLoading || isTransferring || isAnimating || jsModule is null || !gridInitialized || !string.IsNullOrWhiteSpace(setupError))
         {
             return;
         }
 
-        isAnimating = true;
         isLoading = true;
+        isTransferring = false;
         loadedFrames = 0;
+        transferredFrames = 0;
         isCompleted = false;
         isPaused = false;
         showDownloadButton = false;
-        downloadUrl = null;
 
         data.Clear();
         currentFrame = 0;
@@ -266,6 +276,8 @@
             }
 
             isLoading = false;
+            isTransferring = true;
+            transferredFrames = 0;
             await InvokeAsync(StateHasChanged);
 
             // Phase 2: all frames are in memory — queue them to JS in batches and play.
@@ -274,16 +286,19 @@
             playbackCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dotNetRef ??= DotNetObjectReference.Create(this);
 
-            downloadUrl = MapApi.GetDownloadUrl(gridWidth, gridHeight, simulationMode, plotTerms, smartGrazerEnabled);
             await jsModule.InvokeVoidAsync("startPlayback", "cellCanvas", animationDelayMilliseconds, dynamicDelayEnabled, dotNetRef);
-            showDownloadButton = isAnimating;
             await InvokeAsync(StateHasChanged);
 
             for (var i = 0; i < data.Count; i += BatchSize)
             {
                 var batch = data.GetRange(i, Math.Min(BatchSize, data.Count - i));
                 await QueueBatchAsync(batch);
+                transferredFrames = Math.Min(data.Count, i + batch.Count);
+                await InvokeAsync(StateHasChanged);
             }
+
+            isTransferring = false;
+            await InvokeAsync(StateHasChanged);
 
             await SaveResultAsync();
 
@@ -293,6 +308,7 @@
         finally
         {
             isLoading = false;
+            isTransferring = false;
             isAnimating = false;
             isCompleted = data.Count > 0;
             currentFrame = Math.Max(data.Count - 1, 0);
@@ -300,7 +316,37 @@
         }
     }
 
-        private async Task TogglePause()
+    private async Task DownloadPlayedMapAsync()
+    {
+        if (jsModule is null || data.Count == 0)
+        {
+            return;
+        }
+
+        var simulationMode = string.Equals(Mode, "mutation", StringComparison.OrdinalIgnoreCase)
+            ? "mutation"
+            : "simple";
+        var export = new MapExport
+        {
+            Width = gridWidth,
+            Height = gridHeight,
+            Mode = simulationMode,
+            Terms = plotTerms,
+            Frames = data.ToList()
+        };
+        var options = MessagePackSerializerOptions.Standard
+            .WithCompression(MessagePackCompression.Lz4BlockArray);
+
+        await using var stream = new MemoryStream();
+        await MessagePackSerializer.SerializeAsync(stream, export, options);
+        stream.Position = 0;
+
+        using var streamReference = new DotNetStreamReference(stream);
+        var fileName = $"map-{gridWidth}x{gridHeight}-{DateTime.UtcNow:yyyyMMddHHmmss}.mpk";
+        await jsModule.InvokeVoidAsync("downloadFileFromStream", fileName, streamReference);
+    }
+
+    private async Task TogglePause()
     {
         if (jsModule is null) return;
 
@@ -503,6 +549,19 @@
         {
             Logger.LogError(ex, "Failed to persist simulation result.");
         }
+    }
+
+    [JSInvokable]
+    public async Task OnPlaybackStarted()
+    {
+        if (isAnimating)
+        {
+            return;
+        }
+
+        isAnimating = true;
+        showDownloadButton = true;
+        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]

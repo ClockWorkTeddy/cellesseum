@@ -17,7 +17,7 @@ namespace MapProcessing
             {
                 if (saturation == 7)
                 {
-                    direction = -1;
+                    direction = 0;
                 }
                 else if (saturation == byte.MinValue)
                 {

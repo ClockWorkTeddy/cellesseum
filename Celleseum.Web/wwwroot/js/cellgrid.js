@@ -63,6 +63,18 @@ export function initCanvas(canvasId, gridWidth, gridHeight, cellSize, gap, lineE
     canvas.width  = totalWidth;
     canvas.height = totalHeight;
 
+    const card = canvas.closest('.card');
+    if (card) {
+        const maxCardWidth = 600;
+        const cardPadding = 25;
+        const targetCardWidth = Math.max(maxCardWidth, totalWidth + (cardPadding * 2));
+
+        card.style.boxSizing = 'border-box';
+        card.style.padding = `${cardPadding}px`;
+        card.style.width = `${targetCardWidth}px`;
+        card.style.maxWidth = `${targetCardWidth}px`;
+    }
+
     const ctx = canvas.getContext("2d");
     const config = { gridWidth, gridHeight, cellSize, gap, lineEvery, step, totalWidth, totalHeight, ctx };
     grids.set(canvasId, config);
@@ -198,7 +210,8 @@ export function startPlayback(canvasId, delay, dynamicDelay, mode, generations, 
         isCompleted: false,
         isBuffering: true,
         hasNotifiedStart: false,
-        timerId: null
+        timerId: null,
+        lastFrameIndex: -1
     });
 }
 
@@ -206,6 +219,9 @@ export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, gr
     const config = grids.get(canvasId);
     const player = players.get(canvasId);
     if (!config || !player) return;
+
+    const frameCount = plantCounts.length;
+    const lastFrameInBatch = startFrame + frameCount - 1;
 
     player.queue.push({
         allTypes,
@@ -215,9 +231,14 @@ export function enqueueFrames(canvasId, allTypes, allSaturation, plantCounts, gr
         score,
         grazerSaturationCounts,
         startFrame,
-        frameCount: plantCounts.length,
+        frameCount,
         cellCount: config.gridWidth * config.gridHeight
     });
+
+    // Track the highest frame index seen
+    if (lastFrameInBatch > player.lastFrameIndex) {
+        player.lastFrameIndex = lastFrameInBatch;
+    }
 
     if (!player.isBuffering && !player.isPaused && !player.isPlaying) {
         player.isPlaying = true;
@@ -241,6 +262,39 @@ export function completePlayback(canvasId) {
     if (!player.isPlaying && player.queue.length === 0 && !player.currentBatch) {
         player.dotNetRef.invokeMethodAsync("OnPlaybackComplete");
     }
+}
+
+export function storePlotData(canvasId, frames) {
+    // Store plot data directly in the plots Map for later finalization
+    // This bypasses any component render delays
+    if (!window.__celleseum_plots) {
+        window.__celleseum_plots = {};
+    }
+    window.__celleseum_plots[canvasId] = frames;
+}
+
+export async function finalizePlots(canvasIds) {
+    // Give Blazor time to render any pending plot updates before we finalize
+    // This is critical because plot component updates can be coalesced by Blazor's render scheduler
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    // Push stored plot data if available
+    if (window.__celleseum_plots) {
+        try {
+            const plotModule = await import('./plot.js');
+            for (const canvasId of canvasIds) {
+                if (window.__celleseum_plots[canvasId]) {
+                    plotModule.pushFrames(canvasId, window.__celleseum_plots[canvasId]);
+                }
+            }
+        } catch (e) {
+            console.warn('Error pushing stored plot data:', e);
+        }
+    }
+
+    // Dispatch event to all plot canvases to show all available data
+    // Each plot will handle this event and redraw with all its data
+    window.dispatchEvent(new CustomEvent('celleseum:showAllPlots', { detail: { canvasIds } }));
 }
 
 function tickPlayer(canvasId) {
@@ -275,7 +329,13 @@ function tickPlayer(canvasId) {
     if (!player.currentBatch) {
         player.isPlaying = false;
         if (player.isCompleted) {
-            player.dotNetRef.invokeMethodAsync("OnPlaybackComplete");
+            // Dispatch a final frame event before notifying completion.
+            setTimeout(() => {
+                if (player.lastFrameIndex >= 0) {
+                    window.dispatchEvent(new CustomEvent('celleseum:frame', { detail: { frame: player.lastFrameIndex } }));
+                }
+                player.dotNetRef.invokeMethodAsync("OnPlaybackComplete");
+            }, 200);
         }
         return;
     }

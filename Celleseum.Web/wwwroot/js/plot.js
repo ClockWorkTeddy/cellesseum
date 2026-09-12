@@ -4,7 +4,7 @@ export function initPlot(canvasId, label, totalSteps, windowSize = null, vertica
     const canvas = document.getElementById(canvasId);
     if (!canvas) return false;
 
-    const { color, gridColor, seriesColors } = resolvePlotColors(canvas);
+    const { color, gridColor, seriesColors, primaryLineWidth, secondaryLineWidth, primaryFillAlpha } = resolvePlotColors(canvas);
     const normalizedWindowSize = Number.isFinite(windowSize) && windowSize > 0 ? Math.floor(windowSize) : null;
 
     const onFrame = (e) => {
@@ -14,8 +14,50 @@ export function initPlot(canvasId, label, totalSteps, windowSize = null, vertica
         redraw(canvasId);
     };
 
+    const onShowAll = (e) => {
+        const requestedCanvasIds = e?.detail?.canvasIds;
+        if (Array.isArray(requestedCanvasIds) && requestedCanvasIds.length > 0 && !requestedCanvasIds.includes(canvasId)) {
+            return;
+        }
+
+        const state = plots.get(canvasId);
+        if (!state) return;
+
+        let maxPoints = 0;
+        if (Array.isArray(state.seriesData)) {
+            for (let s = 0; s < state.seriesData.length; s++) {
+                const series = state.seriesData[s];
+                if (Array.isArray(series) && series.length > maxPoints) {
+                    maxPoints = series.length;
+                }
+            }
+        }
+
+        if (maxPoints > 0) {
+            state.displayUpTo = maxPoints - 1;
+            redraw(canvasId);
+        }
+    };
+
     window.addEventListener('celleseum:frame', onFrame);
-    plots.set(canvasId, { seriesData: [], color, gridColor, seriesColors, label, totalSteps, windowSize: normalizedWindowSize, displayUpTo: -1, onFrame, verticalGridGap, horizontalGridGap });
+    window.addEventListener('celleseum:showAllPlots', onShowAll);
+    plots.set(canvasId, { 
+        seriesData: [], 
+        color, 
+        gridColor, 
+        seriesColors,
+        primaryLineWidth,
+        secondaryLineWidth,
+        primaryFillAlpha,
+        label, 
+        totalSteps, 
+        windowSize: normalizedWindowSize, 
+        displayUpTo: -1, 
+        onFrame, 
+        onShowAll,
+        verticalGridGap, 
+        horizontalGridGap 
+    });
     return true;
 }
 
@@ -40,16 +82,15 @@ export function resetPlot(canvasId) {
 
 export function disposePlot(canvasId) {
     const state = plots.get(canvasId);
-    if (state?.onFrame) {
-        window.removeEventListener('celleseum:frame', state.onFrame);
+    if (state) {
+        if (state.onFrame) {
+            window.removeEventListener('celleseum:frame', state.onFrame);
+        }
+        if (state.onShowAll) {
+            window.removeEventListener('celleseum:showAllPlots', state.onShowAll);
+        }
     }
     plots.delete(canvasId);
-}
-
-function maxOf(arr, n) {
-    let m = 0;
-    for (let i = 0; i < n; i++) if (arr[i] > m) m = arr[i];
-    return m;
 }
 
 function maxOfSeries(seriesList, start, end) {
@@ -76,7 +117,17 @@ function resolvePlotColors(canvas) {
         ? rawSeriesColors.split('|').map((c) => c.trim()).filter((c) => c.length > 0)
         : [];
 
-    return { color, gridColor, seriesColors };
+    const rawPrimaryLineWidth = Number.parseFloat(styles.getPropertyValue('--plot-primary-line-width'));
+    const rawSecondaryLineWidth = Number.parseFloat(styles.getPropertyValue('--plot-secondary-line-width'));
+    const rawPrimaryFillAlpha = Number.parseFloat(styles.getPropertyValue('--plot-primary-fill-alpha'));
+
+    const primaryLineWidth = Number.isFinite(rawPrimaryLineWidth) && rawPrimaryLineWidth > 0 ? rawPrimaryLineWidth : 2;
+    const secondaryLineWidth = Number.isFinite(rawSecondaryLineWidth) && rawSecondaryLineWidth > 0 ? rawSecondaryLineWidth : 1;
+    const primaryFillAlpha = Number.isFinite(rawPrimaryFillAlpha)
+        ? Math.max(0, Math.min(1, rawPrimaryFillAlpha))
+        : 0.1;
+
+    return { color, gridColor, seriesColors, primaryLineWidth, secondaryLineWidth, primaryFillAlpha };
 }
 
 function getPlotPoint(i, totalSteps, pW, padLeft, seriesTop, seriesHeight, value, max) {
@@ -162,7 +213,7 @@ function drawCurrentPositionMarker(ctx, markerX, topY, bottomY, markerColor) {
     ctx.stroke();
 }
 
-function drawSeriesSegments(ctx, points, color, lineWeight, baselineY, fillColor) {
+function drawSeriesSegments(ctx, points, color, lineWeight, baselineY, fillColor, fillAlpha = 0.1) {
     let segment = [];
 
     const drawSegment = () => {
@@ -171,7 +222,7 @@ function drawSeriesSegments(ctx, points, color, lineWeight, baselineY, fillColor
             return;
         }
 
-        if (fillColor) {
+        if (fillColor && fillAlpha > 0) {
             ctx.beginPath();
             ctx.moveTo(segment[0].x, segment[0].y);
             for (let i = 1; i < segment.length; i++) {
@@ -181,7 +232,7 @@ function drawSeriesSegments(ctx, points, color, lineWeight, baselineY, fillColor
             ctx.lineTo(segment[0].x, baselineY);
             ctx.closePath();
             ctx.fillStyle = fillColor;
-            ctx.globalAlpha = 0.1;
+            ctx.globalAlpha = fillAlpha;
             ctx.fill();
         }
 
@@ -228,7 +279,7 @@ function redraw(canvasId) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
-    const { seriesData, color, gridColor, seriesColors, totalSteps, windowSize, displayUpTo, verticalGridGap, horizontalGridGap } = state;
+    const { seriesData, color, gridColor, seriesColors, primaryLineWidth, secondaryLineWidth, primaryFillAlpha, totalSteps, windowSize, displayUpTo, verticalGridGap, horizontalGridGap } = state;
     const hasSeriesData = Array.isArray(seriesData) && seriesData.length > 0;
     const allSeries = hasSeriesData ? [...seriesData] : [];
 
@@ -263,7 +314,6 @@ function redraw(canvasId) {
     const seriesHeight = pH - seriesTopInset;
     const plotStepCount = windowSize ? Math.max(windowSize, 2) : totalSteps;
     const plotSpanWidth = windowSize ? pW * 0.5 : pW;
-    let lineWeight = 1;
     drawVerticalGrid(ctx, gridColor, visibleStart, plotStepCount, pad, pW, plotSpanWidth, axisY, verticalGridGap);
     drawPlotBorder(ctx, axisX, axisY, pad, pW, color);
 
@@ -286,12 +336,11 @@ function redraw(canvasId) {
         }
 
         const seriesColor = getSeriesColor(seriesIndex, color, seriesColors);
-        if (seriesIndex === 0) {
-            lineWeight = 2;
-        }
+        const lineWeight = seriesIndex === 0 ? primaryLineWidth : secondaryLineWidth;
 
         const baselineY = seriesTop + seriesHeight;
-        drawSeriesSegments(ctx, points, seriesColor, lineWeight, baselineY, seriesIndex === 0 ? color : null);
+        const fillColor = seriesIndex === 0 ? color : null;
+        drawSeriesSegments(ctx, points, seriesColor, lineWeight, baselineY, fillColor, primaryFillAlpha);
     }
 
     const latestIndex = visibleEnd - 1;

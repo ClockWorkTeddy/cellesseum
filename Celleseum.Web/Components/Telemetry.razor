@@ -132,7 +132,7 @@
 
             var primary = GetSaturationColorCss(0);
             var secondary = string.Join("|", Enumerable.Range(1, Math.Max(0, GrazerSaturationLevelCount - 1)).Select(GetSaturationColorCss));
-            return $"--plot-series-color: {primary}; --plot-series-colors: {secondary};";
+            return $"--plot-series-color: {primary}; --plot-series-colors: {secondary}; --plot-primary-fill-alpha: 0; --plot-primary-line-width: 1; --plot-secondary-line-width: 1;";
         }
     }
 

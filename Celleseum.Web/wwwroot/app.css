@@ -224,7 +224,7 @@ body {
 .plot-card {
     position: relative;
     flex: 1 1 0;
-    max-width: 300px;
+    min-width: 0;
     --plot-badge-gap: 8px;
     --plot-canvas-margin: 0;
 }
@@ -275,6 +275,7 @@ body {
 
 .plot-row {
     display: flex;
+    width: 100%;
     gap: 8px;
     margin: 0;
 }

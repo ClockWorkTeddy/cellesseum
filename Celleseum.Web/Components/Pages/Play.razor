@@ -482,6 +482,20 @@
 
         plotBatch = unifiedPlotBatch;
         plotBatchVersion++;
+
+        // Push plot data directly to JS to ensure it's available even if component renders are coalesced
+        try
+        {
+            await jsModule.InvokeVoidAsync("storePlotData", "plotPlants", new[] { unifiedPlotBatch[0] });
+            if (unifiedPlotBatch.Length > 1)
+            {
+                var grazerSeries = new int[unifiedPlotBatch.Length - 1][];
+                Array.Copy(unifiedPlotBatch, 1, grazerSeries, 0, unifiedPlotBatch.Length - 1);
+                await jsModule.InvokeVoidAsync("storePlotData", "plotGrazers", grazerSeries);
+            }
+        }
+        catch { /* Ignore errors - component render will handle it */ }
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -598,8 +612,22 @@
     }
 
     [JSInvokable]
-    public void OnPlaybackComplete()
+    public async Task OnPlaybackComplete()
     {
+        // Finalize all plot displays to show all data
+        if (jsModule is not null)
+        {
+            try
+            {
+                // Just finalize - the data should already be in the plots from QueueBatchAsync
+                await jsModule.InvokeAsync<object>("finalizePlots", new[] { "plotPlants", "plotGrazers" });
+            }
+            catch (JSException ex)
+            {
+                Logger.LogError(ex, "Error finalizing plots");
+            }
+        }
+
         playbackCompletion?.TrySetResult(true);
     }
 
